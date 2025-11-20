@@ -165,6 +165,13 @@ const Invoice = () => {
     return calculateTotal() - discount;
   };
 
+  const calculateChange = () => {
+    if (!paidAmount) return 0;
+    const paid = parseFloat(paidAmount);
+    const final = calculateFinalAmount();
+    return paid > final ? paid - final : 0;
+  };
+
   const saveInvoice = async () => {
     if (items.length === 0) {
       toast.error("Please add at least one item");
@@ -194,11 +201,6 @@ const Invoice = () => {
     const totalAmount = calculateTotal();
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
-
-    if (paid > finalAmount) {
-      toast.error("Paid amount cannot be greater than final amount");
-      return;
-    }
 
     const { data: sale, error: saleError } = await supabase
       .from("sales")
@@ -262,11 +264,6 @@ const Invoice = () => {
     const totalAmount = calculateTotal();
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
-
-    if (paid > finalAmount) {
-      toast.error("Paid amount cannot be greater than final amount");
-      return;
-    }
 
     // Step 1: Restore stock for all original items first
     for (const originalItem of originalItems) {
@@ -577,16 +574,23 @@ const Invoice = () => {
                 <span>Total:</span>
                 <span className="text-success">Rs. {calculateFinalAmount().toFixed(2)}</span>
               </div>
-              {paidAmount && parseFloat(paidAmount) < calculateFinalAmount() && (
+              {paidAmount && parseFloat(paidAmount) !== calculateFinalAmount() && (
                 <>
                   <div className="flex justify-between text-sm text-primary">
                     <span>Paid:</span>
                     <span className="font-medium">Rs. {parseFloat(paidAmount).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-warning">
-                    <span>Remaining (Credit):</span>
-                    <span className="font-medium">Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}</span>
-                  </div>
+                  {parseFloat(paidAmount) < calculateFinalAmount() ? (
+                    <div className="flex justify-between text-sm text-warning">
+                      <span>Remaining (Credit):</span>
+                      <span className="font-medium">Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-sm text-success font-semibold">
+                      <span>Change to Return:</span>
+                      <span>Rs. {calculateChange().toFixed(2)}</span>
+                    </div>
+                  )}
                 </>
               )}
             </div>
