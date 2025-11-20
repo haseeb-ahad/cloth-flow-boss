@@ -268,6 +268,23 @@ const Invoice = () => {
       return;
     }
 
+    // Step 1: Restore stock for all original items first
+    for (const originalItem of originalItems) {
+      const { data: product } = await supabase
+        .from("products")
+        .select("stock_quantity")
+        .eq("id", originalItem.product_id)
+        .single();
+
+      if (product) {
+        await supabase
+          .from("products")
+          .update({ stock_quantity: product.stock_quantity + originalItem.quantity })
+          .eq("id", originalItem.product_id);
+      }
+    }
+
+    // Step 2: Update sale record
     await supabase.from("sales").update({
       customer_name: customerName || null,
       customer_phone: customerPhone || null,
@@ -278,8 +295,10 @@ const Invoice = () => {
       paid_amount: paid,
     }).eq("id", editSaleId);
 
+    // Step 3: Delete old sale items
     await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
 
+    // Step 4: Insert new sale items and deduct stock
     for (const item of items) {
       const profit = (item.unit_price - item.purchase_price) * item.quantity;
       await supabase.from("sale_items").insert({
@@ -292,45 +311,19 @@ const Invoice = () => {
         total_price: item.total_price,
         profit: profit,
       });
-    }
 
-    // Restore stock for returned items
-    for (const originalItem of originalItems) {
-      const newItem = items.find(i => i.product_id === originalItem.product_id);
-      const quantityDiff = originalItem.quantity - (newItem?.quantity || 0);
-      
-      if (quantityDiff !== 0) {
-        const { data: product } = await supabase
+      // Deduct stock for new quantities
+      const { data: product } = await supabase
+        .from("products")
+        .select("stock_quantity")
+        .eq("id", item.product_id)
+        .single();
+
+      if (product) {
+        await supabase
           .from("products")
-          .select("stock_quantity")
-          .eq("id", originalItem.product_id)
-          .single();
-
-        if (product) {
-          await supabase
-            .from("products")
-            .update({ stock_quantity: product.stock_quantity + quantityDiff })
-            .eq("id", originalItem.product_id);
-        }
-      }
-    }
-
-    // Handle new products added during edit
-    for (const item of items) {
-      const wasOriginal = originalItems.find(o => o.product_id === item.product_id);
-      if (!wasOriginal) {
-        const { data: product } = await supabase
-          .from("products")
-          .select("stock_quantity")
-          .eq("id", item.product_id)
-          .single();
-
-        if (product) {
-          await supabase
-            .from("products")
-            .update({ stock_quantity: product.stock_quantity - item.quantity })
-            .eq("id", item.product_id);
-        }
+          .update({ stock_quantity: product.stock_quantity - item.quantity })
+          .eq("id", item.product_id);
       }
     }
 
