@@ -26,6 +26,7 @@ const Inventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -47,6 +48,12 @@ const Inventory = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const confirmMessage = editingProduct 
+      ? "Are you sure you want to update this product?" 
+      : "Are you sure you want to add this product?";
+    
+    if (!confirm(confirmMessage)) return;
     
     const productData = {
       name: formData.name,
@@ -89,11 +96,21 @@ const Inventory = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      await supabase.from("products").delete().eq("id", id);
+  const handleDelete = async () => {
+    if (!editingProduct) return;
+    
+    if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      await supabase.from("products").delete().eq("id", editingProduct.id);
       toast.success("Product deleted successfully!");
       fetchProducts();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast.error("Failed to delete product");
     }
   };
 
@@ -229,9 +246,17 @@ const Inventory = () => {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full">
-                {editingProduct ? "Update Product" : "Add Product"}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">
+                  {editingProduct ? "Update Product" : "Add Product"}
+                </Button>
+                {editingProduct && (
+                  <Button type="button" onClick={handleDelete} variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
+              </div>
             </form>
           </DialogContent>
         </Dialog>
@@ -277,14 +302,9 @@ const Inventory = () => {
                 </TableCell>
                 <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
                 <TableCell className="text-center">
-                  <div className="flex gap-2 justify-center">
-                    <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="destructive" onClick={() => handleDelete(product.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

@@ -232,14 +232,16 @@ const Credits = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this credit record?")) {
-      try {
-        await supabase.from("credits").delete().eq("id", id);
-        toast.success("Credit deleted successfully!");
-        fetchCredits();
-      } catch (error) {
-        toast.error("Failed to delete credit");
-      }
+    if (!confirm("Are you sure you want to delete this credit record? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      await supabase.from("credits").delete().eq("id", id);
+      toast.success("Credit deleted successfully!");
+      fetchCredits();
+    } catch (error) {
+      toast.error("Failed to delete credit");
     }
   };
 
