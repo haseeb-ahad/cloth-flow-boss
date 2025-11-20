@@ -7,8 +7,7 @@ import {
   Package, 
   FileText, 
   CreditCard,
-  Store,
-  CalendarClock
+  Store
 } from "lucide-react";
 
 interface LayoutProps {
@@ -24,7 +23,6 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/inventory", icon: Package, label: "Inventory" },
     { path: "/sales", icon: FileText, label: "Sales History" },
     { path: "/credits", icon: CreditCard, label: "Credits" },
-    { path: "/installments", icon: CalendarClock, label: "Installments" },
   ];
 
   return (
