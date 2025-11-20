@@ -39,10 +39,36 @@ const Invoice = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paidAmount, setPaidAmount] = useState("");
   const [openProductIndex, setOpenProductIndex] = useState<number | null>(null);
+  const [customerSuggestions, setCustomerSuggestions] = useState<string[]>([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
 
   useEffect(() => {
     fetchProducts();
+    fetchCustomerNames();
   }, []);
+
+  const fetchCustomerNames = async () => {
+    const { data: salesData } = await supabase.from("sales").select("customer_name").not("customer_name", "is", null);
+    const { data: creditsData } = await supabase.from("credits").select("customer_name");
+    
+    const names = new Set<string>();
+    salesData?.forEach(s => s.customer_name && names.add(s.customer_name));
+    creditsData?.forEach(c => c.customer_name && names.add(c.customer_name));
+    
+    setCustomerSuggestions(Array.from(names));
+  };
+
+  const handleCustomerNameChange = (value: string) => {
+    setCustomerName(value);
+    setShowCustomerSuggestions(value.length > 0);
+  };
+
+  const getFilteredCustomers = () => {
+    if (!customerName) return [];
+    return customerSuggestions.filter(name => 
+      name.toLowerCase().includes(customerName.toLowerCase())
+    ).slice(0, 5);
+  };
 
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").gt("stock_quantity", 0);
@@ -204,14 +230,32 @@ const Invoice = () => {
 
       <Card className="p-6">
         <div className="grid gap-4 md:grid-cols-2 mb-6">
-          <div>
+          <div className="relative">
             <Label htmlFor="customerName">Customer Name (Optional)</Label>
             <Input
               id="customerName"
               value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
+              onChange={(e) => handleCustomerNameChange(e.target.value)}
+              onFocus={() => setShowCustomerSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 200)}
               placeholder="Enter customer name"
             />
+            {showCustomerSuggestions && getFilteredCustomers().length > 0 && (
+              <Card className="absolute z-50 w-full mt-1 max-h-[200px] overflow-auto">
+                {getFilteredCustomers().map((name, idx) => (
+                  <div
+                    key={idx}
+                    className="px-3 py-2 hover:bg-muted cursor-pointer"
+                    onMouseDown={() => {
+                      setCustomerName(name);
+                      setShowCustomerSuggestions(false);
+                    }}
+                  >
+                    {name}
+                  </div>
+                ))}
+              </Card>
+            )}
           </div>
           <div>
             <Label htmlFor="customerPhone">Customer Phone (Optional)</Label>
@@ -260,7 +304,12 @@ const Invoice = () => {
                               }}
                             >
                               <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
-                              {product.name} (Stock: {product.stock_quantity})
+                              <div className="flex flex-col">
+                                <span>{product.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price}
+                                </span>
+                              </div>
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -273,8 +322,8 @@ const Invoice = () => {
                 <Label>Quantity</Label>
                 <Input
                   type="number"
-                  step="0.01"
-                  min="0.01"
+                  step="1"
+                  min="1"
                   value={item.quantity}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />

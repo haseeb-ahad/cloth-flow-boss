@@ -74,6 +74,9 @@ const Dashboard = () => {
       case "1year":
         start.setFullYear(now.getFullYear() - 1);
         break;
+      case "grand":
+        start = new Date(0); // Beginning of time
+        break;
       case "custom":
         if (startDate) start = startDate;
         break;
@@ -246,6 +249,7 @@ const Dashboard = () => {
               <SelectItem value="7days">7 Days</SelectItem>
               <SelectItem value="1month">1 Month</SelectItem>
               <SelectItem value="1year">1 Year</SelectItem>
+              <SelectItem value="grand">Grand Report</SelectItem>
               <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
