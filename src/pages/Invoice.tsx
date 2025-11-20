@@ -261,71 +261,101 @@ const Invoice = () => {
   };
 
   const updateSale = async () => {
-    const totalAmount = calculateTotal();
-    const finalAmount = calculateFinalAmount();
-    const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
+    try {
+      const totalAmount = calculateTotal();
+      const finalAmount = calculateFinalAmount();
+      const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
-    // Step 1: Restore stock for all original items first
-    for (const originalItem of originalItems) {
-      const { data: product } = await supabase
-        .from("products")
-        .select("stock_quantity")
-        .eq("id", originalItem.product_id)
-        .single();
-
-      if (product) {
-        await supabase
+      // Step 1: Restore stock for all original items first
+      for (const originalItem of originalItems) {
+        const { data: product, error: fetchError } = await supabase
           .from("products")
-          .update({ stock_quantity: product.stock_quantity + originalItem.quantity })
-          .eq("id", originalItem.product_id);
+          .select("stock_quantity")
+          .eq("id", originalItem.product_id)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error("Error fetching product:", fetchError);
+          continue;
+        }
+
+        if (product) {
+          const newStock = product.stock_quantity + originalItem.quantity;
+          const { error: updateError } = await supabase
+            .from("products")
+            .update({ stock_quantity: newStock })
+            .eq("id", originalItem.product_id);
+          
+          if (updateError) {
+            console.error("Error restoring stock:", updateError);
+          }
+        }
       }
-    }
 
-    // Step 2: Update sale record
-    await supabase.from("sales").update({
-      customer_name: customerName || null,
-      customer_phone: customerPhone || null,
-      total_amount: totalAmount,
-      discount: discount,
-      final_amount: finalAmount,
-      payment_method: paymentMethod,
-      paid_amount: paid,
-    }).eq("id", editSaleId);
+      // Step 2: Update sale record
+      const { error: saleError } = await supabase.from("sales").update({
+        customer_name: customerName || null,
+        customer_phone: customerPhone || null,
+        total_amount: totalAmount,
+        discount: discount,
+        final_amount: finalAmount,
+        payment_method: paymentMethod,
+        paid_amount: paid,
+      }).eq("id", editSaleId);
 
-    // Step 3: Delete old sale items
-    await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+      if (saleError) {
+        toast.error("Failed to update sale");
+        return;
+      }
 
-    // Step 4: Insert new sale items and deduct stock
-    for (const item of items) {
-      const profit = (item.unit_price - item.purchase_price) * item.quantity;
-      await supabase.from("sale_items").insert({
-        sale_id: editSaleId,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        purchase_price: item.purchase_price,
-        total_price: item.total_price,
-        profit: profit,
-      });
+      // Step 3: Delete old sale items
+      await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
 
-      // Deduct stock for new quantities
-      const { data: product } = await supabase
-        .from("products")
-        .select("stock_quantity")
-        .eq("id", item.product_id)
-        .single();
+      // Step 4: Insert new sale items and deduct stock
+      for (const item of items) {
+        const profit = (item.unit_price - item.purchase_price) * item.quantity;
+        await supabase.from("sale_items").insert({
+          sale_id: editSaleId,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          purchase_price: item.purchase_price,
+          total_price: item.total_price,
+          profit: profit,
+        });
 
-      if (product) {
-        await supabase
+        // Deduct stock for new quantities
+        const { data: product, error: fetchError } = await supabase
           .from("products")
-          .update({ stock_quantity: product.stock_quantity - item.quantity })
-          .eq("id", item.product_id);
-      }
-    }
+          .select("stock_quantity")
+          .eq("id", item.product_id)
+          .maybeSingle();
 
-    toast.success("Sale updated successfully!");
-    navigate("/sales");
+        if (fetchError) {
+          console.error("Error fetching product:", fetchError);
+          continue;
+        }
+
+        if (product) {
+          const newStock = product.stock_quantity - item.quantity;
+          const { error: updateError } = await supabase
+            .from("products")
+            .update({ stock_quantity: newStock })
+            .eq("id", item.product_id);
+          
+          if (updateError) {
+            console.error("Error deducting stock:", updateError);
+          }
+        }
+      }
+
+      toast.success("Sale updated successfully! Stock has been adjusted.");
+      navigate("/sales");
+    } catch (error) {
+      console.error("Error updating sale:", error);
+      toast.error("Failed to update sale");
+    }
   };
 
   const handleDeleteSale = async () => {
