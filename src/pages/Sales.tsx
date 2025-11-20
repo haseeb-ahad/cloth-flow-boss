@@ -115,6 +115,7 @@ const Sales = () => {
       card: "bg-primary text-primary-foreground",
       online: "bg-accent text-accent-foreground",
       credit: "bg-warning text-warning-foreground",
+      installment: "bg-secondary text-secondary-foreground",
     };
     return (
       <Badge className={colors[method] || ""}>
@@ -206,14 +207,9 @@ const Sales = () => {
                   {getPaymentMethodBadge(sale.payment_method)}
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex gap-2 justify-center">
-                    <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="destructive" onClick={() => handleDelete(sale.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

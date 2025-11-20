@@ -48,6 +48,7 @@ const Invoice = () => {
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [originalItems, setOriginalItems] = useState<InvoiceItem[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -170,6 +171,12 @@ const Invoice = () => {
       return;
     }
 
+    const confirmMessage = editSaleId 
+      ? "Are you sure you want to update this sale?" 
+      : "Are you sure you want to create this invoice?";
+    
+    if (!confirm(confirmMessage)) return;
+
     try {
       if (editSaleId) {
         await updateSale();
@@ -287,11 +294,12 @@ const Invoice = () => {
       });
     }
 
+    // Restore stock for returned items
     for (const originalItem of originalItems) {
       const newItem = items.find(i => i.product_id === originalItem.product_id);
       const quantityDiff = originalItem.quantity - (newItem?.quantity || 0);
       
-      if (quantityDiff > 0) {
+      if (quantityDiff !== 0) {
         const { data: product } = await supabase
           .from("products")
           .select("stock_quantity")
@@ -307,8 +315,63 @@ const Invoice = () => {
       }
     }
 
+    // Handle new products added during edit
+    for (const item of items) {
+      const wasOriginal = originalItems.find(o => o.product_id === item.product_id);
+      if (!wasOriginal) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", item.product_id)
+          .single();
+
+        if (product) {
+          await supabase
+            .from("products")
+            .update({ stock_quantity: product.stock_quantity - item.quantity })
+            .eq("id", item.product_id);
+        }
+      }
+    }
+
     toast.success("Sale updated successfully!");
     navigate("/sales");
+  };
+
+  const handleDeleteSale = async () => {
+    if (!editSaleId) return;
+    if (!confirm("Are you sure you want to delete this sale? This action cannot be undone.")) return;
+
+    try {
+      const { data: saleItems } = await supabase
+        .from("sale_items")
+        .select("product_id, quantity")
+        .eq("sale_id", editSaleId);
+
+      if (saleItems) {
+        for (const item of saleItems) {
+          const { data: product } = await supabase
+            .from("products")
+            .select("stock_quantity")
+            .eq("id", item.product_id)
+            .single();
+
+          if (product) {
+            await supabase
+              .from("products")
+              .update({ stock_quantity: product.stock_quantity + item.quantity })
+              .eq("id", item.product_id);
+          }
+        }
+        await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+      }
+
+      await supabase.from("sales").delete().eq("id", editSaleId);
+      toast.success("Sale deleted successfully!");
+      navigate("/sales");
+    } catch (error) {
+      toast.error("Failed to delete sale");
+    }
   };
 
   const printInvoice = (invoiceNumber: string) => {
@@ -481,6 +544,7 @@ const Invoice = () => {
                   <SelectItem value="card">Card</SelectItem>
                   <SelectItem value="online">Online Transfer</SelectItem>
                   <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="installment">Installment</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -541,7 +605,12 @@ const Invoice = () => {
             <Printer className="h-4 w-4 mr-2" />
             {editSaleId ? "Update Sale" : "Save & Print"}
           </Button>
-          {!editSaleId && (
+          {editSaleId ? (
+            <Button onClick={handleDeleteSale} variant="destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          ) : (
             <Button onClick={resetForm} variant="outline">
               Reset
             </Button>
