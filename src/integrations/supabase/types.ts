@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          credit_id: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          transaction_date: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          credit_id: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          transaction_date?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          credit_id?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "credits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credits: {
         Row: {
           amount: number
@@ -64,6 +105,7 @@ export type Database = {
           id: string
           name: string
           purchase_price: number
+          quantity_type: string | null
           selling_price: number
           stock_quantity: number
           updated_at: string | null
@@ -75,6 +117,7 @@ export type Database = {
           id?: string
           name: string
           purchase_price: number
+          quantity_type?: string | null
           selling_price: number
           stock_quantity?: number
           updated_at?: string | null
@@ -86,6 +129,7 @@ export type Database = {
           id?: string
           name?: string
           purchase_price?: number
+          quantity_type?: string | null
           selling_price?: number
           stock_quantity?: number
           updated_at?: string | null
@@ -155,6 +199,7 @@ export type Database = {
           final_amount: number
           id: string
           invoice_number: string
+          paid_amount: number | null
           payment_method: string | null
           status: string | null
           total_amount: number
@@ -167,6 +212,7 @@ export type Database = {
           final_amount: number
           id?: string
           invoice_number: string
+          paid_amount?: number | null
           payment_method?: string | null
           status?: string | null
           total_amount: number
@@ -179,6 +225,7 @@ export type Database = {
           final_amount?: number
           id?: string
           invoice_number?: string
+          paid_amount?: number | null
           payment_method?: string | null
           status?: string | null
           total_amount?: number
