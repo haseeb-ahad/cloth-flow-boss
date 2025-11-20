@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Product {
   id: string;
@@ -14,6 +17,7 @@ interface Product {
   selling_price: number;
   purchase_price: number;
   stock_quantity: number;
+  quantity_type: string;
 }
 
 interface InvoiceItem {
@@ -23,6 +27,7 @@ interface InvoiceItem {
   unit_price: number;
   purchase_price: number;
   total_price: number;
+  quantity_type: string;
 }
 
 const Invoice = () => {
@@ -32,6 +37,8 @@ const Invoice = () => {
   const [customerPhone, setCustomerPhone] = useState("");
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paidAmount, setPaidAmount] = useState("");
+  const [openProductIndex, setOpenProductIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -50,6 +57,7 @@ const Invoice = () => {
       unit_price: 0,
       purchase_price: 0,
       total_price: 0,
+      quantity_type: "Unit",
     }]);
   };
 
@@ -68,11 +76,15 @@ const Invoice = () => {
           product_name: product.name,
           unit_price: product.selling_price,
           purchase_price: product.purchase_price,
+          quantity_type: product.quantity_type || "Unit",
           total_price: product.selling_price * newItems[index].quantity,
         };
       }
     } else if (field === "quantity") {
-      newItems[index].quantity = parseInt(value) || 0;
+      newItems[index].quantity = parseFloat(value) || 0;
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    } else if (field === "unit_price") {
+      newItems[index].unit_price = parseFloat(value) || 0;
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
     setItems(newItems);
@@ -96,6 +108,12 @@ const Invoice = () => {
       const invoiceNumber = `INV-${Date.now()}`;
       const totalAmount = calculateTotal();
       const finalAmount = calculateFinalAmount();
+      const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
+
+      if (paid > finalAmount) {
+        toast.error("Paid amount cannot be greater than final amount");
+        return;
+      }
 
       // Insert sale
       const { data: sale, error: saleError } = await supabase
@@ -108,6 +126,7 @@ const Invoice = () => {
           discount: discount,
           final_amount: finalAmount,
           payment_method: paymentMethod,
+          paid_amount: paid,
         })
         .select()
         .single();
@@ -139,8 +158,22 @@ const Invoice = () => {
         }
       }
 
+      // If partial payment, add to credits
+      if (paid < finalAmount) {
+        const creditAmount = finalAmount - paid;
+        await supabase.from("credits").insert({
+          customer_name: customerName || "Walk-in Customer",
+          customer_phone: customerPhone || null,
+          amount: creditAmount,
+          paid_amount: 0,
+          remaining_amount: creditAmount,
+          status: "pending",
+          notes: `Partial payment for invoice ${invoiceNumber}`,
+        });
+      }
+
       toast.success("Invoice created successfully!");
-      printInvoice(sale.invoice_number);
+      printInvoice(invoiceNumber);
       resetForm();
     } catch (error) {
       console.error(error);
@@ -158,6 +191,7 @@ const Invoice = () => {
     setCustomerPhone("");
     setDiscount(0);
     setPaymentMethod("cash");
+    setPaidAmount("");
     fetchProducts();
   };
 
@@ -201,47 +235,68 @@ const Invoice = () => {
 
           {items.map((item, index) => (
             <div key={index} className="grid gap-4 md:grid-cols-12 items-end border-b pb-4">
-              <div className="md:col-span-5">
+              <div className="md:col-span-4">
                 <Label>Product</Label>
-                <Select
-                  value={item.product_id}
-                  onValueChange={(value) => updateItem(index, "product_id", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} (Stock: {product.stock_quantity})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={openProductIndex === index} className="w-full justify-between">
+                      {item.product_name || "Select product..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search product..." />
+                      <CommandList>
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                          {products.map((product) => (
+                            <CommandItem
+                              key={product.id}
+                              value={product.name}
+                              onSelect={() => {
+                                updateItem(index, "product_id", product.id);
+                                setOpenProductIndex(null);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
+                              {product.name} (Stock: {product.stock_quantity})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="md:col-span-2">
                 <Label>Quantity</Label>
                 <Input
                   type="number"
-                  min="1"
+                  step="0.01"
+                  min="0.01"
                   value={item.quantity}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </div>
+              <div className="md:col-span-1">
+                <Label>Type</Label>
+                <Input type="text" value={item.quantity_type} disabled className="text-xs" />
+              </div>
               <div className="md:col-span-2">
                 <Label>Price</Label>
-                <Input type="number" value={item.unit_price} disabled />
+                <Input 
+                  type="number" 
+                  value={item.unit_price} 
+                  onChange={(e) => updateItem(index, "unit_price", e.target.value)}
+                />
               </div>
               <div className="md:col-span-2">
                 <Label>Total</Label>
-                <Input type="number" value={item.total_price} disabled />
+                <Input type="number" value={item.total_price.toFixed(2)} disabled />
               </div>
               <div className="md:col-span-1">
-                <Button
-                  onClick={() => removeItem(index)}
-                  variant="destructive"
-                  size="icon"
-                >
+                <Button onClick={() => removeItem(index)} variant="destructive" size="icon">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -249,18 +304,8 @@ const Invoice = () => {
           ))}
         </div>
 
-        <div className="space-y-4 border-t pt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <Label htmlFor="discount">Discount (PKR)</Label>
-              <Input
-                id="discount"
-                type="number"
-                min="0"
-                value={discount}
-                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-              />
-            </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
             <div>
               <Label htmlFor="paymentMethod">Payment Method</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -275,36 +320,66 @@ const Invoice = () => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="flex justify-between items-center text-lg font-semibold pt-4 border-t">
-            <span>Total Amount:</span>
-            <span className="text-2xl text-primary">
-              Rs. {calculateTotal().toFixed(2)}
-            </span>
-          </div>
-          {discount > 0 && (
-            <div className="flex justify-between items-center">
-              <span>Discount:</span>
-              <span className="text-destructive">- Rs. {discount.toFixed(2)}</span>
+            <div>
+              <Label htmlFor="discount">Discount</Label>
+              <Input
+                id="discount"
+                type="number"
+                value={discount}
+                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
             </div>
-          )}
-          <div className="flex justify-between items-center text-xl font-bold">
-            <span>Final Amount:</span>
-            <span className="text-2xl text-success">
-              Rs. {calculateFinalAmount().toFixed(2)}
-            </span>
+            <div>
+              <Label htmlFor="paidAmount">Paid Amount (Optional)</Label>
+              <Input
+                id="paidAmount"
+                type="number"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value)}
+                placeholder="Leave empty for full payment"
+              />
+            </div>
           </div>
+          
+          <Card className="p-4 bg-muted/50">
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span className="font-medium">Rs. {calculateTotal().toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-destructive">
+                <span>Discount:</span>
+                <span className="font-medium">- Rs. {discount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold border-t pt-3">
+                <span>Total:</span>
+                <span className="text-success">Rs. {calculateFinalAmount().toFixed(2)}</span>
+              </div>
+              {paidAmount && parseFloat(paidAmount) < calculateFinalAmount() && (
+                <>
+                  <div className="flex justify-between text-sm text-primary">
+                    <span>Paid:</span>
+                    <span className="font-medium">Rs. {parseFloat(paidAmount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-warning">
+                    <span>Remaining (Credit):</span>
+                    <span className="font-medium">Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+        </div>
 
-          <div className="flex gap-4 pt-4">
-            <Button onClick={saveInvoice} className="flex-1" size="lg">
-              <Printer className="h-4 w-4 mr-2" />
-              Save & Print Invoice
-            </Button>
-            <Button onClick={resetForm} variant="outline" size="lg">
-              Reset
-            </Button>
-          </div>
+        <div className="flex gap-2 mt-6">
+          <Button onClick={saveInvoice} className="flex-1">
+            <Printer className="h-4 w-4 mr-2" />
+            Save & Print
+          </Button>
+          <Button onClick={resetForm} variant="outline">
+            Reset
+          </Button>
         </div>
       </Card>
     </div>
