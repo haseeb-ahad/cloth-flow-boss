@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Product {
@@ -31,6 +32,10 @@ interface InvoiceItem {
 }
 
 const Invoice = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editSaleId = searchParams.get("edit");
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [customerName, setCustomerName] = useState("");
@@ -41,11 +46,16 @@ const Invoice = () => {
   const [openProductIndex, setOpenProductIndex] = useState<number | null>(null);
   const [customerSuggestions, setCustomerSuggestions] = useState<string[]>([]);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [originalItems, setOriginalItems] = useState<InvoiceItem[]>([]);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
 
   useEffect(() => {
     fetchProducts();
     fetchCustomerNames();
-  }, []);
+    if (editSaleId) {
+      loadSaleData(editSaleId);
+    }
+  }, [editSaleId]);
 
   const fetchCustomerNames = async () => {
     const { data: salesData } = await supabase.from("sales").select("customer_name").not("customer_name", "is", null);
@@ -70,8 +80,38 @@ const Invoice = () => {
     ).slice(0, 5);
   };
 
+  const loadSaleData = async (saleId: string) => {
+    try {
+      const { data: sale } = await supabase.from("sales").select("*").eq("id", saleId).single();
+      const { data: saleItems } = await supabase.from("sale_items").select("*").eq("sale_id", saleId);
+
+      if (sale && saleItems) {
+        setInvoiceNumber(sale.invoice_number);
+        setCustomerName(sale.customer_name || "");
+        setCustomerPhone(sale.customer_phone || "");
+        setDiscount(sale.discount || 0);
+        setPaymentMethod(sale.payment_method || "cash");
+        setPaidAmount(sale.paid_amount?.toString() || "");
+
+        const loadedItems = saleItems.map(item => ({
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          purchase_price: item.purchase_price,
+          total_price: item.total_price,
+          quantity_type: "Unit",
+        }));
+        setItems(loadedItems);
+        setOriginalItems(loadedItems);
+      }
+    } catch (error) {
+      toast.error("Failed to load sale data");
+    }
+  };
+
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*").gt("stock_quantity", 0);
+    const { data } = await supabase.from("products").select("*");
     if (data) setProducts(data);
   };
 
@@ -131,80 +171,144 @@ const Invoice = () => {
     }
 
     try {
-      const invoiceNumber = `INV-${Date.now()}`;
-      const totalAmount = calculateTotal();
-      const finalAmount = calculateFinalAmount();
-      const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
-
-      if (paid > finalAmount) {
-        toast.error("Paid amount cannot be greater than final amount");
-        return;
+      if (editSaleId) {
+        await updateSale();
+      } else {
+        await createSale();
       }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save invoice");
+    }
+  };
 
-      // Insert sale
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .insert({
-          invoice_number: invoiceNumber,
-          customer_name: customerName || null,
-          customer_phone: customerPhone || null,
-          total_amount: totalAmount,
-          discount: discount,
-          final_amount: finalAmount,
-          payment_method: paymentMethod,
-          paid_amount: paid,
-        })
-        .select()
-        .single();
+  const createSale = async () => {
+    const newInvoiceNumber = `INV-${Date.now()}`;
+    const totalAmount = calculateTotal();
+    const finalAmount = calculateFinalAmount();
+    const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
-      if (saleError) throw saleError;
+    if (paid > finalAmount) {
+      toast.error("Paid amount cannot be greater than final amount");
+      return;
+    }
 
-      // Insert sale items and update stock
-      for (const item of items) {
-        const profit = (item.unit_price - item.purchase_price) * item.quantity;
-        
-        await supabase.from("sale_items").insert({
-          sale_id: sale.id,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          purchase_price: item.purchase_price,
-          total_price: item.total_price,
-          profit: profit,
-        });
+    const { data: sale, error: saleError } = await supabase
+      .from("sales")
+      .insert({
+        invoice_number: newInvoiceNumber,
+        customer_name: customerName || null,
+        customer_phone: customerPhone || null,
+        total_amount: totalAmount,
+        discount: discount,
+        final_amount: finalAmount,
+        payment_method: paymentMethod,
+        paid_amount: paid,
+      })
+      .select()
+      .single();
 
-        // Update stock
-        const product = products.find(p => p.id === item.product_id);
+    if (saleError) throw saleError;
+
+    for (const item of items) {
+      const profit = (item.unit_price - item.purchase_price) * item.quantity;
+      
+      await supabase.from("sale_items").insert({
+        sale_id: sale.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        purchase_price: item.purchase_price,
+        total_price: item.total_price,
+        profit: profit,
+      });
+
+      const product = products.find(p => p.id === item.product_id);
+      if (product) {
+        await supabase
+          .from("products")
+          .update({ stock_quantity: product.stock_quantity - item.quantity })
+          .eq("id", item.product_id);
+      }
+    }
+
+    if (paid < finalAmount) {
+      const creditAmount = finalAmount - paid;
+      await supabase.from("credits").insert({
+        customer_name: customerName || "Walk-in Customer",
+        customer_phone: customerPhone || null,
+        amount: creditAmount,
+        paid_amount: 0,
+        remaining_amount: creditAmount,
+        status: "pending",
+        notes: `Partial payment for invoice ${newInvoiceNumber}`,
+      });
+    }
+
+    toast.success("Invoice created successfully!");
+    printInvoice(newInvoiceNumber);
+    resetForm();
+  };
+
+  const updateSale = async () => {
+    const totalAmount = calculateTotal();
+    const finalAmount = calculateFinalAmount();
+    const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
+
+    if (paid > finalAmount) {
+      toast.error("Paid amount cannot be greater than final amount");
+      return;
+    }
+
+    await supabase.from("sales").update({
+      customer_name: customerName || null,
+      customer_phone: customerPhone || null,
+      total_amount: totalAmount,
+      discount: discount,
+      final_amount: finalAmount,
+      payment_method: paymentMethod,
+      paid_amount: paid,
+    }).eq("id", editSaleId);
+
+    await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+
+    for (const item of items) {
+      const profit = (item.unit_price - item.purchase_price) * item.quantity;
+      await supabase.from("sale_items").insert({
+        sale_id: editSaleId,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        purchase_price: item.purchase_price,
+        total_price: item.total_price,
+        profit: profit,
+      });
+    }
+
+    for (const originalItem of originalItems) {
+      const newItem = items.find(i => i.product_id === originalItem.product_id);
+      const quantityDiff = originalItem.quantity - (newItem?.quantity || 0);
+      
+      if (quantityDiff > 0) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", originalItem.product_id)
+          .single();
+
         if (product) {
           await supabase
             .from("products")
-            .update({ stock_quantity: product.stock_quantity - item.quantity })
-            .eq("id", item.product_id);
+            .update({ stock_quantity: product.stock_quantity + quantityDiff })
+            .eq("id", originalItem.product_id);
         }
       }
-
-      // If partial payment, add to credits
-      if (paid < finalAmount) {
-        const creditAmount = finalAmount - paid;
-        await supabase.from("credits").insert({
-          customer_name: customerName || "Walk-in Customer",
-          customer_phone: customerPhone || null,
-          amount: creditAmount,
-          paid_amount: 0,
-          remaining_amount: creditAmount,
-          status: "pending",
-          notes: `Partial payment for invoice ${invoiceNumber}`,
-        });
-      }
-
-      toast.success("Invoice created successfully!");
-      printInvoice(invoiceNumber);
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to create invoice");
     }
+
+    toast.success("Sale updated successfully!");
+    navigate("/sales");
   };
 
   const printInvoice = (invoiceNumber: string) => {
@@ -223,9 +327,20 @@ const Invoice = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Create Invoice</h1>
-        <p className="text-muted-foreground">Generate a new sale receipt</p>
+      <div className="flex items-center gap-4">
+        {editSaleId && (
+          <Button onClick={() => navigate("/sales")} variant="outline" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {editSaleId ? "Edit Sale" : "Create Invoice"}
+          </h1>
+          <p className="text-muted-foreground">
+            {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
+          </p>
+        </div>
       </div>
 
       <Card className="p-6">
@@ -424,11 +539,13 @@ const Invoice = () => {
         <div className="flex gap-2 mt-6">
           <Button onClick={saveInvoice} className="flex-1">
             <Printer className="h-4 w-4 mr-2" />
-            Save & Print
+            {editSaleId ? "Update Sale" : "Save & Print"}
           </Button>
-          <Button onClick={resetForm} variant="outline">
-            Reset
-          </Button>
+          {!editSaleId && (
+            <Button onClick={resetForm} variant="outline">
+              Reset
+            </Button>
+          )}
         </div>
       </Card>
     </div>

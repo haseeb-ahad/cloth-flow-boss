@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -240,13 +240,17 @@ const Credits = () => {
           <h1 className="text-3xl font-bold text-foreground">Credit Management</h1>
           <p className="text-muted-foreground">Track customer loans and payments</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Credit
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button onClick={fetchCredits} variant="outline" size="icon">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Credit
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Credit</DialogTitle>
@@ -300,6 +304,7 @@ const Credits = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card className="p-6">
