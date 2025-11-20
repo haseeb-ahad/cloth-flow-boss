@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon } from "lucide-react";
+import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon, RefreshCw } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Line, LineChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -240,6 +240,9 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Overview of your business</p>
         </div>
         <div className="flex gap-2 items-center">
+          <Button onClick={() => { fetchDashboardStats(); fetchChartData(); fetchTopProducts(); }} variant="outline" size="icon">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select range" />

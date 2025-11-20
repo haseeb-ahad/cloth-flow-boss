@@ -112,6 +112,7 @@ const Credits = () => {
     const newStatus = newRemainingAmount === 0 ? "paid" : "pending";
 
     try {
+      // Update credit record
       await supabase
         .from("credits")
         .update({
@@ -120,6 +121,18 @@ const Credits = () => {
           status: newStatus,
         })
         .eq("id", selectedCredit.id);
+
+      // Record payment transaction with auto-filled date
+      await supabase
+        .from("credit_transactions")
+        .insert({
+          credit_id: selectedCredit.id,
+          customer_name: selectedCredit.customer_name,
+          customer_phone: selectedCredit.customer_phone,
+          amount: payment,
+          transaction_date: new Date().toISOString().split('T')[0],
+          notes: fullPayment ? "Full payment received" : "Partial payment received",
+        });
 
       toast.success("Payment recorded successfully!");
       fetchCredits();
@@ -172,6 +185,18 @@ const Credits = () => {
         updates.paid_amount = newPaidAmount;
         updates.remaining_amount = newRemainingAmount;
         updates.status = newRemainingAmount === 0 ? "paid" : "pending";
+
+        // Record payment transaction with auto-filled date
+        await supabase
+          .from("credit_transactions")
+          .insert({
+            credit_id: selectedCredit.id,
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone || null,
+            amount: payment,
+            transaction_date: new Date().toISOString().split('T')[0],
+            notes: "Payment via edit form",
+          });
       }
 
       await supabase
@@ -375,7 +400,7 @@ const Credits = () => {
                                       <DollarSign className="h-4 w-4 mr-1" />
                                       Pay
                                     </Button>
-                                    <Button
+                                     <Button
                                       size="sm"
                                       variant="secondary"
                                       onClick={async () => {
@@ -388,6 +413,19 @@ const Credits = () => {
                                               status: "paid",
                                             })
                                             .eq("id", credit.id);
+
+                                          // Record full payment transaction
+                                          await supabase
+                                            .from("credit_transactions")
+                                            .insert({
+                                              credit_id: credit.id,
+                                              customer_name: credit.customer_name,
+                                              customer_phone: credit.customer_phone,
+                                              amount: credit.remaining_amount,
+                                              transaction_date: new Date().toISOString().split('T')[0],
+                                              notes: "Full payment completed",
+                                            });
+
                                           toast.success("Payment completed!");
                                           fetchCredits();
                                         } catch (error) {
