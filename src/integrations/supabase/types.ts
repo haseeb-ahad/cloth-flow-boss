@@ -97,6 +97,89 @@ export type Database = {
         }
         Relationships: []
       }
+      installment_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          installment_id: string
+          notes: string | null
+          payment_date: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          installment_id: string
+          notes?: string | null
+          payment_date?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          installment_id?: string
+          notes?: string | null
+          payment_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "installments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      installments: {
+        Row: {
+          created_at: string
+          customer_name: string
+          customer_phone: string | null
+          frequency: string
+          id: string
+          installment_amount: number
+          next_due_date: string | null
+          notes: string | null
+          paid_amount: number
+          remaining_amount: number
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          customer_phone?: string | null
+          frequency?: string
+          id?: string
+          installment_amount: number
+          next_due_date?: string | null
+          notes?: string | null
+          paid_amount?: number
+          remaining_amount: number
+          status?: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string | null
+          frequency?: string
+          id?: string
+          installment_amount?: number
+          next_due_date?: string | null
+          notes?: string | null
+          paid_amount?: number
+          remaining_amount?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
