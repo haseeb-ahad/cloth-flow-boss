@@ -144,17 +144,34 @@ const Credits = () => {
     }
   };
 
-  const handleEdit = (credit: Credit) => {
-    setSelectedCredit(credit);
-    setEditPaymentAmount("");
-    setFormData({
-      customer_name: credit.customer_name,
-      customer_phone: credit.customer_phone || "",
-      amount: credit.amount.toString(),
-      due_date: credit.due_date || "",
-      notes: credit.notes || "",
-    });
-    setIsEditDialogOpen(true);
+  const handleEdit = async (credit: Credit) => {
+    // Navigate to Invoice page with credit data
+    // First, fetch the original sale data if it exists
+    const { data: saleData } = await supabase
+      .from("sales")
+      .select("*, sale_items(*)")
+      .eq("customer_name", credit.customer_name)
+      .eq("customer_phone", credit.customer_phone || "")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (saleData) {
+      // Navigate to invoice with sale data for editing
+      window.location.href = `/invoice?edit=${saleData.id}`;
+    } else {
+      // If no sale found, show edit dialog for credit only
+      setSelectedCredit(credit);
+      setEditPaymentAmount("");
+      setFormData({
+        customer_name: credit.customer_name,
+        customer_phone: credit.customer_phone || "",
+        amount: credit.amount.toString(),
+        due_date: credit.due_date || "",
+        notes: credit.notes || "",
+      });
+      setIsEditDialogOpen(true);
+    }
   };
 
   const handleUpdate = async () => {
@@ -389,53 +406,16 @@ const Credits = () => {
                             <TableCell className="text-center">
                               <div className="flex gap-2 justify-center">
                                 {credit.status === "pending" && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedCredit(credit);
-                                        setIsPaymentDialogOpen(true);
-                                      }}
-                                    >
-                                      <DollarSign className="h-4 w-4 mr-1" />
-                                      Pay
-                                    </Button>
-                                     <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={async () => {
-                                        try {
-                                          await supabase
-                                            .from("credits")
-                                            .update({
-                                              paid_amount: credit.amount,
-                                              remaining_amount: 0,
-                                              status: "paid",
-                                            })
-                                            .eq("id", credit.id);
-
-                                          // Record full payment transaction
-                                          await supabase
-                                            .from("credit_transactions")
-                                            .insert({
-                                              credit_id: credit.id,
-                                              customer_name: credit.customer_name,
-                                              customer_phone: credit.customer_phone,
-                                              amount: credit.remaining_amount,
-                                              transaction_date: new Date().toISOString().split('T')[0],
-                                              notes: "Full payment completed",
-                                            });
-
-                                          toast.success("Payment completed!");
-                                          fetchCredits();
-                                        } catch (error) {
-                                          toast.error("Failed to complete payment");
-                                        }
-                                      }}
-                                    >
-                                      Pay Full
-                                    </Button>
-                                  </>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedCredit(credit);
+                                      setIsPaymentDialogOpen(true);
+                                    }}
+                                  >
+                                    <DollarSign className="h-4 w-4 mr-1" />
+                                    Pay
+                                  </Button>
                                 )}
                                 <Button size="icon" variant="outline" onClick={() => handleEdit(credit)}>
                                   <Edit className="h-4 w-4" />
