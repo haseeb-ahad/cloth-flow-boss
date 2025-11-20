@@ -42,8 +42,21 @@ const Inventory = () => {
   }, []);
 
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
-    if (data) setProducts(data);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        toast.error("Failed to load products");
+        return;
+      }
+      
+      if (data) setProducts(data);
+    } catch (error) {
+      toast.error("Failed to load products");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,11 +117,20 @@ const Inventory = () => {
     }
     
     try {
-      await supabase.from("products").delete().eq("id", editingProduct.id);
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", editingProduct.id);
+      
+      if (error) {
+        toast.error("Failed to delete product");
+        return;
+      }
+      
       toast.success("Product deleted successfully!");
-      fetchProducts();
       setIsDialogOpen(false);
       resetForm();
+      await fetchProducts();
     } catch (error) {
       toast.error("Failed to delete product");
     }
