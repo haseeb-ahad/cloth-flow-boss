@@ -35,6 +35,7 @@ const Credits = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [editPaymentAmount, setEditPaymentAmount] = useState("");
   const [fullPayment, setFullPayment] = useState(false);
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
@@ -132,6 +133,7 @@ const Credits = () => {
 
   const handleEdit = (credit: Credit) => {
     setSelectedCredit(credit);
+    setEditPaymentAmount("");
     setFormData({
       customer_name: credit.customer_name,
       customer_phone: credit.customer_phone || "",
@@ -147,21 +149,40 @@ const Credits = () => {
 
     try {
       const amount = parseFloat(formData.amount);
+      let updates: any = {
+        customer_name: formData.customer_name,
+        customer_phone: formData.customer_phone || null,
+        amount: amount,
+        remaining_amount: amount - selectedCredit.paid_amount,
+        due_date: formData.due_date || null,
+        notes: formData.notes || null,
+      };
+
+      // Handle payment if provided
+      if (editPaymentAmount && parseFloat(editPaymentAmount) > 0) {
+        const payment = parseFloat(editPaymentAmount);
+        if (payment > selectedCredit.remaining_amount) {
+          toast.error("Payment amount cannot be greater than remaining amount");
+          return;
+        }
+        
+        const newPaidAmount = selectedCredit.paid_amount + payment;
+        const newRemainingAmount = selectedCredit.remaining_amount - payment;
+        
+        updates.paid_amount = newPaidAmount;
+        updates.remaining_amount = newRemainingAmount;
+        updates.status = newRemainingAmount === 0 ? "paid" : "pending";
+      }
+
       await supabase
         .from("credits")
-        .update({
-          customer_name: formData.customer_name,
-          customer_phone: formData.customer_phone || null,
-          amount: amount,
-          remaining_amount: amount - selectedCredit.paid_amount,
-          due_date: formData.due_date || null,
-          notes: formData.notes || null,
-        })
+        .update(updates)
         .eq("id", selectedCredit.id);
 
       toast.success("Credit updated successfully!");
       fetchCredits();
       setIsEditDialogOpen(false);
+      setEditPaymentAmount("");
       resetForm();
     } catch (error) {
       toast.error("Failed to update credit");
@@ -338,16 +359,40 @@ const Credits = () => {
                             <TableCell className="text-center">
                               <div className="flex gap-2 justify-center">
                                 {credit.status === "pending" && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedCredit(credit);
-                                      setIsPaymentDialogOpen(true);
-                                    }}
-                                  >
-                                    <DollarSign className="h-4 w-4 mr-1" />
-                                    Pay
-                                  </Button>
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedCredit(credit);
+                                        setIsPaymentDialogOpen(true);
+                                      }}
+                                    >
+                                      <DollarSign className="h-4 w-4 mr-1" />
+                                      Pay
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={async () => {
+                                        try {
+                                          await supabase
+                                            .from("credits")
+                                            .update({
+                                              paid_amount: credit.amount,
+                                              remaining_amount: 0,
+                                              status: "paid",
+                                            })
+                                            .eq("id", credit.id);
+                                          toast.success("Payment completed!");
+                                          fetchCredits();
+                                        } catch (error) {
+                                          toast.error("Failed to complete payment");
+                                        }
+                                      }}
+                                    >
+                                      Pay Full
+                                    </Button>
+                                  </>
                                 )}
                                 <Button size="icon" variant="outline" onClick={() => handleEdit(credit)}>
                                   <Edit className="h-4 w-4" />
@@ -468,6 +513,22 @@ const Credits = () => {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>
+            {selectedCredit && selectedCredit.status === "pending" && (
+              <div>
+                <Label htmlFor="edit_payment_amount">Add Payment Amount (Optional)</Label>
+                <Input
+                  id="edit_payment_amount"
+                  type="number"
+                  value={editPaymentAmount}
+                  onChange={(e) => setEditPaymentAmount(e.target.value)}
+                  placeholder="Enter payment amount"
+                  max={selectedCredit.remaining_amount}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Remaining: Rs. {selectedCredit.remaining_amount.toFixed(2)}
+                </p>
+              </div>
+            )}
             <Button onClick={handleUpdate} className="w-full">
               Update Credit
             </Button>

@@ -76,14 +76,40 @@ const Sales = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this sale?")) {
-      try {
-        await supabase.from("sales").delete().eq("id", id);
-        toast.success("Sale deleted successfully!");
-        fetchSales();
-      } catch (error) {
-        toast.error("Failed to delete sale");
+    try {
+      // Get sale items to restore stock
+      const { data: saleItems } = await supabase
+        .from("sale_items")
+        .select("product_id, quantity")
+        .eq("sale_id", id);
+
+      // Restore stock for each item
+      if (saleItems) {
+        for (const item of saleItems) {
+          const { data: product } = await supabase
+            .from("products")
+            .select("stock_quantity")
+            .eq("id", item.product_id)
+            .single();
+
+          if (product) {
+            await supabase
+              .from("products")
+              .update({ stock_quantity: product.stock_quantity + item.quantity })
+              .eq("id", item.product_id);
+          }
+        }
+
+        // Delete sale items
+        await supabase.from("sale_items").delete().eq("sale_id", id);
       }
+
+      // Delete sale
+      await supabase.from("sales").delete().eq("id", id);
+      toast.success("Sale deleted successfully!");
+      fetchSales();
+    } catch (error) {
+      toast.error("Failed to delete sale");
     }
   };
 
@@ -91,6 +117,12 @@ const Sales = () => {
     if (!editingSale) return;
 
     try {
+      // Get original sale items to calculate stock changes
+      const { data: originalItems } = await supabase
+        .from("sale_items")
+        .select("product_id, quantity")
+        .eq("sale_id", editingSale.id);
+
       await supabase
         .from("sales")
         .update({
