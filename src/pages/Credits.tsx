@@ -292,59 +292,80 @@ const Credits = () => {
   };
 
   const handleSaveInvoice = async () => {
-    if (!selectedCredit || !saleId) return;
+    if (!selectedCredit) return;
 
     try {
-      const { totalAmount, finalAmount } = calculateInvoiceTotals();
       const paidAmt = parseFloat(invoicePaidAmount) || 0;
-      const remainingAmt = finalAmount - paidAmt;
+      
+      if (saleId && invoiceItems.length > 0) {
+        // Case 1: There's a sale - update sale and credit
+        const { totalAmount, finalAmount } = calculateInvoiceTotals();
+        const remainingAmt = finalAmount - paidAmt;
 
-      // Update sale
-      await supabase
-        .from("sales")
-        .update({
-          customer_name: formData.customer_name,
-          customer_phone: formData.customer_phone || null,
-          total_amount: totalAmount,
-          discount: discount,
-          final_amount: finalAmount,
-          paid_amount: paidAmt,
-          status: remainingAmt > 0 ? "pending" : "completed",
-        })
-        .eq("id", saleId);
+        // Update sale
+        await supabase
+          .from("sales")
+          .update({
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone || null,
+            total_amount: totalAmount,
+            discount: discount,
+            final_amount: finalAmount,
+            paid_amount: paidAmt,
+            status: remainingAmt > 0 ? "pending" : "completed",
+          })
+          .eq("id", saleId);
 
-      // Delete old sale items
-      await supabase.from("sale_items").delete().eq("sale_id", saleId);
+        // Delete old sale items
+        await supabase.from("sale_items").delete().eq("sale_id", saleId);
 
-      // Insert new sale items
-      const saleItemsData = invoiceItems.map((item) => ({
-        sale_id: saleId,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        purchase_price: item.purchase_price,
-        total_price: item.total_price,
-        profit: item.profit,
-      }));
-      await supabase.from("sale_items").insert(saleItemsData);
+        // Insert new sale items
+        const saleItemsData = invoiceItems.map((item) => ({
+          sale_id: saleId,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          purchase_price: item.purchase_price,
+          total_price: item.total_price,
+          profit: item.profit,
+        }));
+        await supabase.from("sale_items").insert(saleItemsData);
 
-      // Update credit
-      await supabase
-        .from("credits")
-        .update({
-          customer_name: formData.customer_name,
-          customer_phone: formData.customer_phone || null,
-          amount: finalAmount,
-          remaining_amount: remainingAmt,
-          paid_amount: paidAmt,
-          status: remainingAmt > 0 ? "pending" : "paid",
-          due_date: formData.due_date || null,
-          notes: formData.notes || null,
-        })
-        .eq("id", selectedCredit.id);
+        // Update credit with new invoice totals
+        await supabase
+          .from("credits")
+          .update({
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone || null,
+            amount: finalAmount,
+            remaining_amount: remainingAmt,
+            paid_amount: paidAmt,
+            status: remainingAmt > 0 ? "pending" : "paid",
+            due_date: formData.due_date || null,
+            notes: formData.notes || null,
+          })
+          .eq("id", selectedCredit.id);
+      } else {
+        // Case 2: No sale - just update credit payment
+        const currentPaid = selectedCredit.paid_amount + paidAmt;
+        const newRemainingAmt = selectedCredit.amount - currentPaid;
 
-      // Record payment if made
+        await supabase
+          .from("credits")
+          .update({
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone || null,
+            paid_amount: currentPaid,
+            remaining_amount: newRemainingAmt,
+            status: newRemainingAmt <= 0 ? "paid" : "pending",
+            due_date: formData.due_date || null,
+            notes: formData.notes || null,
+          })
+          .eq("id", selectedCredit.id);
+      }
+
+      // Record payment transaction if payment made
       if (paidAmt > 0) {
         await supabase.from("credit_transactions").insert({
           credit_id: selectedCredit.id,
@@ -352,16 +373,17 @@ const Credits = () => {
           customer_phone: formData.customer_phone || null,
           amount: paidAmt,
           transaction_date: new Date().toISOString().split('T')[0],
-          notes: "Payment via invoice edit",
+          notes: saleId ? "Payment via invoice edit" : "Direct payment",
         });
       }
 
-      toast.success("Invoice and credit updated successfully!");
+      toast.success("Credit updated successfully!");
       fetchCredits();
       setIsInvoiceEditDialogOpen(false);
       resetForm();
     } catch (error) {
-      toast.error("Failed to update invoice");
+      toast.error("Failed to update credit");
+      console.error(error);
     }
   };
 
