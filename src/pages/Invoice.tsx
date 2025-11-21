@@ -292,7 +292,7 @@ const Invoice = () => {
         }
       }
 
-      // Step 2: Update sale record
+      // Step 2: Update sale record with accurate data
       const { error: saleError } = await supabase.from("sales").update({
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
@@ -301,6 +301,7 @@ const Invoice = () => {
         final_amount: finalAmount,
         payment_method: paymentMethod,
         paid_amount: paid,
+        status: paid >= finalAmount ? "completed" : "pending",
       }).eq("id", editSaleId);
 
       if (saleError) {
@@ -350,7 +351,44 @@ const Invoice = () => {
         }
       }
 
-      toast.success("Sale updated successfully! Stock has been adjusted.");
+      // Step 5: Handle credit updates
+      // Check if there's an existing credit for this sale
+      const { data: existingCredit } = await supabase
+        .from("credits")
+        .select("*")
+        .ilike("notes", `%${invoiceNumber}%`)
+        .eq("customer_name", customerName || "Walk-in Customer")
+        .maybeSingle();
+
+      if (existingCredit) {
+        // Update existing credit or delete if fully paid
+        if (paid >= finalAmount) {
+          // Sale is now fully paid, delete the credit
+          await supabase.from("credits").delete().eq("id", existingCredit.id);
+        } else {
+          // Update credit with new amounts
+          const newCreditAmount = finalAmount - paid;
+          await supabase.from("credits").update({
+            amount: newCreditAmount,
+            remaining_amount: newCreditAmount,
+            paid_amount: 0,
+          }).eq("id", existingCredit.id);
+        }
+      } else if (paid < finalAmount) {
+        // Create new credit if there wasn't one before
+        const creditAmount = finalAmount - paid;
+        await supabase.from("credits").insert({
+          customer_name: customerName || "Walk-in Customer",
+          customer_phone: customerPhone || null,
+          amount: creditAmount,
+          paid_amount: 0,
+          remaining_amount: creditAmount,
+          status: "pending",
+          notes: `Partial payment for invoice ${invoiceNumber}`,
+        });
+      }
+
+      toast.success("Sale updated successfully! Inventory and credits have been synchronized.");
       navigate("/sales");
     } catch (error) {
       console.error("Error updating sale:", error);
@@ -368,13 +406,14 @@ const Invoice = () => {
         .select("product_id, quantity")
         .eq("sale_id", editSaleId);
 
+      // Restore stock for all items
       if (saleItems) {
         for (const item of saleItems) {
           const { data: product } = await supabase
             .from("products")
             .select("stock_quantity")
             .eq("id", item.product_id)
-            .single();
+            .maybeSingle();
 
           if (product) {
             await supabase
@@ -386,8 +425,20 @@ const Invoice = () => {
         await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
       }
 
+      // Delete associated credit if it exists
+      const { data: associatedCredit } = await supabase
+        .from("credits")
+        .select("*")
+        .ilike("notes", `%${invoiceNumber}%`)
+        .eq("customer_name", customerName || "Walk-in Customer")
+        .maybeSingle();
+
+      if (associatedCredit) {
+        await supabase.from("credits").delete().eq("id", associatedCredit.id);
+      }
+
       await supabase.from("sales").delete().eq("id", editSaleId);
-      toast.success("Sale deleted successfully!");
+      toast.success("Sale deleted successfully! Inventory and credits updated.");
       navigate("/sales");
     } catch (error) {
       toast.error("Failed to delete sale");
