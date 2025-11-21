@@ -692,48 +692,21 @@ const Credits = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right font-semibold">Remaining</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Due date</TableHead>
-                          <TableHead className="text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {customerCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell>{format(new Date(credit.created_at), "dd MMM yyyy")}</TableCell>
-                            <TableCell className="text-right">Rs. {credit.amount.toFixed(2)}</TableCell>
-                            <TableCell className="text-right text-success">Rs. {credit.paid_amount.toFixed(2)}</TableCell>
                             <TableCell className="text-right text-warning font-semibold">
                               Rs. {credit.remaining_amount.toFixed(2)}
                             </TableCell>
                             <TableCell>{getStatusBadge(credit.status)}</TableCell>
                             <TableCell>
                               {credit.due_date ? format(new Date(credit.due_date), "dd MMM yyyy") : "-"}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex gap-2 justify-center">
-                                {credit.status === "pending" && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedCredit(credit);
-                                      setIsPaymentDialogOpen(true);
-                                    }}
-                                  >
-                                    <DollarSign className="h-4 w-4 mr-1" />
-                                    Pay
-                                  </Button>
-                                )}
-                                <Button size="icon" variant="outline" onClick={() => handleEdit(credit)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="destructive" onClick={() => handleDelete(credit.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
                             </TableCell>
                           </TableRow>
                         ))}

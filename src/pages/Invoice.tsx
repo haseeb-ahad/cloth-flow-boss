@@ -49,6 +49,7 @@ const Invoice = () => {
   const [originalItems, setOriginalItems] = useState<InvoiceItem[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [additionalPayment, setAdditionalPayment] = useState("");
 
   useEffect(() => {
     fetchProducts();
@@ -274,7 +275,12 @@ const Invoice = () => {
     try {
       const totalAmount = calculateTotal();
       const finalAmount = calculateFinalAmount();
-      const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
+      let paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
+      
+      // Add additional payment if provided
+      if (additionalPayment && parseFloat(additionalPayment) > 0) {
+        paid += parseFloat(additionalPayment);
+      }
 
       // Step 1: Restore stock for all original items first
       console.log("Starting stock restoration for original items:", originalItems);
@@ -701,6 +707,21 @@ const Invoice = () => {
                 placeholder="Leave empty for full payment"
               />
             </div>
+            {editSaleId && paidAmount && parseFloat(paidAmount) < calculateFinalAmount() && (
+              <div>
+                <Label htmlFor="additionalPayment">Add payment to remaining</Label>
+                <div className="text-xs text-warning mb-1 font-medium">
+                  Remaining balance: Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}
+                </div>
+                <Input
+                  id="additionalPayment"
+                  type="number"
+                  value={additionalPayment}
+                  onChange={(e) => setAdditionalPayment(e.target.value)}
+                  placeholder="Enter payment amount"
+                />
+              </div>
+            )}
           </div>
           
           <Card className="p-4 bg-muted/50">
@@ -723,15 +744,28 @@ const Invoice = () => {
                     <span>Paid:</span>
                     <span className="font-medium">Rs. {parseFloat(paidAmount).toFixed(2)}</span>
                   </div>
-                  {parseFloat(paidAmount) < calculateFinalAmount() ? (
+                  {editSaleId && additionalPayment && parseFloat(additionalPayment) > 0 && (
+                    <div className="flex justify-between text-sm text-success">
+                      <span>Additional payment:</span>
+                      <span className="font-medium">+ Rs. {parseFloat(additionalPayment).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {parseFloat(paidAmount) + (additionalPayment ? parseFloat(additionalPayment) : 0) < calculateFinalAmount() ? (
                     <div className="flex justify-between text-sm text-warning">
                       <span>Remaining (Credit):</span>
-                      <span className="font-medium">Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}</span>
+                      <span className="font-medium">
+                        Rs. {(calculateFinalAmount() - parseFloat(paidAmount) - (additionalPayment ? parseFloat(additionalPayment) : 0)).toFixed(2)}
+                      </span>
+                    </div>
+                  ) : parseFloat(paidAmount) + (additionalPayment ? parseFloat(additionalPayment) : 0) > calculateFinalAmount() ? (
+                    <div className="flex justify-between text-sm text-success font-semibold">
+                      <span>Change to Return:</span>
+                      <span>Rs. {(parseFloat(paidAmount) + (additionalPayment ? parseFloat(additionalPayment) : 0) - calculateFinalAmount()).toFixed(2)}</span>
                     </div>
                   ) : (
                     <div className="flex justify-between text-sm text-success font-semibold">
-                      <span>Change to Return:</span>
-                      <span>Rs. {calculateChange().toFixed(2)}</span>
+                      <span>Fully paid</span>
+                      <span>✓</span>
                     </div>
                   )}
                 </>
