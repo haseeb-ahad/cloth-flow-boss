@@ -38,6 +38,7 @@ const Credits = () => {
   const [editPaymentAmount, setEditPaymentAmount] = useState("");
   const [fullPayment, setFullPayment] = useState(false);
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -64,11 +65,19 @@ const Credits = () => {
   }, [credits]);
 
   const fetchCredits = async () => {
-    const { data } = await supabase
-      .from("credits")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (data) setCredits(data);
+    setIsLoading(true);
+    try {
+      const { data } = await supabase
+        .from("credits")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) setCredits(data);
+      toast.success("Credits data refreshed");
+    } catch (error) {
+      toast.error("Failed to fetch credits");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -281,12 +290,18 @@ const Credits = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Credit Management</h1>
-          <p className="text-muted-foreground">Track customer loans and payments</p>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">Credit Management</h1>
+          <p className="text-muted-foreground mt-1 text-base">Track customer loans and payments</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={fetchCredits} variant="outline" size="icon">
-            <RefreshCw className="h-4 w-4" />
+        <div className="flex gap-3">
+          <Button 
+            onClick={fetchCredits} 
+            variant="outline" 
+            size="icon"
+            disabled={isLoading}
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

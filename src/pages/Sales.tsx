@@ -29,6 +29,7 @@ const Sales = () => {
   const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchSales();
@@ -39,13 +40,21 @@ const Sales = () => {
   }, [sales, searchTerm, dateFilter]);
 
   const fetchSales = async () => {
-    const { data } = await supabase
-      .from("sales")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (data) {
-      setSales(data);
-      setFilteredSales(data);
+    setIsLoading(true);
+    try {
+      const { data } = await supabase
+        .from("sales")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) {
+        setSales(data);
+        setFilteredSales(data);
+      }
+      toast.success("Sales data refreshed");
+    } catch (error) {
+      toast.error("Failed to fetch sales");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -150,11 +159,17 @@ const Sales = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Sales History</h1>
-          <p className="text-muted-foreground">View all transactions</p>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">Sales History</h1>
+          <p className="text-muted-foreground mt-1 text-base">View and manage all transactions</p>
         </div>
-        <Button onClick={fetchSales} variant="outline" size="icon">
-          <RefreshCw className="h-4 w-4" />
+        <Button 
+          onClick={fetchSales} 
+          variant="outline" 
+          size="icon"
+          disabled={isLoading}
+          className="hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
 

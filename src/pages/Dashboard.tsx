@@ -50,12 +50,17 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState("1day");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetchDashboardStats();
-    fetchChartData();
-    fetchTopProducts();
+    handleRefresh();
   }, [dateRange, startDate, endDate]);
+
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await Promise.all([fetchDashboardStats(), fetchChartData(), fetchTopProducts()]);
+    setIsLoading(false);
+  };
 
   const getDateRangeFilter = () => {
     const now = new Date();
@@ -232,16 +237,34 @@ const Dashboard = () => {
     }).format(amount);
   };
 
+  const getDateRangeLabel = () => {
+    switch (dateRange) {
+      case "1day": return "1 Day";
+      case "7days": return "7 Days";
+      case "1month": return "1 Month";
+      case "1year": return "1 Year";
+      case "grand": return "All Time (Grand Report)";
+      case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom Range";
+      default: return "7 Days";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your business</p>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-base">Overview of your business performance</p>
         </div>
-        <div className="flex gap-2 items-center">
-          <Button onClick={() => { fetchDashboardStats(); fetchChartData(); fetchTopProducts(); }} variant="outline" size="icon">
-            <RefreshCw className="h-4 w-4" />
+        <div className="flex gap-3 items-center">
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            size="icon"
+            disabled={isLoading}
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-[180px]">
@@ -285,100 +308,117 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-primary" />
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Total Sales</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalSales)}</div>
-            <p className="text-xs text-muted-foreground">For selected period</p>
+            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">For selected period</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-            <TrendingUp className="h-4 w-4 text-accent" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Today's Sales</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-accent" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.todaySales)}</div>
-            <p className="text-xs text-muted-foreground">Sales made today</p>
+            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.todaySales)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Sales made today</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-            <DollarSign className="h-4 w-4 text-success" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Total Profit</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-success" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{formatCurrency(stats.totalProfit)}</div>
-            <p className="text-xs text-muted-foreground">Net profit earned</p>
+            <div className="text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalProfit)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Net profit earned</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-            <PackageSearch className="h-4 w-4 text-destructive" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Total Cost</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <PackageSearch className="h-5 w-5 text-destructive" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalCost)}</div>
-            <p className="text-xs text-muted-foreground">Purchase cost</p>
+            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalCost)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Purchase cost</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Total Revenue</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalPrice)}</div>
-            <p className="text-xs text-muted-foreground">Selling price</p>
+            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalPrice)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Selling price</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inventory Value</CardTitle>
-            <PackageSearch className="h-4 w-4 text-primary" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Inventory Value</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <PackageSearch className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalInventoryValue)}</div>
-            <p className="text-xs text-muted-foreground">Current stock value</p>
+            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Current stock value</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Credit</CardTitle>
-            <CreditCard className="h-4 w-4 text-warning" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Pending Credit</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-warning" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{formatCurrency(stats.totalCredit)}</div>
-            <p className="text-xs text-muted-foreground">Outstanding payments</p>
+            <div className="text-3xl font-bold text-warning tracking-tight">{formatCurrency(stats.totalCredit)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Outstanding payments</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-            <PackageSearch className="h-4 w-4 text-destructive" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold tracking-wide">Low Stock Items</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <PackageSearch className="h-5 w-5 text-destructive" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.lowStockCount}</div>
-            <p className="text-xs text-muted-foreground">Items below 10 units</p>
+            <div className="text-3xl font-bold text-destructive tracking-tight">{stats.lowStockCount}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Items below 10 units</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-5 md:grid-cols-2">
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle>Sales & Profit Trends</CardTitle>
+            <CardTitle className="text-xl font-bold tracking-tight">Sales & Profit Trends</CardTitle>
+            <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
           </CardHeader>
           <CardContent>
             <ChartContainer
@@ -427,9 +467,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle>Top 5 Products by Revenue</CardTitle>
+            <CardTitle className="text-xl font-bold tracking-tight">Top 5 Products by Revenue</CardTitle>
+            <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
           </CardHeader>
           <CardContent>
             <ChartContainer
