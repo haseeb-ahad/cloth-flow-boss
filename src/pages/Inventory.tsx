@@ -123,7 +123,8 @@ const Inventory = () => {
         .eq("id", editingProduct.id);
       
       if (error) {
-        toast.error("Failed to delete product");
+        console.error("Delete error:", error);
+        toast.error(`Failed to delete product: ${error.message}`);
         return;
       }
       
@@ -131,8 +132,9 @@ const Inventory = () => {
       setIsDialogOpen(false);
       resetForm();
       await fetchProducts();
-    } catch (error) {
-      toast.error("Failed to delete product");
+    } catch (error: any) {
+      console.error("Delete exception:", error);
+      toast.error(`Failed to delete product: ${error?.message || "Unknown error"}`);
     }
   };
 
@@ -167,14 +169,17 @@ const Inventory = () => {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </DialogTrigger>
+            if (!open) {
+              resetForm();
+            }
+            setIsDialogOpen(open);
+          }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
