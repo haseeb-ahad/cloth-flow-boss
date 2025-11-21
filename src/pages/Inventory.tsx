@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Package, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Package, RefreshCw, Search } from "lucide-react";
 
 interface Product {
   id: string;
@@ -20,13 +20,17 @@ interface Product {
   stock_quantity: number;
   category: string | null;
   quantity_type: string;
+  created_at: string | null;
 }
 
 const Inventory = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -41,6 +45,10 @@ const Inventory = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm, dateFilter]);
+
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -53,10 +61,32 @@ const Inventory = () => {
         return;
       }
       
-      if (data) setProducts(data);
+      if (data) {
+        setProducts(data);
+        setFilteredProducts(data);
+      }
     } catch (error) {
       toast.error("Failed to load products");
     }
+  };
+
+  const filterProducts = () => {
+    let filtered = [...products];
+
+    if (searchTerm) {
+      filtered = filtered.filter(product => 
+        (product.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.category?.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    if (dateFilter) {
+      filtered = filtered.filter(product => 
+        product.created_at?.startsWith(dateFilter)
+      );
+    }
+
+    setFilteredProducts(filtered);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -312,6 +342,40 @@ const Inventory = () => {
         </div>
       </div>
 
+      <Card className="p-4">
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
+          <div>
+            <Label>Search by Name or Category</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Filter by Date</Label>
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button 
+              onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
+              variant="outline"
+              className="w-full"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-6">
         <Table>
           <TableHeader>
@@ -327,7 +391,7 @@ const Inventory = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">

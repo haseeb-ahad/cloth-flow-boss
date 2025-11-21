@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,6 +51,7 @@ interface InvoiceItem {
 
 const Credits = () => {
   const [credits, setCredits] = useState<Credit[]>([]);
+  const [filteredCredits, setFilteredCredits] = useState<Credit[]>([]);
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -67,6 +68,8 @@ const Credits = () => {
   const [fullPayment, setFullPayment] = useState(false);
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -80,6 +83,10 @@ const Credits = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    filterCredits();
+  }, [credits, searchTerm, dateFilter]);
+
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("name");
     if (data) setProducts(data);
@@ -88,7 +95,7 @@ const Credits = () => {
   useEffect(() => {
     // Group credits by customer
     const grouped: { [key: string]: Credit[] } = {};
-    credits.forEach(credit => {
+    filteredCredits.forEach(credit => {
       const key = `${credit.customer_name}-${credit.customer_phone || 'no-phone'}`;
       if (!grouped[key]) {
         grouped[key] = [];
@@ -96,7 +103,7 @@ const Credits = () => {
       grouped[key].push(credit);
     });
     setGroupedCredits(grouped);
-  }, [credits]);
+  }, [filteredCredits]);
 
   const fetchCredits = async () => {
     setIsLoading(true);
@@ -105,13 +112,36 @@ const Credits = () => {
         .from("credits")
         .select("*")
         .order("created_at", { ascending: false });
-      if (data) setCredits(data);
+      if (data) {
+        setCredits(data);
+        setFilteredCredits(data);
+      }
       toast.success("Credits data refreshed");
     } catch (error) {
       toast.error("Failed to fetch credits");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const filterCredits = () => {
+    let filtered = [...credits];
+
+    if (searchTerm) {
+      filtered = filtered.filter(credit => 
+        (credit.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (credit.customer_phone?.includes(searchTerm))
+      );
+    }
+
+    if (dateFilter) {
+      filtered = filtered.filter(credit => 
+        credit.created_at?.startsWith(dateFilter) ||
+        credit.due_date?.startsWith(dateFilter)
+      );
+    }
+
+    setFilteredCredits(filtered);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -523,6 +553,40 @@ const Credits = () => {
         </Dialog>
         </div>
       </div>
+
+      <Card className="p-4">
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
+          <div>
+            <Label>Search by Name or Phone</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Filter by Date</Label>
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button 
+              onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
+              variant="outline"
+              className="w-full"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       <Card className="p-6">
         <div className="space-y-4">
