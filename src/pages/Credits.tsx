@@ -54,7 +54,6 @@ const Credits = () => {
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isInvoiceEditDialogOpen, setIsInvoiceEditDialogOpen] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -198,20 +197,21 @@ const Credits = () => {
       .limit(1)
       .single();
 
+    // Always open invoice edit dialog
+    setSelectedCredit(credit);
+    setInvoicePaidAmount(credit.remaining_amount.toString());
+    setFormData({
+      customer_name: credit.customer_name,
+      customer_phone: credit.customer_phone || "",
+      amount: credit.amount.toString(),
+      due_date: credit.due_date || "",
+      notes: credit.notes || "",
+    });
+    
     if (saleData) {
-      // Open invoice edit dialog with full invoice view
-      setSelectedCredit(credit);
       setSaleId(saleData.id);
       setInvoiceNumber(saleData.invoice_number);
       setDiscount(saleData.discount || 0);
-      setInvoicePaidAmount(credit.remaining_amount.toString());
-      setFormData({
-        customer_name: credit.customer_name,
-        customer_phone: credit.customer_phone || "",
-        amount: credit.amount.toString(),
-        due_date: credit.due_date || "",
-        notes: credit.notes || "",
-      });
       
       const items = saleData.sale_items.map((item: any) => ({
         id: item.id,
@@ -225,20 +225,15 @@ const Credits = () => {
         quantity_type: products.find(p => p.id === item.product_id)?.quantity_type || "Unit"
       }));
       setInvoiceItems(items);
-      setIsInvoiceEditDialogOpen(true);
     } else {
-      // If no sale found, show simple edit dialog for credit only
-      setSelectedCredit(credit);
-      setEditPaymentAmount("");
-      setFormData({
-        customer_name: credit.customer_name,
-        customer_phone: credit.customer_phone || "",
-        amount: credit.amount.toString(),
-        due_date: credit.due_date || "",
-        notes: credit.notes || "",
-      });
-      setIsEditDialogOpen(true);
+      // No sale found, initialize empty invoice
+      setSaleId("");
+      setInvoiceNumber("");
+      setDiscount(0);
+      setInvoiceItems([]);
     }
+    
+    setIsInvoiceEditDialogOpen(true);
   };
 
   const handleAddInvoiceItem = () => {
@@ -370,62 +365,6 @@ const Credits = () => {
     }
   };
 
-  const handleUpdate = async () => {
-    if (!selectedCredit) return;
-
-    try {
-      const amount = parseFloat(formData.amount);
-      let updates: any = {
-        customer_name: formData.customer_name,
-        customer_phone: formData.customer_phone || null,
-        amount: amount,
-        remaining_amount: amount - selectedCredit.paid_amount,
-        due_date: formData.due_date || null,
-        notes: formData.notes || null,
-      };
-
-      // Handle payment if provided
-      if (editPaymentAmount && parseFloat(editPaymentAmount) > 0) {
-        const payment = parseFloat(editPaymentAmount);
-        if (payment > selectedCredit.remaining_amount) {
-          toast.error("Payment amount cannot be greater than remaining amount");
-          return;
-        }
-        
-        const newPaidAmount = selectedCredit.paid_amount + payment;
-        const newRemainingAmount = selectedCredit.remaining_amount - payment;
-        
-        updates.paid_amount = newPaidAmount;
-        updates.remaining_amount = newRemainingAmount;
-        updates.status = newRemainingAmount === 0 ? "paid" : "pending";
-
-        // Record payment transaction with auto-filled date
-        await supabase
-          .from("credit_transactions")
-          .insert({
-            credit_id: selectedCredit.id,
-            customer_name: formData.customer_name,
-            customer_phone: formData.customer_phone || null,
-            amount: payment,
-            transaction_date: new Date().toISOString().split('T')[0],
-            notes: "Payment via edit form",
-          });
-      }
-
-      await supabase
-        .from("credits")
-        .update(updates)
-        .eq("id", selectedCredit.id);
-
-      toast.success("Credit updated successfully!");
-      fetchCredits();
-      setIsEditDialogOpen(false);
-      setEditPaymentAmount("");
-      resetForm();
-    } catch (error) {
-      toast.error("Failed to update credit");
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this credit record? This action cannot be undone.")) {
@@ -492,15 +431,15 @@ const Credits = () => {
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+                <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Credit
+                Add credit
               </Button>
             </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <div className="flex items-center justify-between">
-                <DialogTitle>Add New Credit</DialogTitle>
+                <DialogTitle>Add new credit</DialogTitle>
                 <Button 
                   onClick={fetchCredits} 
                   variant="ghost" 
@@ -513,7 +452,7 @@ const Credits = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="customer_name">Customer Name *</Label>
+                <Label htmlFor="customer_name">Customer name *</Label>
                 <Input
                   id="customer_name"
                   required
@@ -522,7 +461,7 @@ const Credits = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="customer_phone">Customer Phone</Label>
+                <Label htmlFor="customer_phone">Customer phone</Label>
                 <Input
                   id="customer_phone"
                   value={formData.customer_phone}
@@ -540,7 +479,7 @@ const Credits = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="due_date">Due Date</Label>
+                <Label htmlFor="due_date">Due date</Label>
                 <Input
                   id="due_date"
                   type="date"
@@ -556,7 +495,7 @@ const Credits = () => {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 />
               </div>
-              <Button type="submit" className="w-full">Add Credit</Button>
+              <Button type="submit" className="w-full">Add credit</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -600,7 +539,7 @@ const Credits = () => {
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right">Remaining</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Due Date</TableHead>
+                          <TableHead>Due date</TableHead>
                           <TableHead className="text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -654,7 +593,7 @@ const Credits = () => {
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
+            <DialogTitle>Record payment</DialogTitle>
           </DialogHeader>
           {selectedCredit && (
             <div className="space-y-4">
@@ -663,7 +602,7 @@ const Credits = () => {
                 <p className="font-semibold">{selectedCredit.customer_name}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Remaining Amount</p>
+                <p className="text-sm text-muted-foreground">Remaining amount</p>
                 <p className="text-2xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
               </div>
               <div className="flex items-center space-x-2">
@@ -678,7 +617,7 @@ const Credits = () => {
               </div>
               {!fullPayment && (
                 <div>
-                  <Label htmlFor="paymentAmount">Payment Amount</Label>
+                  <Label htmlFor="paymentAmount">Payment amount</Label>
                   <Input
                     id="paymentAmount"
                     type="number"
@@ -691,7 +630,7 @@ const Credits = () => {
               )}
               <div className="flex gap-2">
                 <Button onClick={handlePayment} className="flex-1">
-                  Record Payment
+                  Record payment
                 </Button>
                 <Button onClick={() => setIsPaymentDialogOpen(false)} variant="outline">
                   Cancel
@@ -702,104 +641,12 @@ const Credits = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Credit</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {selectedCredit && (
-              <Card className="p-4 bg-muted/50">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Original Amount</p>
-                    <p className="text-xl font-bold text-primary">Rs. {selectedCredit.amount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Remaining Amount</p>
-                    <p className="text-xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Paid Amount</p>
-                    <p className="text-lg font-semibold text-success">Rs. {selectedCredit.paid_amount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <p className="text-lg font-semibold">{getStatusBadge(selectedCredit.status)}</p>
-                  </div>
-                </div>
-              </Card>
-            )}
-            <div>
-              <Label htmlFor="edit_customer_name">Customer Name</Label>
-              <Input
-                id="edit_customer_name"
-                value={formData.customer_name}
-                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_customer_phone">Customer Phone</Label>
-              <Input
-                id="edit_customer_phone"
-                value={formData.customer_phone}
-                onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_amount">Total Credit Amount</Label>
-              <Input
-                id="edit_amount"
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_due_date">Due Date</Label>
-              <Input
-                id="edit_due_date"
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_notes">Notes</Label>
-              <Textarea
-                id="edit_notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
-            {selectedCredit && selectedCredit.status === "pending" && (
-              <div>
-                <Label htmlFor="edit_payment_amount">Add Payment Amount (Optional)</Label>
-                <Input
-                  id="edit_payment_amount"
-                  type="number"
-                  value={editPaymentAmount}
-                  onChange={(e) => setEditPaymentAmount(e.target.value)}
-                  placeholder="Enter payment amount"
-                  max={selectedCredit.remaining_amount}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Remaining: Rs. {selectedCredit.remaining_amount.toFixed(2)}
-                </p>
-              </div>
-            )}
-            <Button onClick={handleUpdate} className="w-full">
-              Update Credit
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Invoice Edit Dialog */}
       <Dialog open={isInvoiceEditDialogOpen} onOpenChange={setIsInvoiceEditDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Invoice & Credit</DialogTitle>
+            <DialogTitle>Edit credit</DialogTitle>
           </DialogHeader>
           
           {selectedCredit && (
@@ -808,15 +655,15 @@ const Credits = () => {
               <Card className="p-4 bg-muted/50">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Original Amount</p>
+                    <p className="text-sm text-muted-foreground">Original amount</p>
                     <p className="text-xl font-bold text-primary">Rs. {selectedCredit.amount.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Remaining Amount</p>
+                <p className="text-sm text-muted-foreground">Remaining amount</p>
                     <p className="text-xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Paid Amount</p>
+                    <p className="text-sm text-muted-foreground">Paid amount</p>
                     <p className="text-lg font-semibold text-success">Rs. {selectedCredit.paid_amount.toFixed(2)}</p>
                   </div>
                   <div>
@@ -829,7 +676,7 @@ const Credits = () => {
               {/* Customer Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="invoice_customer_name">Customer Name</Label>
+                  <Label htmlFor="invoice_customer_name">Customer name</Label>
                   <Input
                     id="invoice_customer_name"
                     value={formData.customer_name}
@@ -837,7 +684,7 @@ const Credits = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="invoice_customer_phone">Customer Phone</Label>
+                  <Label htmlFor="invoice_customer_phone">Customer phone</Label>
                   <Input
                     id="invoice_customer_phone"
                     value={formData.customer_phone}
@@ -849,10 +696,10 @@ const Credits = () => {
               {/* Invoice Items */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <Label className="text-base font-semibold">Invoice Items</Label>
+                  <Label className="text-base font-semibold">Invoice items</Label>
                   <Button type="button" onClick={handleAddInvoiceItem} size="sm">
                     <Plus className="h-4 w-4 mr-1" />
-                    Add Item
+                    Add item
                   </Button>
                 </div>
                 
@@ -888,7 +735,7 @@ const Credits = () => {
                           <p className="text-xs text-muted-foreground mt-1">{item.quantity_type}</p>
                         </div>
                         <div>
-                          <Label>Unit Price</Label>
+                          <Label>Unit price</Label>
                           <Input
                             type="number"
                             value={item.unit_price}
@@ -931,7 +778,7 @@ const Credits = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="invoice_due_date">Due Date</Label>
+                  <Label htmlFor="invoice_due_date">Due date</Label>
                   <Input
                     id="invoice_due_date"
                     type="date"
@@ -952,14 +799,14 @@ const Credits = () => {
                     <span className="font-semibold">Rs. {discount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Final Amount:</span>
+                    <span>Final amount:</span>
                     <span>Rs. {calculateInvoiceTotals().finalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </Card>
 
               <div>
-                <Label htmlFor="invoice_paid_amount">Paid Amount</Label>
+                <Label htmlFor="invoice_paid_amount">Paid amount</Label>
                 <div className="text-xs text-muted-foreground mb-1 font-medium">
                   Remaining to pay: Rs. {selectedCredit.remaining_amount.toFixed(2)}
                 </div>
@@ -982,7 +829,7 @@ const Credits = () => {
               </div>
 
               <Button onClick={handleSaveInvoice} className="w-full" size="lg">
-                Save Invoice & Update Credit
+                Save invoice & update credit
               </Button>
             </div>
           )}

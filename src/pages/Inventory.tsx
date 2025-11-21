@@ -199,17 +199,17 @@ const Inventory = () => {
             <DialogTrigger asChild>
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Product
+                Add product
               </Button>
             </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+              <DialogTitle>{editingProduct ? "Edit product" : "Add new product"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="name">Product Name *</Label>
+                  <Label htmlFor="name">Product name *</Label>
                   <Input
                     id="name"
                     required
@@ -241,7 +241,7 @@ const Inventory = () => {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <Label htmlFor="purchase_price">Purchase Price *</Label>
+                  <Label htmlFor="purchase_price">Purchase price *</Label>
                   <Input
                     id="purchase_price"
                     type="number"
@@ -253,7 +253,7 @@ const Inventory = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="selling_price">Selling Price *</Label>
+                  <Label htmlFor="selling_price">Selling price *</Label>
                   <Input
                     id="selling_price"
                     type="number"
@@ -265,7 +265,7 @@ const Inventory = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="stock_quantity">Stock Quantity *</Label>
+                  <Label htmlFor="stock_quantity">Stock quantity *</Label>
                   <Input
                     id="stock_quantity"
                     type="number"
@@ -297,7 +297,7 @@ const Inventory = () => {
 
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1">
-                  {editingProduct ? "Update Product" : "Add Product"}
+                  {editingProduct ? "Update product" : "Add product"}
                 </Button>
                 {editingProduct && (
                   <Button type="button" onClick={handleDelete} variant="destructive">
@@ -316,10 +316,10 @@ const Inventory = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Product Name</TableHead>
+              <TableHead>Product name</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead className="text-right">Purchase Price</TableHead>
-              <TableHead className="text-right">Selling Price</TableHead>
+              <TableHead className="text-right">Purchase price</TableHead>
+              <TableHead className="text-right">Selling price</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="text-center">Type</TableHead>
               <TableHead className="text-center">Status</TableHead>
