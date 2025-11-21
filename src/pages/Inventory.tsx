@@ -30,7 +30,7 @@ const Inventory = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -47,7 +47,7 @@ const Inventory = () => {
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, dateFilter]);
+  }, [products, searchTerm, categoryFilter]);
 
   const fetchProducts = async () => {
     try {
@@ -80,13 +80,22 @@ const Inventory = () => {
       );
     }
 
-    if (dateFilter) {
+    if (categoryFilter) {
       filtered = filtered.filter(product => 
-        product.created_at?.startsWith(dateFilter)
+        product.category?.toLowerCase() === categoryFilter.toLowerCase()
       );
     }
 
     setFilteredProducts(filtered);
+  };
+
+  const getUniqueCategories = () => {
+    const categories = products
+      .map(p => p.category)
+      .filter((cat): cat is string => cat !== null && cat !== "")
+      .filter((cat, index, self) => self.indexOf(cat) === index)
+      .sort();
+    return categories;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -357,16 +366,24 @@ const Inventory = () => {
             </div>
           </div>
           <div>
-            <Label>Filter by Date</Label>
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
+            <Label>Filter by Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All categories</SelectItem>
+                {getUniqueCategories().map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
+              onClick={() => { setSearchTerm(""); setCategoryFilter(""); }} 
               variant="outline"
               className="w-full"
             >
