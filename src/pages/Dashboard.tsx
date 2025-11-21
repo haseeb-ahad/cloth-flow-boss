@@ -251,23 +251,23 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-base">Overview of your business performance</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your business performance</p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
           <Button 
             onClick={handleRefresh} 
             variant="outline" 
             size="icon"
             disabled={isLoading}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="hover:bg-primary hover:text-primary-foreground transition-colors shrink-0"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Select range" />
             </SelectTrigger>
             <SelectContent>
@@ -283,9 +283,9 @@ const Dashboard = () => {
             <>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-[140px]", !startDate && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !startDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PP") : "Start Date"}
+                    <span className="truncate">{startDate ? format(startDate, "PP") : "Start Date"}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -294,9 +294,9 @@ const Dashboard = () => {
               </Popover>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-[140px]", !endDate && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !endDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PP") : "End Date"}
+                    <span className="truncate">{endDate ? format(endDate, "PP") : "End Date"}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -308,119 +308,122 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-lg transition-shadow">
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Total Sales</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
               <ShoppingCart className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">For selected period</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '50ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Today's Sales</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center ring-4 ring-accent/5">
               <TrendingUp className="h-5 w-5 text-accent" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.todaySales)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.todaySales)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Sales made today</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '100ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Total Profit</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
               <DollarSign className="h-5 w-5 text-success" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalProfit)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalProfit)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Net profit earned</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '150ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Total Cost</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
               <PackageSearch className="h-5 w-5 text-destructive" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalCost)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalCost)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Purchase cost</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '200ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Total Revenue</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
               <DollarSign className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalPrice)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalPrice)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Selling price</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '250ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Inventory Value</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
               <PackageSearch className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Current stock value</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '300ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Pending Credit</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
               <CreditCard className="h-5 w-5 text-warning" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-warning tracking-tight">{formatCurrency(stats.totalCredit)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-warning tracking-tight">{formatCurrency(stats.totalCredit)}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Outstanding payments</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '350ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold tracking-wide">Low Stock Items</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
               <PackageSearch className="h-5 w-5 text-destructive" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-destructive tracking-tight">{stats.lowStockCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-destructive tracking-tight">{stats.lowStockCount}</div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">Items below 10 units</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold tracking-tight">Sales & Profit Trends</CardTitle>
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+        <Card className="hover:shadow-xl transition-all duration-300 border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Sales & Profit Trends
+            </CardTitle>
             <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-6">
             <ChartContainer
               config={{
                 sales: {
@@ -432,34 +435,90 @@ const Dashboard = () => {
                   color: "hsl(var(--success))",
                 },
               }}
-              className="h-[300px]"
+              className="h-[350px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <LineChart 
+                  data={salesChartData}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border))" 
+                    strokeOpacity={0.5}
+                    vertical={false}
+                  />
                   <XAxis 
                     dataKey="date" 
                     stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={5}
                   />
                   <YAxis 
                     stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-5}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="sales" 
                     stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))" }}
+                    strokeWidth={3}
+                    dot={{ 
+                      fill: "hsl(var(--primary))", 
+                      strokeWidth: 2, 
+                      r: 4,
+                      stroke: "hsl(var(--card))"
+                    }}
+                    activeDot={{ 
+                      r: 6, 
+                      stroke: "hsl(var(--card))", 
+                      strokeWidth: 2,
+                      fill: "hsl(var(--primary))"
+                    }}
+                    fill="url(#colorSales)"
+                    animationDuration={1000}
+                    animationBegin={0}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="profit" 
                     stroke="hsl(var(--success))" 
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--success))" }}
+                    strokeWidth={3}
+                    dot={{ 
+                      fill: "hsl(var(--success))", 
+                      strokeWidth: 2, 
+                      r: 4,
+                      stroke: "hsl(var(--card))"
+                    }}
+                    activeDot={{ 
+                      r: 6, 
+                      stroke: "hsl(var(--card))", 
+                      strokeWidth: 2,
+                      fill: "hsl(var(--success))"
+                    }}
+                    fill="url(#colorProfit)"
+                    animationDuration={1000}
+                    animationBegin={200}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -467,12 +526,15 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold tracking-tight">Top 5 Products by Revenue</CardTitle>
+        <Card className="hover:shadow-xl transition-all duration-300 border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <PackageSearch className="h-5 w-5 text-accent" />
+              Top 5 Products by Revenue
+            </CardTitle>
             <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-6">
             <ChartContainer
               config={{
                 revenue: {
@@ -480,28 +542,53 @@ const Dashboard = () => {
                   color: "hsl(var(--accent))",
                 },
               }}
-              className="h-[300px]"
+              className="h-[350px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProducts}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <BarChart 
+                  data={topProducts}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 80 }}
+                >
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={1}/>
+                      <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.6}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border))" 
+                    strokeOpacity={0.5}
+                    vertical={false}
+                  />
                   <XAxis 
                     dataKey="name" 
                     stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
+                    fontSize={11}
                     angle={-45}
                     textAnchor="end"
                     height={80}
+                    tickLine={false}
+                    axisLine={false}
                   />
                   <YAxis 
                     stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-5}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
+                  />
                   <Bar 
                     dataKey="revenue" 
-                    fill="hsl(var(--accent))"
+                    fill="url(#colorRevenue)"
                     radius={[8, 8, 0, 0]}
+                    animationDuration={800}
+                    animationBegin={0}
                   />
                 </BarChart>
               </ResponsiveContainer>
