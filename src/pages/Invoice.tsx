@@ -628,6 +628,11 @@ const Invoice = () => {
                   type="number" 
                   value={item.unit_price} 
                   onChange={(e) => updateItem(index, "unit_price", e.target.value)}
+                  onFocus={(e) => {
+                    if (parseFloat(e.target.value) === 0) {
+                      e.target.value = "";
+                    }
+                  }}
                 />
               </div>
               <div className="md:col-span-2">
