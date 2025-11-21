@@ -30,7 +30,7 @@ const Inventory = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -80,7 +80,7 @@ const Inventory = () => {
       );
     }
 
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== "all") {
       filtered = filtered.filter(product => 
         product.category?.toLowerCase() === categoryFilter.toLowerCase()
       );
@@ -372,7 +372,7 @@ const Inventory = () => {
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All categories</SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
                 {getUniqueCategories().map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -383,7 +383,7 @@ const Inventory = () => {
           </div>
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setCategoryFilter(""); }} 
+              onClick={() => { setSearchTerm(""); setCategoryFilter("all"); }} 
               variant="outline"
               className="w-full"
             >
