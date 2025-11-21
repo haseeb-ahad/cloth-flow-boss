@@ -44,7 +44,7 @@ const Invoice = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paidAmount, setPaidAmount] = useState("");
   const [openProductIndex, setOpenProductIndex] = useState<number | null>(null);
-  const [customerSuggestions, setCustomerSuggestions] = useState<string[]>([]);
+  const [customerSuggestions, setCustomerSuggestions] = useState<{name: string, phone: string | null}[]>([]);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [originalItems, setOriginalItems] = useState<InvoiceItem[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -59,14 +59,23 @@ const Invoice = () => {
   }, [editSaleId]);
 
   const fetchCustomerNames = async () => {
-    const { data: salesData } = await supabase.from("sales").select("customer_name").not("customer_name", "is", null);
-    const { data: creditsData } = await supabase.from("credits").select("customer_name");
+    const { data: salesData } = await supabase.from("sales").select("customer_name, customer_phone").not("customer_name", "is", null);
+    const { data: creditsData } = await supabase.from("credits").select("customer_name, customer_phone");
     
-    const names = new Set<string>();
-    salesData?.forEach(s => s.customer_name && names.add(s.customer_name));
-    creditsData?.forEach(c => c.customer_name && names.add(c.customer_name));
+    const customerMap = new Map<string, string | null>();
+    salesData?.forEach(s => {
+      if (s.customer_name && !customerMap.has(s.customer_name)) {
+        customerMap.set(s.customer_name, s.customer_phone);
+      }
+    });
+    creditsData?.forEach(c => {
+      if (c.customer_name && !customerMap.has(c.customer_name)) {
+        customerMap.set(c.customer_name, c.customer_phone);
+      }
+    });
     
-    setCustomerSuggestions(Array.from(names));
+    const customers = Array.from(customerMap.entries()).map(([name, phone]) => ({ name, phone }));
+    setCustomerSuggestions(customers);
   };
 
   const handleCustomerNameChange = (value: string) => {
@@ -76,8 +85,8 @@ const Invoice = () => {
 
   const getFilteredCustomers = () => {
     if (!customerName) return [];
-    return customerSuggestions.filter(name => 
-      name.toLowerCase().includes(customerName.toLowerCase())
+    return customerSuggestions.filter(customer => 
+      customer.name.toLowerCase().includes(customerName.toLowerCase())
     ).slice(0, 5);
   };
 
@@ -532,16 +541,20 @@ const Invoice = () => {
             />
             {showCustomerSuggestions && getFilteredCustomers().length > 0 && (
               <Card className="absolute z-50 w-full mt-1 max-h-[200px] overflow-auto">
-                {getFilteredCustomers().map((name, idx) => (
+                {getFilteredCustomers().map((customer, idx) => (
                   <div
                     key={idx}
                     className="px-3 py-2 hover:bg-muted cursor-pointer"
                     onMouseDown={() => {
-                      setCustomerName(name);
+                      setCustomerName(customer.name);
+                      setCustomerPhone(customer.phone || "");
                       setShowCustomerSuggestions(false);
                     }}
                   >
-                    {name}
+                    <div className="font-medium">{customer.name}</div>
+                    {customer.phone && (
+                      <div className="text-xs text-muted-foreground">{customer.phone}</div>
+                    )}
                   </div>
                 ))}
               </Card>
