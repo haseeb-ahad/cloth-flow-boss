@@ -615,7 +615,6 @@ const Invoice = () => {
                   step="1"
                   min="1"
                   value={item.quantity}
-                  onFocus={(e) => e.target.select()}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </div>
@@ -627,8 +626,7 @@ const Invoice = () => {
                 <Label>Price</Label>
                 <Input 
                   type="number" 
-                  value={item.unit_price}
-                  onFocus={(e) => e.target.select()}
+                  value={item.unit_price} 
                   onChange={(e) => updateItem(index, "unit_price", e.target.value)}
                 />
               </div>
@@ -668,7 +666,6 @@ const Invoice = () => {
                 id="discount"
                 type="number"
                 value={discount}
-                onFocus={(e) => e.target.select()}
                 onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
               />
@@ -682,7 +679,6 @@ const Invoice = () => {
                 id="paidAmount"
                 type="number"
                 value={paidAmount}
-                onFocus={(e) => e.target.select()}
                 onChange={(e) => setPaidAmount(e.target.value)}
                 placeholder="Leave empty for full payment"
               />
