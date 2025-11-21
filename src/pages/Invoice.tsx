@@ -510,7 +510,7 @@ const Invoice = () => {
         )}
         <div>
           <h1 className="text-3xl font-bold text-foreground">
-            {editSaleId ? "Edit Sale" : "Create Invoice"}
+            {editSaleId ? "Edit sale" : "Create invoice"}
           </h1>
           <p className="text-muted-foreground">
             {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
@@ -521,7 +521,7 @@ const Invoice = () => {
       <Card className="p-6">
         <div className="grid gap-4 md:grid-cols-2 mb-6">
           <div className="relative">
-            <Label htmlFor="customerName">Customer Name (Optional)</Label>
+            <Label htmlFor="customerName">Customer name (Optional)</Label>
             <Input
               id="customerName"
               value={customerName}
@@ -548,7 +548,7 @@ const Invoice = () => {
             )}
           </div>
           <div>
-            <Label htmlFor="customerPhone">Customer Phone (Optional)</Label>
+            <Label htmlFor="customerPhone">Customer phone (Optional)</Label>
             <Input
               id="customerPhone"
               value={customerPhone}
@@ -646,7 +646,7 @@ const Invoice = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Label htmlFor="paymentMethod">Payment method</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger>
                   <SelectValue />
@@ -671,9 +671,9 @@ const Invoice = () => {
               />
             </div>
             <div>
-              <Label htmlFor="paidAmount">Paid Amount (Optional)</Label>
+              <Label htmlFor="paidAmount">Paid amount (Optional)</Label>
               <div className="text-xs text-muted-foreground mb-1 font-medium">
-                Current Total: Rs. {calculateFinalAmount().toFixed(2)}
+                Current total: Rs. {calculateFinalAmount().toFixed(2)}
               </div>
               <Input
                 id="paidAmount"

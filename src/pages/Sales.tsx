@@ -216,7 +216,7 @@ const Sales = () => {
               <TableHead>Customer</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Discount</TableHead>
-              <TableHead className="text-right">Final Amount</TableHead>
+              <TableHead className="text-right">Final amount</TableHead>
               <TableHead className="text-center">Payment</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
