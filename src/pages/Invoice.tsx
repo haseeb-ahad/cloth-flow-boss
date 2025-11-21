@@ -267,28 +267,37 @@ const Invoice = () => {
       const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
       // Step 1: Restore stock for all original items first
+      console.log("Starting stock restoration for original items:", originalItems);
       for (const originalItem of originalItems) {
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
           .eq("id", originalItem.product_id)
-          .maybeSingle();
+          .single();
 
         if (fetchError) {
-          console.error("Error fetching product:", fetchError);
-          continue;
+          console.error("Error fetching product for restoration:", fetchError);
+          toast.error(`Failed to restore stock for ${originalItem.product_name}`);
+          throw fetchError;
         }
 
-        if (product) {
-          const newStock = product.stock_quantity + originalItem.quantity;
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ stock_quantity: newStock })
-            .eq("id", originalItem.product_id);
-          
-          if (updateError) {
-            console.error("Error restoring stock:", updateError);
-          }
+        if (!product) {
+          toast.error(`Product not found: ${originalItem.product_name}`);
+          throw new Error("Product not found");
+        }
+
+        const restoredStock = product.stock_quantity + originalItem.quantity;
+        console.log(`Restoring ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
+
+        const { error: updateError } = await supabase
+          .from("products")
+          .update({ stock_quantity: restoredStock })
+          .eq("id", originalItem.product_id);
+        
+        if (updateError) {
+          console.error("Error restoring stock:", updateError);
+          toast.error(`Failed to restore stock for ${originalItem.product_name}`);
+          throw updateError;
         }
       }
 
@@ -305,17 +314,25 @@ const Invoice = () => {
       }).eq("id", editSaleId);
 
       if (saleError) {
-        toast.error("Failed to update sale");
-        return;
+        console.error("Error updating sale:", saleError);
+        toast.error("Failed to update sale record");
+        throw saleError;
       }
 
       // Step 3: Delete old sale items
-      await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+      const { error: deleteError } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+      if (deleteError) {
+        console.error("Error deleting old sale items:", deleteError);
+        toast.error("Failed to update sale items");
+        throw deleteError;
+      }
 
       // Step 4: Insert new sale items and deduct stock
+      console.log("Starting stock deduction for new items:", items);
       for (const item of items) {
         const profit = (item.unit_price - item.purchase_price) * item.quantity;
-        await supabase.from("sale_items").insert({
+        
+        const { error: insertError } = await supabase.from("sale_items").insert({
           sale_id: editSaleId,
           product_id: item.product_id,
           product_name: item.product_name,
@@ -326,33 +343,51 @@ const Invoice = () => {
           profit: profit,
         });
 
+        if (insertError) {
+          console.error("Error inserting sale item:", insertError);
+          toast.error(`Failed to add ${item.product_name} to sale`);
+          throw insertError;
+        }
+
         // Deduct stock for new quantities
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
           .eq("id", item.product_id)
-          .maybeSingle();
+          .single();
 
         if (fetchError) {
-          console.error("Error fetching product:", fetchError);
-          continue;
+          console.error("Error fetching product for deduction:", fetchError);
+          toast.error(`Failed to update stock for ${item.product_name}`);
+          throw fetchError;
         }
 
-        if (product) {
-          const newStock = product.stock_quantity - item.quantity;
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ stock_quantity: newStock })
-            .eq("id", item.product_id);
-          
-          if (updateError) {
-            console.error("Error deducting stock:", updateError);
-          }
+        if (!product) {
+          toast.error(`Product not found: ${item.product_name}`);
+          throw new Error("Product not found");
+        }
+
+        const deductedStock = product.stock_quantity - item.quantity;
+        console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${deductedStock}`);
+
+        if (deductedStock < 0) {
+          toast.error(`Insufficient stock for ${item.product_name}`);
+          throw new Error("Insufficient stock");
+        }
+
+        const { error: updateError } = await supabase
+          .from("products")
+          .update({ stock_quantity: deductedStock })
+          .eq("id", item.product_id);
+        
+        if (updateError) {
+          console.error("Error deducting stock:", updateError);
+          toast.error(`Failed to update stock for ${item.product_name}`);
+          throw updateError;
         }
       }
 
       // Step 5: Handle credit updates
-      // Check if there's an existing credit for this sale
       const { data: existingCredit } = await supabase
         .from("credits")
         .select("*")
@@ -361,23 +396,25 @@ const Invoice = () => {
         .maybeSingle();
 
       if (existingCredit) {
-        // Update existing credit or delete if fully paid
         if (paid >= finalAmount) {
-          // Sale is now fully paid, delete the credit
-          await supabase.from("credits").delete().eq("id", existingCredit.id);
+          const { error: creditDeleteError } = await supabase.from("credits").delete().eq("id", existingCredit.id);
+          if (creditDeleteError) {
+            console.error("Error deleting credit:", creditDeleteError);
+          }
         } else {
-          // Update credit with new amounts
           const newCreditAmount = finalAmount - paid;
-          await supabase.from("credits").update({
+          const { error: creditUpdateError } = await supabase.from("credits").update({
             amount: newCreditAmount,
             remaining_amount: newCreditAmount,
             paid_amount: 0,
           }).eq("id", existingCredit.id);
+          if (creditUpdateError) {
+            console.error("Error updating credit:", creditUpdateError);
+          }
         }
       } else if (paid < finalAmount) {
-        // Create new credit if there wasn't one before
         const creditAmount = finalAmount - paid;
-        await supabase.from("credits").insert({
+        const { error: creditInsertError } = await supabase.from("credits").insert({
           customer_name: customerName || "Walk-in Customer",
           customer_phone: customerPhone || null,
           amount: creditAmount,
@@ -386,13 +423,16 @@ const Invoice = () => {
           status: "pending",
           notes: `Partial payment for invoice ${invoiceNumber}`,
         });
+        if (creditInsertError) {
+          console.error("Error creating credit:", creditInsertError);
+        }
       }
 
-      toast.success("Sale updated successfully! Inventory and credits have been synchronized.");
+      toast.success("Sale updated successfully! Inventory and credits synchronized.");
       navigate("/sales");
     } catch (error) {
-      console.error("Error updating sale:", error);
-      toast.error("Failed to update sale");
+      console.error("Critical error updating sale:", error);
+      toast.error("Failed to update sale. Please try again or contact support.");
     }
   };
 
