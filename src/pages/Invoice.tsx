@@ -595,8 +595,8 @@ const Invoice = () => {
           </div>
 
           {items.map((item, index) => (
-            <div key={index} className="grid gap-4 md:grid-cols-12 items-end border-b pb-4">
-              <div className="md:col-span-3">
+            <div key={index} className="grid gap-3 md:grid-cols-[2fr_0.8fr_0.6fr_0.8fr_0.8fr_0.8fr_1fr_auto] items-end border-b pb-4">
+              <div>
                 <Label>Product</Label>
                 <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
                   <PopoverTrigger asChild>
@@ -635,7 +635,7 @@ const Invoice = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="md:col-span-1">
+              <div>
                 <Label>Quantity</Label>
                 <Input
                   type="number"
@@ -645,11 +645,11 @@ const Invoice = () => {
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </div>
-              <div className="md:col-span-1">
+              <div>
                 <Label>Type</Label>
                 <Input type="text" value={item.quantity_type} disabled className="text-xs" />
               </div>
-              <div className="md:col-span-1">
+              <div>
                 <Label>Price</Label>
                 <Input 
                   type="number" 
@@ -662,19 +662,19 @@ const Invoice = () => {
                   }}
                 />
               </div>
-              <div className="md:col-span-1">
+              <div>
                 <Label>Cost</Label>
                 <Input type="number" value={(item.purchase_price * item.quantity).toFixed(2)} disabled className="text-destructive font-medium" />
               </div>
-              <div className="md:col-span-1">
+              <div>
                 <Label>Profit</Label>
                 <Input type="number" value={((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} disabled className="text-success font-medium" />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <Label>Total</Label>
                 <Input type="number" value={item.total_price.toFixed(2)} disabled />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <Button onClick={() => removeItem(index)} variant="destructive" size="icon">
                   <Trash2 className="h-4 w-4" />
                 </Button>
