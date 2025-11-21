@@ -47,7 +47,7 @@ const Dashboard = () => {
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
-  const [dateRange, setDateRange] = useState("7days");
+  const [dateRange, setDateRange] = useState("1day");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
 
