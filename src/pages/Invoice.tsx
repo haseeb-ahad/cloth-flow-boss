@@ -104,7 +104,8 @@ const Invoice = () => {
           quantity_type: "Unit",
         }));
         setItems(loadedItems);
-        setOriginalItems(loadedItems);
+        // Create a deep copy to prevent reference issues
+        setOriginalItems(loadedItems.map(item => ({...item})));
       }
     } catch (error) {
       toast.error("Failed to load sale data");
