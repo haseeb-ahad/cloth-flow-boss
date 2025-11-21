@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Credit {
   id: string;
@@ -27,13 +28,41 @@ interface Credit {
   created_at: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  selling_price: number;
+  purchase_price: number;
+  stock_quantity: number;
+  quantity_type: string | null;
+}
+
+interface InvoiceItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  purchase_price: number;
+  total_price: number;
+  profit: number;
+  quantity_type?: string;
+}
+
 const Credits = () => {
   const [credits, setCredits] = useState<Credit[]>([]);
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isInvoiceEditDialogOpen, setIsInvoiceEditDialogOpen] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
+  const [saleId, setSaleId] = useState<string>("");
+  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const [discount, setDiscount] = useState<number>(0);
+  const [invoicePaidAmount, setInvoicePaidAmount] = useState<string>("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [editPaymentAmount, setEditPaymentAmount] = useState("");
   const [fullPayment, setFullPayment] = useState(false);
@@ -49,7 +78,13 @@ const Credits = () => {
 
   useEffect(() => {
     fetchCredits();
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    const { data } = await supabase.from("products").select("*").order("name");
+    if (data) setProducts(data);
+  };
 
   useEffect(() => {
     // Group credits by customer
@@ -154,8 +189,6 @@ const Credits = () => {
   };
 
   const handleEdit = async (credit: Credit) => {
-    // Navigate to Invoice page with credit data
-    // First, fetch the original sale data if it exists
     const { data: saleData } = await supabase
       .from("sales")
       .select("*, sale_items(*)")
@@ -166,10 +199,35 @@ const Credits = () => {
       .single();
 
     if (saleData) {
-      // Navigate to invoice with sale data for editing
-      window.location.href = `/invoice?edit=${saleData.id}`;
+      // Open invoice edit dialog with full invoice view
+      setSelectedCredit(credit);
+      setSaleId(saleData.id);
+      setInvoiceNumber(saleData.invoice_number);
+      setDiscount(saleData.discount || 0);
+      setInvoicePaidAmount(credit.remaining_amount.toString());
+      setFormData({
+        customer_name: credit.customer_name,
+        customer_phone: credit.customer_phone || "",
+        amount: credit.amount.toString(),
+        due_date: credit.due_date || "",
+        notes: credit.notes || "",
+      });
+      
+      const items = saleData.sale_items.map((item: any) => ({
+        id: item.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        purchase_price: item.purchase_price,
+        total_price: item.total_price,
+        profit: item.profit,
+        quantity_type: products.find(p => p.id === item.product_id)?.quantity_type || "Unit"
+      }));
+      setInvoiceItems(items);
+      setIsInvoiceEditDialogOpen(true);
     } else {
-      // If no sale found, show edit dialog for credit only
+      // If no sale found, show simple edit dialog for credit only
       setSelectedCredit(credit);
       setEditPaymentAmount("");
       setFormData({
@@ -180,6 +238,135 @@ const Credits = () => {
         notes: credit.notes || "",
       });
       setIsEditDialogOpen(true);
+    }
+  };
+
+  const handleAddInvoiceItem = () => {
+    setInvoiceItems([
+      ...invoiceItems,
+      {
+        id: crypto.randomUUID(),
+        product_id: "",
+        product_name: "",
+        quantity: 1,
+        unit_price: 0,
+        purchase_price: 0,
+        total_price: 0,
+        profit: 0,
+        quantity_type: "Unit"
+      },
+    ]);
+  };
+
+  const handleRemoveInvoiceItem = (id: string) => {
+    setInvoiceItems(invoiceItems.filter((item) => item.id !== id));
+  };
+
+  const handleInvoiceItemChange = (id: string, field: string, value: any) => {
+    setInvoiceItems(
+      invoiceItems.map((item) => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+          
+          if (field === "product_id") {
+            const product = products.find((p) => p.id === value);
+            if (product) {
+              updatedItem.product_name = product.name;
+              updatedItem.unit_price = product.selling_price;
+              updatedItem.purchase_price = product.purchase_price;
+              updatedItem.quantity_type = product.quantity_type || "Unit";
+            }
+          }
+          
+          if (field === "quantity" || field === "unit_price" || field === "purchase_price") {
+            updatedItem.total_price = updatedItem.quantity * updatedItem.unit_price;
+            updatedItem.profit = updatedItem.total_price - (updatedItem.quantity * updatedItem.purchase_price);
+          }
+          
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+  };
+
+  const calculateInvoiceTotals = () => {
+    const totalAmount = invoiceItems.reduce((sum, item) => sum + item.total_price, 0);
+    const finalAmount = totalAmount - discount;
+    return { totalAmount, finalAmount };
+  };
+
+  const handleSaveInvoice = async () => {
+    if (!selectedCredit || !saleId) return;
+
+    try {
+      const { totalAmount, finalAmount } = calculateInvoiceTotals();
+      const paidAmt = parseFloat(invoicePaidAmount) || 0;
+      const remainingAmt = finalAmount - paidAmt;
+
+      // Update sale
+      await supabase
+        .from("sales")
+        .update({
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone || null,
+          total_amount: totalAmount,
+          discount: discount,
+          final_amount: finalAmount,
+          paid_amount: paidAmt,
+          status: remainingAmt > 0 ? "pending" : "completed",
+        })
+        .eq("id", saleId);
+
+      // Delete old sale items
+      await supabase.from("sale_items").delete().eq("sale_id", saleId);
+
+      // Insert new sale items
+      const saleItemsData = invoiceItems.map((item) => ({
+        sale_id: saleId,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        purchase_price: item.purchase_price,
+        total_price: item.total_price,
+        profit: item.profit,
+      }));
+      await supabase.from("sale_items").insert(saleItemsData);
+
+      // Update credit
+      await supabase
+        .from("credits")
+        .update({
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone || null,
+          amount: finalAmount,
+          remaining_amount: remainingAmt,
+          paid_amount: paidAmt,
+          status: remainingAmt > 0 ? "pending" : "paid",
+          due_date: formData.due_date || null,
+          notes: formData.notes || null,
+        })
+        .eq("id", selectedCredit.id);
+
+      // Record payment if made
+      if (paidAmt > 0) {
+        await supabase.from("credit_transactions").insert({
+          credit_id: selectedCredit.id,
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone || null,
+          amount: paidAmt,
+          transaction_date: new Date().toISOString().split('T')[0],
+          notes: "Payment via invoice edit",
+        });
+      }
+
+      toast.success("Invoice and credit updated successfully!");
+      fetchCredits();
+      setIsInvoiceEditDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast.error("Failed to update invoice");
     }
   };
 
@@ -312,7 +499,17 @@ const Credits = () => {
             </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Credit</DialogTitle>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Add New Credit</DialogTitle>
+                <Button 
+                  onClick={fetchCredits} 
+                  variant="ghost" 
+                  size="icon"
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -595,6 +792,200 @@ const Credits = () => {
               Update Credit
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Edit Dialog */}
+      <Dialog open={isInvoiceEditDialogOpen} onOpenChange={setIsInvoiceEditDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Invoice & Credit</DialogTitle>
+          </DialogHeader>
+          
+          {selectedCredit && (
+            <div className="space-y-6">
+              {/* Credit Summary */}
+              <Card className="p-4 bg-muted/50">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Original Amount</p>
+                    <p className="text-xl font-bold text-primary">Rs. {selectedCredit.amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Remaining Amount</p>
+                    <p className="text-xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Paid Amount</p>
+                    <p className="text-lg font-semibold text-success">Rs. {selectedCredit.paid_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <div className="mt-1">{getStatusBadge(selectedCredit.status)}</div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Customer Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="invoice_customer_name">Customer Name</Label>
+                  <Input
+                    id="invoice_customer_name"
+                    value={formData.customer_name}
+                    onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="invoice_customer_phone">Customer Phone</Label>
+                  <Input
+                    id="invoice_customer_phone"
+                    value={formData.customer_phone}
+                    onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Invoice Items */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-base font-semibold">Invoice Items</Label>
+                  <Button type="button" onClick={handleAddInvoiceItem} size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Item
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {invoiceItems.map((item) => (
+                    <Card key={item.id} className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                        <div className="md:col-span-2">
+                          <Label>Product</Label>
+                          <Select
+                            value={item.product_id}
+                            onValueChange={(value) => handleInvoiceItemChange(item.id, "product_id", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} - Rs. {product.selling_price}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Quantity</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleInvoiceItemChange(item.id, "quantity", parseFloat(e.target.value))}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">{item.quantity_type}</p>
+                        </div>
+                        <div>
+                          <Label>Unit Price</Label>
+                          <Input
+                            type="number"
+                            value={item.unit_price}
+                            onChange={(e) => handleInvoiceItemChange(item.id, "unit_price", parseFloat(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <Label>Total</Label>
+                          <Input
+                            type="number"
+                            value={item.total_price.toFixed(2)}
+                            disabled
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleRemoveInvoiceItem(item.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Totals and Payment */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="invoice_discount">Discount</Label>
+                  <Input
+                    id="invoice_discount"
+                    type="number"
+                    value={discount}
+                    onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="invoice_due_date">Due Date</Label>
+                  <Input
+                    id="invoice_due_date"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <Card className="p-4 bg-primary/5">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span className="font-semibold">Rs. {calculateInvoiceTotals().totalAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Discount:</span>
+                    <span className="font-semibold">Rs. {discount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold border-t pt-2">
+                    <span>Final Amount:</span>
+                    <span>Rs. {calculateInvoiceTotals().finalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </Card>
+
+              <div>
+                <Label htmlFor="invoice_paid_amount">Paid Amount</Label>
+                <div className="text-xs text-muted-foreground mb-1 font-medium">
+                  Remaining to pay: Rs. {selectedCredit.remaining_amount.toFixed(2)}
+                </div>
+                <Input
+                  id="invoice_paid_amount"
+                  type="number"
+                  value={invoicePaidAmount}
+                  onChange={(e) => setInvoicePaidAmount(e.target.value)}
+                  placeholder="Enter payment amount"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="invoice_notes">Notes</Label>
+                <Textarea
+                  id="invoice_notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
+
+              <Button onClick={handleSaveInvoice} className="w-full" size="lg">
+                Save Invoice & Update Credit
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
