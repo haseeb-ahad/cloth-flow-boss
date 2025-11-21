@@ -50,7 +50,7 @@ const Dashboard = () => {
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
-  const [dateRange, setDateRange] = useState("1day");
+  const [dateRange, setDateRange] = useState("today");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
@@ -73,19 +73,11 @@ const Dashboard = () => {
       case "today":
         start.setHours(0, 0, 0, 0);
         break;
-      case "1day":
+      case "yesterday":
         start.setDate(now.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
         break;
-      case "2days":
-        start.setDate(now.getDate() - 2);
-        break;
-      case "3days":
-        start.setDate(now.getDate() - 3);
-        break;
-      case "4days":
-        start.setDate(now.getDate() - 4);
-        break;
-      case "7days":
+      case "1week":
         start.setDate(now.getDate() - 7);
         break;
       case "1month":
@@ -101,7 +93,7 @@ const Dashboard = () => {
         if (startDate) start = startDate;
         break;
       default:
-        start.setDate(now.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
     }
 
     return { start, end: dateRange === "custom" && endDate ? endDate : now };
@@ -255,16 +247,13 @@ const Dashboard = () => {
   const getDateRangeLabel = () => {
     switch (dateRange) {
       case "today": return "Today";
-      case "1day": return "1 Day";
-      case "2days": return "2 Days";
-      case "3days": return "3 Days";
-      case "4days": return "4 Days";
-      case "7days": return "7 Days";
+      case "yesterday": return "Yesterday";
+      case "1week": return "1 Week";
       case "1month": return "1 Month";
       case "1year": return "1 Year";
       case "grand": return "All Time (Grand Report)";
       case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom Range";
-      default: return "7 Days";
+      default: return "Today";
     }
   };
 
@@ -332,15 +321,12 @@ const Dashboard = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="1day">1 Day</SelectItem>
-                <SelectItem value="2days">2 Days</SelectItem>
-                <SelectItem value="3days">3 Days</SelectItem>
-                <SelectItem value="4days">4 Days</SelectItem>
-                <SelectItem value="7days">7 Days</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="1week">1 Week</SelectItem>
                 <SelectItem value="1month">1 Month</SelectItem>
                 <SelectItem value="1year">1 Year</SelectItem>
                 <SelectItem value="grand">Grand Report</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
           {dateRange === "custom" && (
