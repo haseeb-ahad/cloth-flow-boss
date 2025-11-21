@@ -672,6 +672,9 @@ const Invoice = () => {
             </div>
             <div>
               <Label htmlFor="paidAmount">Paid Amount (Optional)</Label>
+              <div className="text-xs text-muted-foreground mb-1 font-medium">
+                Current Total: Rs. {calculateFinalAmount().toFixed(2)}
+              </div>
               <Input
                 id="paidAmount"
                 type="number"

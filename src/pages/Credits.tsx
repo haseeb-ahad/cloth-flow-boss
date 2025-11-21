@@ -506,11 +506,33 @@ const Credits = () => {
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Credit</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {selectedCredit && (
+              <Card className="p-4 bg-muted/50">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Original Amount</p>
+                    <p className="text-xl font-bold text-primary">Rs. {selectedCredit.amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Remaining Amount</p>
+                    <p className="text-xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Paid Amount</p>
+                    <p className="text-lg font-semibold text-success">Rs. {selectedCredit.paid_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="text-lg font-semibold">{getStatusBadge(selectedCredit.status)}</p>
+                  </div>
+                </div>
+              </Card>
+            )}
             <div>
               <Label htmlFor="edit_customer_name">Customer Name</Label>
               <Input
@@ -528,7 +550,7 @@ const Credits = () => {
               />
             </div>
             <div>
-              <Label htmlFor="edit_amount">Amount</Label>
+              <Label htmlFor="edit_amount">Total Credit Amount</Label>
               <Input
                 id="edit_amount"
                 type="number"
