@@ -25,10 +25,15 @@ interface Sale {
   status: string;
 }
 
+interface SaleWithDetails extends Sale {
+  total_cost: number;
+  total_profit: number;
+}
+
 const Sales = () => {
   const navigate = useNavigate();
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
+  const [sales, setSales] = useState<SaleWithDetails[]>([]);
+  const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -48,9 +53,27 @@ const Sales = () => {
         .from("sales")
         .select("*")
         .order("created_at", { ascending: false });
+      
       if (data) {
-        setSales(data);
-        setFilteredSales(data);
+        // Calculate total cost and profit for each sale
+        const salesWithDetails = await Promise.all(data.map(async (sale) => {
+          const { data: saleItems } = await supabase
+            .from("sale_items")
+            .select("*")
+            .eq("sale_id", sale.id);
+          
+          const total_cost = saleItems?.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0) || 0;
+          const total_profit = saleItems?.reduce((sum, item) => sum + item.profit, 0) || 0;
+          
+          return {
+            ...sale,
+            total_cost,
+            total_profit
+          };
+        }));
+        
+        setSales(salesWithDetails);
+        setFilteredSales(salesWithDetails);
       }
       toast.success("Sales data refreshed");
     } catch (error) {
@@ -217,6 +240,8 @@ const Sales = () => {
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Cost</TableHead>
+              <TableHead className="text-right">Profit</TableHead>
               <TableHead className="text-right">Discount</TableHead>
               <TableHead className="text-right">Final amount</TableHead>
               <TableHead className="text-right">Paid</TableHead>
@@ -236,6 +261,8 @@ const Sales = () => {
                   </TableCell>
                   <TableCell>{sale.customer_name || "Walk-in Customer"}</TableCell>
                   <TableCell className="text-right">Rs. {sale.total_amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right text-destructive">Rs. {sale.total_cost.toFixed(2)}</TableCell>
+                  <TableCell className="text-right text-success">Rs. {sale.total_profit.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     {sale.discount > 0 ? (
                       <span className="text-destructive">- Rs. {sale.discount.toFixed(2)}</span>
