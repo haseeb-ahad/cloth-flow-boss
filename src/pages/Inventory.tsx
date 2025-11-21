@@ -117,6 +117,28 @@ const Inventory = () => {
     }
     
     try {
+      // First check if product has been used in any sales
+      const { data: saleItems, error: checkError } = await supabase
+        .from("sale_items")
+        .select("id")
+        .eq("product_id", editingProduct.id)
+        .limit(1);
+      
+      if (checkError) {
+        console.error("Error checking sales:", checkError);
+        toast.error("Failed to check product usage");
+        return;
+      }
+      
+      if (saleItems && saleItems.length > 0) {
+        toast.error(
+          "Cannot delete this product because it has been used in sales. Sales history must be preserved.",
+          { duration: 5000 }
+        );
+        return;
+      }
+      
+      // If no sales, proceed with deletion
       const { error } = await supabase
         .from("products")
         .delete()
