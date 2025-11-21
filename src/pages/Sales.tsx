@@ -19,8 +19,10 @@ interface Sale {
   total_amount: number;
   discount: number;
   final_amount: number;
+  paid_amount: number;
   payment_method: string;
   created_at: string;
+  status: string;
 }
 
 const Sales = () => {
@@ -217,39 +219,54 @@ const Sales = () => {
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Discount</TableHead>
               <TableHead className="text-right">Final amount</TableHead>
+              <TableHead className="text-right">Paid</TableHead>
+              <TableHead className="text-right">Remaining</TableHead>
               <TableHead className="text-center">Payment</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSales.map((sale) => (
-              <TableRow key={sale.id}>
-                <TableCell className="font-medium">{sale.invoice_number}</TableCell>
-                <TableCell>
-                  {format(new Date(sale.created_at), "dd MMM yyyy, hh:mm a")}
-                </TableCell>
-                <TableCell>{sale.customer_name || "Walk-in Customer"}</TableCell>
-                <TableCell className="text-right">Rs. {sale.total_amount.toFixed(2)}</TableCell>
-                <TableCell className="text-right">
-                  {sale.discount > 0 ? (
-                    <span className="text-destructive">- Rs. {sale.discount.toFixed(2)}</span>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-                <TableCell className="text-right font-semibold text-success">
-                  Rs. {sale.final_amount.toFixed(2)}
-                </TableCell>
-                <TableCell className="text-center">
-                  {getPaymentMethodBadge(sale.payment_method)}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredSales.map((sale) => {
+              const remainingAmount = sale.final_amount - (sale.paid_amount || 0);
+              return (
+                <TableRow key={sale.id}>
+                  <TableCell className="font-medium">{sale.invoice_number}</TableCell>
+                  <TableCell>
+                    {format(new Date(sale.created_at), "dd MMM yyyy, hh:mm a")}
+                  </TableCell>
+                  <TableCell>{sale.customer_name || "Walk-in Customer"}</TableCell>
+                  <TableCell className="text-right">Rs. {sale.total_amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    {sale.discount > 0 ? (
+                      <span className="text-destructive">- Rs. {sale.discount.toFixed(2)}</span>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-success">
+                    Rs. {sale.final_amount.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right text-primary">
+                    Rs. {(sale.paid_amount || 0).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {remainingAmount > 0 ? (
+                      <span className="text-warning font-medium">Rs. {remainingAmount.toFixed(2)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {getPaymentMethodBadge(sale.payment_method)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>

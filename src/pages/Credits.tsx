@@ -195,6 +195,26 @@ const Credits = () => {
         })
         .eq("id", selectedCredit.id);
 
+      // Update associated sale record
+      const { data: saleData } = await supabase
+        .from("sales")
+        .select("id, final_amount")
+        .eq("customer_name", selectedCredit.customer_name)
+        .eq("customer_phone", selectedCredit.customer_phone || "")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (saleData) {
+        await supabase
+          .from("sales")
+          .update({
+            paid_amount: newPaidAmount,
+            status: newStatus === "paid" ? "completed" : "pending",
+          })
+          .eq("id", saleData.id);
+      }
+
       // Record payment transaction with auto-filled date
       await supabase
         .from("credit_transactions")
