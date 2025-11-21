@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, ShoppingBag } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -84,10 +84,6 @@ const Credits = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [isAllOrdersDialogOpen, setIsAllOrdersDialogOpen] = useState(false);
-  const [selectedCustomerSales, setSelectedCustomerSales] = useState<Sale[]>([]);
-  const [selectedCustomerName, setSelectedCustomerName] = useState("");
-  const [selectedCustomerPhone, setSelectedCustomerPhone] = useState("");
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -502,26 +498,6 @@ const Credits = () => {
     return customerCredits.reduce((sum, credit) => sum + credit.remaining_amount, 0);
   };
 
-  const handleViewAllOrders = async (customerName: string, customerPhone: string | null) => {
-    try {
-      const { data } = await supabase
-        .from("sales")
-        .select("*")
-        .eq("customer_name", customerName)
-        .eq("customer_phone", customerPhone || "")
-        .order("created_at", { ascending: false });
-      
-      if (data) {
-        setSelectedCustomerSales(data);
-        setSelectedCustomerName(customerName);
-        setSelectedCustomerPhone(customerPhone || "");
-        setIsAllOrdersDialogOpen(true);
-      }
-    } catch (error) {
-      toast.error("Failed to fetch customer orders");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -673,17 +649,6 @@ const Credits = () => {
                           <p className="text-2xl font-bold text-warning">Rs. {totalRemaining.toFixed(2)}</p>
                           <p className="text-xs text-muted-foreground">{customerCredits.length} credit(s)</p>
                         </div>
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewAllOrders(firstCredit.customer_name, firstCredit.customer_phone);
-                          }}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <ShoppingBag className="h-4 w-4 mr-2" />
-                          All orders
-                        </Button>
                       </div>
                     </div>
                   </CollapsibleTrigger>
@@ -768,105 +733,6 @@ const Credits = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* All Orders Dialog */}
-      <Dialog open={isAllOrdersDialogOpen} onOpenChange={setIsAllOrdersDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              All orders for {selectedCustomerName}
-              {selectedCustomerPhone && <span className="text-muted-foreground text-sm ml-2">({selectedCustomerPhone})</span>}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Total Summary */}
-            <Card className="p-4 bg-warning/10 border-warning/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total outstanding balance</p>
-                  <p className="text-3xl font-bold text-warning">
-                    Rs. {selectedCustomerSales.reduce((sum, sale) => sum + (sale.final_amount - sale.paid_amount), 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total orders</p>
-                  <p className="text-2xl font-bold text-foreground">{selectedCustomerSales.length}</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Sales Table */}
-            <Card className="p-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice #</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead className="text-right">Final</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right font-semibold">Remaining</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedCustomerSales.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground">
-                        No orders found for this customer
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    selectedCustomerSales.map((sale) => {
-                      const remaining = sale.final_amount - sale.paid_amount;
-                      return (
-                        <TableRow key={sale.id}>
-                          <TableCell className="font-medium">{sale.invoice_number}</TableCell>
-                          <TableCell>{format(new Date(sale.created_at), "dd MMM yyyy")}</TableCell>
-                          <TableCell className="text-right">Rs. {sale.total_amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">Rs. {sale.discount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-semibold">Rs. {sale.final_amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right text-success">Rs. {sale.paid_amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-bold text-warning">
-                            Rs. {remaining.toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={
-                              sale.payment_method === 'cash' ? 'bg-success text-success-foreground' :
-                              sale.payment_method === 'card' ? 'bg-primary text-primary-foreground' :
-                              sale.payment_method === 'credit' ? 'bg-warning text-warning-foreground' :
-                              'bg-secondary text-secondary-foreground'
-                            }>
-                              {sale.payment_method.toUpperCase()}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={
-                              sale.status === 'completed' ? 'bg-success text-success-foreground' :
-                              'bg-warning text-warning-foreground'
-                            }>
-                              {sale.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-
-            <div className="flex justify-end">
-              <Button onClick={() => setIsAllOrdersDialogOpen(false)} variant="outline">
-                Close
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 

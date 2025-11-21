@@ -176,6 +176,14 @@ const Invoice = () => {
     return calculateTotal() - discount;
   };
 
+  const calculateTotalCost = () => {
+    return items.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+  };
+
+  const calculateTotalProfit = () => {
+    return items.reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+  };
+
   const calculateChange = () => {
     if (!paidAmount) return 0;
     const paid = parseFloat(paidAmount);
@@ -729,6 +737,14 @@ const Invoice = () => {
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
                 <span className="font-medium">Rs. {calculateTotal().toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Total cost:</span>
+                <span className="font-medium text-destructive">Rs. {calculateTotalCost().toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Total profit:</span>
+                <span className="font-medium text-success">Rs. {calculateTotalProfit().toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-destructive">
                 <span>Discount:</span>
