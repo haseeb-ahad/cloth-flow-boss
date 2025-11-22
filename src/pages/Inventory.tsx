@@ -397,6 +397,7 @@ const Inventory = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">ID</TableHead>
               <TableHead>Product name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Purchase price</TableHead>
@@ -408,8 +409,11 @@ const Inventory = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product, index) => (
               <TableRow key={product.id}>
+                <TableCell className="font-semibold text-muted-foreground">
+                  {index + 1}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-primary" />
