@@ -126,7 +126,7 @@ const Inventory = () => {
         toast.success("Product added successfully!");
       }
       
-      fetchProducts();
+      await fetchProducts();
       resetForm();
       setIsDialogOpen(false);
     } catch (error) {
