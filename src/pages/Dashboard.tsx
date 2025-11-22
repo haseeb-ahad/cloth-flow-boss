@@ -23,6 +23,7 @@ interface DashboardStats {
   lowStockCount: number;
   totalCost: number;
   totalPrice: number;
+  totalStockValueWithProfit: number;
 }
 
 interface ChartData {
@@ -47,6 +48,7 @@ const Dashboard = () => {
     lowStockCount: 0,
     totalCost: 0,
     totalPrice: 0,
+    totalStockValueWithProfit: 0,
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
@@ -130,9 +132,14 @@ const Dashboard = () => {
     const totalPrice = saleItems?.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0) || 0;
 
     // Fetch inventory value
-    const { data: products } = await supabase.from("products").select("purchase_price, stock_quantity");
+    const { data: products } = await supabase.from("products").select("purchase_price, stock_quantity, selling_price");
     const totalInventoryValue = products?.reduce(
       (sum, product) => sum + Number(product.purchase_price) * product.stock_quantity,
+      0
+    ) || 0;
+    
+    const totalStockValueWithProfit = products?.reduce(
+      (sum, product) => sum + Number(product.selling_price) * product.stock_quantity,
       0
     ) || 0;
 
@@ -156,6 +163,7 @@ const Dashboard = () => {
       lowStockCount,
       totalCost,
       totalPrice,
+      totalStockValueWithProfit,
     });
   };
 
@@ -230,8 +238,7 @@ const Dashboard = () => {
         quantity: data.quantity,
         revenue: data.revenue,
       }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
+      .sort((a, b) => b.revenue - a.revenue);
 
     setTopProducts(topProductsData);
   };
@@ -518,6 +525,26 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '400ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Total Stock Value with Profit</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
+                <TrendingUp className="h-5 w-5 text-success" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalStockValueWithProfit)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Potential selling value</p>
+              <div className="mt-3 h-12">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesChartData.slice(-7)}>
+                    <Bar dataKey="profit" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 w-full">
@@ -636,7 +663,7 @@ const Dashboard = () => {
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
               <PackageSearch className="h-5 w-5 text-accent" />
-              Top 5 Products by Revenue
+              All Products by Revenue ({topProducts.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
           </CardHeader>
