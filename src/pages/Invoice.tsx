@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface Product {
@@ -50,6 +51,7 @@ const Invoice = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [additionalPayment, setAdditionalPayment] = useState("");
+  const [isFullPayment, setIsFullPayment] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -715,12 +717,33 @@ const Invoice = () => {
               <div className="text-xs text-muted-foreground mb-1 font-medium">
                 Current total: Rs. {calculateFinalAmount().toFixed(2)}
               </div>
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox 
+                  id="fullPayment" 
+                  checked={isFullPayment}
+                  onCheckedChange={(checked) => {
+                    setIsFullPayment(checked as boolean);
+                    if (checked) {
+                      setPaidAmount(calculateFinalAmount().toString());
+                    } else {
+                      setPaidAmount("");
+                    }
+                  }}
+                />
+                <label htmlFor="fullPayment" className="text-sm font-medium cursor-pointer">
+                  Full payment
+                </label>
+              </div>
               <Input
                 id="paidAmount"
                 type="number"
                 value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
+                onChange={(e) => {
+                  setPaidAmount(e.target.value);
+                  setIsFullPayment(false);
+                }}
                 placeholder="Leave empty for full payment"
+                disabled={isFullPayment}
               />
             </div>
             {editSaleId && paidAmount && parseFloat(paidAmount) < calculateFinalAmount() && (
