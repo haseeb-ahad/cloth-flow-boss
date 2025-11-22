@@ -25,6 +25,15 @@ interface DashboardStats {
   totalPrice: number;
   totalStockValueWithProfit: number;
   totalProducts: number;
+  stockCost: number;
+  stockSellWorth: number;
+  sellProfit: number;
+  totalStockByType: {
+    Unit: number;
+    Than: number;
+    Suit: number;
+    Meter: number;
+  };
 }
 
 interface ChartData {
@@ -51,6 +60,15 @@ const Dashboard = () => {
     totalPrice: 0,
     totalStockValueWithProfit: 0,
     totalProducts: 0,
+    stockCost: 0,
+    stockSellWorth: 0,
+    sellProfit: 0,
+    totalStockByType: {
+      Unit: 0,
+      Than: 0,
+      Suit: 0,
+      Meter: 0,
+    },
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
@@ -134,7 +152,7 @@ const Dashboard = () => {
     const totalPrice = saleItems?.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0) || 0;
 
     // Fetch inventory value
-    const { data: products } = await supabase.from("products").select("purchase_price, stock_quantity, selling_price");
+    const { data: products } = await supabase.from("products").select("purchase_price, stock_quantity, selling_price, quantity_type");
     const totalInventoryValue = products?.reduce(
       (sum, product) => sum + Number(product.purchase_price) * product.stock_quantity,
       0
@@ -144,6 +162,29 @@ const Dashboard = () => {
       (sum, product) => sum + Number(product.selling_price) * product.stock_quantity,
       0
     ) || 0;
+    
+    // Calculate stock metrics
+    const stockCost = products?.reduce(
+      (sum, product) => sum + Number(product.purchase_price) * product.stock_quantity,
+      0
+    ) || 0;
+    
+    const stockSellWorth = products?.reduce(
+      (sum, product) => sum + Number(product.selling_price) * product.stock_quantity,
+      0
+    ) || 0;
+    
+    const sellProfit = stockSellWorth - stockCost;
+    
+    // Calculate total stock by type
+    const totalStockByType = products?.reduce(
+      (acc, product) => {
+        const type = product.quantity_type || 'Unit';
+        acc[type as keyof typeof acc] = (acc[type as keyof typeof acc] || 0) + product.stock_quantity;
+        return acc;
+      },
+      { Unit: 0, Than: 0, Suit: 0, Meter: 0 }
+    ) || { Unit: 0, Than: 0, Suit: 0, Meter: 0 };
 
     // Fetch credit data
     const { data: credits } = await supabase.from("credits").select("remaining_amount");
@@ -170,6 +211,10 @@ const Dashboard = () => {
       totalPrice,
       totalStockValueWithProfit,
       totalProducts,
+      stockCost,
+      stockSellWorth,
+      sellProfit,
+      totalStockByType,
     });
   };
 
@@ -465,18 +510,73 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '250ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Stock Value With Profit</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wide">Stock Cost</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
+                <PackageSearch className="h-5 w-5 text-destructive" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.stockCost)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Total purchase cost</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '300ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Stock Sell Worth</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.stockSellWorth)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Total selling price value</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '350ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Sell Profit</CardTitle>
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
                 <TrendingUp className="h-5 w-5 text-success" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalStockValueWithProfit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Potential revenue from stock</p>
+              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.sellProfit)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Potential profit margin</p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '300ms' }}>
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '400ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Total Stock</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center ring-4 ring-accent/5">
+                <PackageSearch className="h-5 w-5 text-accent" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground font-medium">Unit:</span>
+                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Unit}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground font-medium">Than:</span>
+                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Than}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground font-medium">Suit:</span>
+                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Suit}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground font-medium">Meter:</span>
+                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Meter}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '450ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-semibold tracking-wide">Pending Credits</CardTitle>
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
@@ -496,7 +596,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '400ms' }}>
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '500ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-semibold tracking-wide">Products Overview</CardTitle>
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
