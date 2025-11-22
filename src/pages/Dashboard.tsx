@@ -24,6 +24,7 @@ interface DashboardStats {
   totalCost: number;
   totalPrice: number;
   totalStockValueWithProfit: number;
+  totalProducts: number;
 }
 
 interface ChartData {
@@ -49,6 +50,7 @@ const Dashboard = () => {
     totalCost: 0,
     totalPrice: 0,
     totalStockValueWithProfit: 0,
+    totalProducts: 0,
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
@@ -153,6 +155,9 @@ const Dashboard = () => {
       .select("id")
       .lt("stock_quantity", 10);
     const lowStockCount = lowStock?.length || 0;
+    
+    // Total products count
+    const totalProducts = products?.length || 0;
 
     setStats({
       totalSales,
@@ -164,6 +169,7 @@ const Dashboard = () => {
       totalCost,
       totalPrice,
       totalStockValueWithProfit,
+      totalProducts,
     });
   };
 
@@ -509,20 +515,21 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '350ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Low Stock Items</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
-                <PackageSearch className="h-5 w-5 text-destructive" />
+              <CardTitle className="text-sm font-semibold tracking-wide">Products Overview</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
+                <PackageSearch className="h-5 w-5 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-destructive tracking-tight">{stats.lowStockCount}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Items below 10 units</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesChartData.slice(-7)}>
-                    <Line type="monotone" dataKey="profit" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Total Products</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{stats.totalProducts}</div>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Low Stock Items</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-destructive tracking-tight">{stats.lowStockCount}</div>
+                </div>
               </div>
             </CardContent>
           </Card>
