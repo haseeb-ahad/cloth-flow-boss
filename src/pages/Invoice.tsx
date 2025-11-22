@@ -20,6 +20,7 @@ interface Product {
   purchase_price: number;
   stock_quantity: number;
   quantity_type: string;
+  category: string | null;
 }
 
 interface InvoiceItem {
@@ -635,7 +636,7 @@ const Invoice = () => {
                               <div className="flex flex-col">
                                 <span>{product.name}</span>
                                 <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
-                                  Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price}
+                                  Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
                                 </span>
                               </div>
                             </CommandItem>
