@@ -161,7 +161,15 @@ const Invoice = () => {
         };
       }
     } else if (field === "quantity") {
-      newItems[index].quantity = parseFloat(value) || 0;
+      const enteredQuantity = parseFloat(value) || 0;
+      const product = products.find(p => p.id === newItems[index].product_id);
+      
+      if (product && enteredQuantity > product.stock_quantity) {
+        toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
+        return;
+      }
+      
+      newItems[index].quantity = enteredQuantity;
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     } else if (field === "unit_price") {
       newItems[index].unit_price = parseFloat(value) || 0;
