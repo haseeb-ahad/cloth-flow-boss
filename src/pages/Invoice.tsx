@@ -629,11 +629,12 @@ const Invoice = () => {
                                 updateItem(index, "product_id", product.id);
                                 setOpenProductIndex(null);
                               }}
+                              className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
                             >
                               <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
                               <div className="flex flex-col">
                                 <span>{product.name}</span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
                                   Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price}
                                 </span>
                               </div>
