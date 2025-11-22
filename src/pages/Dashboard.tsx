@@ -311,15 +311,6 @@ const Dashboard = () => {
           </div>
           <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
             <Button 
-              onClick={handleExportPDF}
-              variant="outline"
-              size="sm"
-              className="hover:bg-primary hover:text-primary-foreground transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-            <Button 
               onClick={handleRefresh} 
               variant="outline" 
               size="icon"
