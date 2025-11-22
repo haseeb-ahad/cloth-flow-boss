@@ -651,8 +651,12 @@ const Invoice = () => {
                   type="number"
                   step="1"
                   min="0"
-                  value={item.quantity}
-                  onFocus={(e) => e.target.select()}
+                  value={item.quantity || ""}
+                  onFocus={(e) => {
+                    if (item.quantity === 0) {
+                      updateItem(index, "quantity", "");
+                    }
+                  }}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </div>
