@@ -468,14 +468,14 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '250ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Inventory Value</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wide">Total Stock Value</CardTitle>
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
                 <PackageSearch className="h-5 w-5 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Current stock value</p>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Based on cost price</p>
               <div className="mt-3 h-12">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={salesChartData.slice(-7)}>
@@ -535,7 +535,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalStockValueWithProfit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Potential selling value</p>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Based on selling price</p>
               <div className="mt-3 h-12">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={salesChartData.slice(-7)}>
