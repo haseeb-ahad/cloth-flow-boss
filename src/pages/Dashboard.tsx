@@ -465,27 +465,6 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '250ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Stock Value</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
-                <PackageSearch className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium mb-1">Stock Value (Cost Price)</p>
-                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
-                </div>
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground font-medium mb-1">Potential Profit</p>
-                  <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalStockValueWithProfit - stats.totalInventoryValue)}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '300ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-semibold tracking-wide">Total Stock Value With Profit</CardTitle>
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
                 <TrendingUp className="h-5 w-5 text-success" />
@@ -497,7 +476,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '350ms' }}>
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '300ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-semibold tracking-wide">Pending Credits</CardTitle>
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
