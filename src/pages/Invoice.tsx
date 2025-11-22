@@ -653,8 +653,12 @@ const Invoice = () => {
                 <Label>Price</Label>
                 <Input 
                   type="number" 
-                  value={item.unit_price} 
-                  onFocus={(e) => e.target.select()}
+                  value={item.unit_price || ""} 
+                  onFocus={(e) => {
+                    if (item.unit_price === 0) {
+                      updateItem(index, "unit_price", "");
+                    }
+                  }}
                   onChange={(e) => updateItem(index, "unit_price", e.target.value)}
                 />
               </div>
