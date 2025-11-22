@@ -597,9 +597,9 @@ const Invoice = () => {
           </div>
 
           {items.map((item, index) => (
-            <div key={index} className="grid gap-3 md:grid-cols-[2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-end border-b pb-4">
-              <div>
-                <Label>Product</Label>
+            <div key={index} className="grid gap-3 md:grid-cols-[2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-start border-b pb-4">
+              <div className="flex flex-col">
+                <Label className="mb-2">Product</Label>
                 <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={openProductIndex === index} className="w-full justify-between">
@@ -637,8 +637,8 @@ const Invoice = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div>
-                <Label>Quantity</Label>
+              <div className="flex flex-col">
+                <Label className="mb-2">Quantity</Label>
                 <Input
                   type="number"
                   step="1"
@@ -647,12 +647,12 @@ const Invoice = () => {
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </div>
-              <div>
-                <Label>Type</Label>
+              <div className="flex flex-col">
+                <Label className="mb-2">Type</Label>
                 <Input type="text" value={item.quantity_type} disabled className="text-xs" />
               </div>
-              <div>
-                <Label>Price</Label>
+              <div className="flex flex-col">
+                <Label className="mb-2">Price</Label>
                 <Input 
                   type="number" 
                   value={item.unit_price || ""} 
@@ -664,19 +664,19 @@ const Invoice = () => {
                   onChange={(e) => updateItem(index, "unit_price", e.target.value)}
                 />
               </div>
-              <div>
-                <Label>Cost</Label>
+              <div className="flex flex-col">
+                <Label className="mb-2">Cost</Label>
                 <Input type="number" value={(item.purchase_price * item.quantity).toFixed(2)} disabled className="text-destructive font-medium" />
               </div>
-              <div>
-                <Label>Profit</Label>
+              <div className="flex flex-col">
+                <Label className="mb-2">Profit</Label>
                 <Input type="number" value={((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} disabled className="text-success font-medium" />
               </div>
-              <div>
-                <Label>Total</Label>
+              <div className="flex flex-col">
+                <Label className="mb-2">Total</Label>
                 <Input type="number" value={item.total_price.toFixed(2)} disabled />
               </div>
-              <div>
+              <div className="flex flex-col justify-end">
                 <Button onClick={() => removeItem(index)} variant="destructive" size="icon">
                   <Trash2 className="h-4 w-4" />
                 </Button>
