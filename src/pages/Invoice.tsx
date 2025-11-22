@@ -597,7 +597,7 @@ const Invoice = () => {
           </div>
 
           {items.map((item, index) => (
-            <div key={index} className="grid gap-3 md:grid-cols-[2fr_0.8fr_0.6fr_0.8fr_0.8fr_0.8fr_1fr_auto] items-end border-b pb-4">
+            <div key={index} className="grid gap-3 md:grid-cols-[2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-end border-b pb-4">
               <div>
                 <Label>Product</Label>
                 <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
