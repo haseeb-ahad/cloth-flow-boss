@@ -654,12 +654,8 @@ const Invoice = () => {
                 <Input 
                   type="number" 
                   value={item.unit_price} 
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => updateItem(index, "unit_price", e.target.value)}
-                  onFocus={(e) => {
-                    if (parseFloat(e.target.value) === 0) {
-                      e.target.value = "";
-                    }
-                  }}
                 />
               </div>
               <div>
