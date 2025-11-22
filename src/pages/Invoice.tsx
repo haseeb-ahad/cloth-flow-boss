@@ -133,7 +133,7 @@ const Invoice = () => {
     setItems([...items, {
       product_id: "",
       product_name: "",
-      quantity: 1,
+      quantity: 0,
       unit_price: 0,
       purchase_price: 0,
       total_price: 0,
@@ -650,8 +650,9 @@ const Invoice = () => {
                 <Input
                   type="number"
                   step="1"
-                  min="1"
+                  min="0"
                   value={item.quantity}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </div>
