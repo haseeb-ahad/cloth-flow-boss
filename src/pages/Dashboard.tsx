@@ -474,14 +474,15 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Based on cost price</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesChartData.slice(-7)}>
-                    <Line type="monotone" dataKey="sales" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Stock Value (Cost Price)</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalInventoryValue)}</div>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Potential Profit</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalStockValueWithProfit - stats.totalInventoryValue)}</div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -526,25 +527,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '400ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Stock Value with Profit</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalStockValueWithProfit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Based on selling price</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesChartData.slice(-7)}>
-                    <Bar dataKey="profit" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 w-full">
