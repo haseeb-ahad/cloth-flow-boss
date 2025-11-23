@@ -702,7 +702,8 @@ const Invoice = () => {
                 <Label className="mb-2">Total</Label>
                 <Input type="number" value={item.total_price.toFixed(2)} disabled />
               </div>
-              <div className="flex flex-col justify-end">
+              <div className="flex flex-col">
+                <Label className="mb-2 opacity-0">Action</Label>
                 <Button onClick={() => removeItem(index)} variant="destructive" size="icon">
                   <Trash2 className="h-4 w-4" />
                 </Button>
