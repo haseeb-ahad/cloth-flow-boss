@@ -604,7 +604,12 @@ const Invoice = () => {
 
         <div className="space-y-4 mb-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Items</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold">Items</h3>
+              <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                Total: {items.length}
+              </span>
+            </div>
             <Button onClick={addItem} size="sm" variant="outline">
               <Plus className="h-4 w-4 mr-2" />
               Add Item
