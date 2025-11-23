@@ -280,8 +280,8 @@ const Sales = () => {
                     {remainingAmount > 0 ? (
                       <span className="text-warning font-medium">Rs. {remainingAmount.toFixed(2)}</span>
                     ) : (
-                      <Badge className="bg-success/20 text-success hover:bg-success/30">
-                        All Done
+                      <Badge className="bg-gradient-to-r from-success to-primary text-white font-semibold shadow-md hover:shadow-lg transition-all">
+                        All Done ✓
                       </Badge>
                     )}
                   </TableCell>
