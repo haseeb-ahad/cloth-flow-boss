@@ -408,67 +408,6 @@ const Dashboard = () => {
         </div>
 
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr w-full">
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Sales</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
-                <ShoppingCart className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">For selected period</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesChartData.slice(-7)}>
-                    <Line type="monotone" dataKey="sales" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '50ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Today's Sales</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center ring-4 ring-accent/5">
-                <TrendingUp className="h-5 w-5 text-accent" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.todaySales)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Sales made today</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesChartData.slice(-7)}>
-                    <Line type="monotone" dataKey="sales" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Profit</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalProfit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Net profit earned</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesChartData.slice(-7)}>
-                    <Line type="monotone" dataKey="profit" stroke="hsl(var(--success))" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '250ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-semibold tracking-wide">Stock Cost</CardTitle>
@@ -533,26 +472,6 @@ const Dashboard = () => {
                   <span className="text-xs text-muted-foreground font-medium">Meter:</span>
                   <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Meter}</span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '450ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Pending Credits</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
-                <CreditCard className="h-5 w-5 text-warning" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-warning tracking-tight">{formatCurrency(stats.totalCredit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Outstanding payments</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesChartData.slice(-7)}>
-                    <Bar dataKey="sales" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
