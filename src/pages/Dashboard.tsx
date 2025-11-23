@@ -435,7 +435,7 @@ const Dashboard = () => {
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '100ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Sale</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wide">Sale</CardTitle>
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
                 <ShoppingCart className="h-5 w-5 text-primary" />
               </div>
@@ -448,7 +448,7 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '150ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Profit</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wide">Profit</CardTitle>
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
                 <TrendingUp className="h-5 w-5 text-success" />
               </div>
@@ -461,7 +461,7 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '200ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Credits</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wide">Credit</CardTitle>
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
                 <CreditCard className="h-5 w-5 text-warning" />
               </div>
