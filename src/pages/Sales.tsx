@@ -183,9 +183,14 @@ const Sales = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">Sales History</h1>
-          <p className="text-muted-foreground mt-1 text-base">View and manage all transactions</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground tracking-tight">Sales History</h1>
+            <p className="text-muted-foreground mt-1 text-base">View and manage all transactions</p>
+          </div>
+          <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+            Total: {filteredSales.length}
+          </span>
         </div>
         <Button 
           onClick={fetchSales} 
