@@ -90,35 +90,56 @@ const Dashboard = () => {
   const getDateRangeFilter = () => {
     const now = new Date();
     let start = new Date();
+    let end = new Date();
 
     switch (dateRange) {
       case "today":
         start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
         break;
       case "yesterday":
         start.setDate(now.getDate() - 1);
         start.setHours(0, 0, 0, 0);
+        end.setDate(now.getDate() - 1);
+        end.setHours(23, 59, 59, 999);
         break;
       case "1week":
         start.setDate(now.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
         break;
       case "1month":
         start.setMonth(now.getMonth() - 1);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
         break;
       case "1year":
         start.setFullYear(now.getFullYear() - 1);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
         break;
       case "grand":
         start = new Date(0); // Beginning of time
+        end.setHours(23, 59, 59, 999);
         break;
       case "custom":
-        if (startDate) start = startDate;
+        if (startDate) {
+          start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+        }
+        if (endDate) {
+          end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+        } else {
+          end.setHours(23, 59, 59, 999);
+        }
         break;
       default:
         start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
     }
 
-    return { start, end: dateRange === "custom" && endDate ? endDate : now };
+    return { start, end };
   };
 
   const fetchDashboardStats = async () => {
