@@ -468,45 +468,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '150ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Cost</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
-                <PackageSearch className="h-5 w-5 text-destructive" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalCost)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Purchase cost</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesChartData.slice(-7)}>
-                    <Bar dataKey="sales" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '200ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Total Revenue</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
-                <DollarSign className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalPrice)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">Selling price</p>
-              <div className="mt-3 h-12">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesChartData.slice(-7)}>
-                    <Bar dataKey="profit" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '250ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
