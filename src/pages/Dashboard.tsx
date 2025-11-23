@@ -186,8 +186,12 @@ const Dashboard = () => {
       { Unit: 0, Than: 0, Suit: 0, Meter: 0 }
     ) || { Unit: 0, Than: 0, Suit: 0, Meter: 0 };
 
-    // Fetch credit data
-    const { data: credits } = await supabase.from("credits").select("remaining_amount");
+    // Fetch credit data with date filter
+    const { data: credits } = await supabase
+      .from("credits")
+      .select("remaining_amount, created_at")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
     const totalCredit = credits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
 
     // Fetch low stock count
@@ -405,6 +409,47 @@ const Dashboard = () => {
             </>
           )}
         </div>
+        </div>
+
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Total Sale</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">{getDateRangeLabel()}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '150ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Total Profit</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
+                <TrendingUp className="h-5 w-5 text-success" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalProfit)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">{getDateRangeLabel()}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '200ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-semibold tracking-wide">Total Credits</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
+                <CreditCard className="h-5 w-5 text-warning" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold text-warning tracking-tight">{formatCurrency(stats.totalCredit)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">{getDateRangeLabel()}</p>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr w-full">
