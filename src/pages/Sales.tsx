@@ -28,6 +28,7 @@ interface Sale {
 interface SaleWithDetails extends Sale {
   total_cost: number;
   total_profit: number;
+  item_count: number;
 }
 
 const Sales = () => {
@@ -64,11 +65,13 @@ const Sales = () => {
           
           const total_cost = saleItems?.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0) || 0;
           const total_profit = saleItems?.reduce((sum, item) => sum + item.profit, 0) || 0;
+          const item_count = saleItems?.length || 0;
           
           return {
             ...sale,
             total_cost,
-            total_profit
+            total_profit,
+            item_count
           };
         }));
         
@@ -244,6 +247,7 @@ const Sales = () => {
               <TableHead>Invoice #</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead className="text-center">Items</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Cost</TableHead>
               <TableHead className="text-right">Profit</TableHead>
@@ -265,6 +269,11 @@ const Sales = () => {
                     {format(new Date(sale.created_at), "dd MMM yyyy, hh:mm a")}
                   </TableCell>
                   <TableCell>{sale.customer_name || "Walk-in Customer"}</TableCell>
+                  <TableCell className="text-center">
+                    <span className="inline-flex items-center justify-center bg-primary/10 text-primary font-medium px-2 py-1 rounded-full text-sm">
+                      {sale.item_count}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">Rs. {sale.total_amount.toFixed(2)}</TableCell>
                   <TableCell className="text-right text-destructive">Rs. {sale.total_cost.toFixed(2)}</TableCell>
                   <TableCell className="text-right text-success">Rs. {sale.total_profit.toFixed(2)}</TableCell>
