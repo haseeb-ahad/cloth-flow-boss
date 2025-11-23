@@ -53,6 +53,7 @@ const Invoice = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [additionalPayment, setAdditionalPayment] = useState("");
   const [isFullPayment, setIsFullPayment] = useState(false);
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchProducts();
@@ -106,6 +107,7 @@ const Invoice = () => {
         setDiscount(sale.discount || 0);
         setPaymentMethod(sale.payment_method || "cash");
         setPaidAmount(sale.paid_amount?.toString() || "");
+        setInvoiceDate(sale.created_at ? new Date(sale.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
 
         const loadedItems = saleItems.map(item => ({
           product_id: item.product_id,
@@ -243,6 +245,7 @@ const Invoice = () => {
         final_amount: finalAmount,
         payment_method: paymentMethod,
         paid_amount: paid,
+        created_at: invoiceDate,
       })
       .select()
       .single();
@@ -346,6 +349,7 @@ const Invoice = () => {
         payment_method: paymentMethod,
         paid_amount: paid,
         status: paid >= finalAmount ? "completed" : "pending",
+        created_at: invoiceDate,
       }).eq("id", editSaleId);
 
       if (saleError) {
@@ -531,6 +535,8 @@ const Invoice = () => {
     setDiscount(0);
     setPaymentMethod("cash");
     setPaidAmount("");
+    setInvoiceDate(new Date().toISOString().split('T')[0]);
+    setIsFullPayment(false);
     fetchProducts();
   };
 
@@ -702,21 +708,30 @@ const Invoice = () => {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="paymentMethod">Payment method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="online">Online Transfer</SelectItem>
-                  <SelectItem value="credit">Credit</SelectItem>
-                  <SelectItem value="installment">Installment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="invoiceDate">Invoice date</Label>
+            <Input
+              id="invoiceDate"
+              type="date"
+              value={invoiceDate}
+              onChange={(e) => setInvoiceDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="paymentMethod">Payment method</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="online">Online Transfer</SelectItem>
+                <SelectItem value="credit">Credit</SelectItem>
+                <SelectItem value="installment">Installment</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
             <div>
               <Label htmlFor="discount">Discount</Label>
               <Input
