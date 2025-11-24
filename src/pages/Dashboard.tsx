@@ -148,10 +148,13 @@ const Dashboard = () => {
     // Fetch sales data with date filter
     const { data: sales } = await supabase
       .from("sales")
-      .select("final_amount")
+      .select("id, final_amount")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
     const totalSales = sales?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
+    
+    // Get sale IDs from filtered sales
+    const saleIds = sales?.map(sale => sale.id) || [];
 
     // Fetch today's sales
     const today = new Date().toISOString().split('T')[0];
@@ -161,16 +164,21 @@ const Dashboard = () => {
       .gte("created_at", today);
     const todaySales = todaySalesData?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
 
-    // Fetch profit data with date filter
-    const { data: saleItems } = await supabase
-      .from("sale_items")
-      .select("profit, purchase_price, quantity, unit_price")
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString());
+    // Fetch profit data using sale IDs from filtered sales
+    let totalProfit = 0;
+    let totalCost = 0;
+    let totalPrice = 0;
     
-    const totalProfit = saleItems?.reduce((sum, item) => sum + Number(item.profit), 0) || 0;
-    const totalCost = saleItems?.reduce((sum, item) => sum + (Number(item.purchase_price) * item.quantity), 0) || 0;
-    const totalPrice = saleItems?.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0) || 0;
+    if (saleIds.length > 0) {
+      const { data: saleItems } = await supabase
+        .from("sale_items")
+        .select("profit, purchase_price, quantity, unit_price")
+        .in("sale_id", saleIds);
+      
+      totalProfit = saleItems?.reduce((sum, item) => sum + Number(item.profit), 0) || 0;
+      totalCost = saleItems?.reduce((sum, item) => sum + (Number(item.purchase_price) * item.quantity), 0) || 0;
+      totalPrice = saleItems?.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0) || 0;
+    }
 
     // Fetch inventory value
     const { data: products } = await supabase.from("products").select("purchase_price, stock_quantity, selling_price, quantity_type");
@@ -248,16 +256,27 @@ const Dashboard = () => {
     
     const { data: sales } = await supabase
       .from("sales")
-      .select("created_at, final_amount")
+      .select("id, created_at, final_amount")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
 
-    const { data: saleItems } = await supabase
-      .from("sale_items")
-      .select("created_at, profit, sale_id")
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString());
+    // Get sale IDs and create a map of sale_id to date
+    const saleIds = sales?.map(sale => sale.id) || [];
+    const saleDateMap: { [key: string]: string } = {};
+    sales?.forEach(sale => {
+      saleDateMap[sale.id] = new Date(sale.created_at!).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
+    });
+
+    // Fetch sale items using sale IDs
+    let saleItems: any[] = [];
+    if (saleIds.length > 0) {
+      const { data } = await supabase
+        .from("sale_items")
+        .select("profit, sale_id")
+        .in("sale_id", saleIds);
+      saleItems = data || [];
+    }
 
     // Group by date
     const dataByDate: { [key: string]: { sales: number; profit: number } } = {};
@@ -271,8 +290,8 @@ const Dashboard = () => {
     });
 
     saleItems?.forEach((item) => {
-      const date = new Date(item.created_at!).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
-      if (dataByDate[date]) {
+      const date = saleDateMap[item.sale_id];
+      if (date && dataByDate[date]) {
         dataByDate[date].profit += Number(item.profit);
       }
     });
@@ -289,13 +308,29 @@ const Dashboard = () => {
   const fetchTopProducts = async () => {
     const { start, end } = getDateRangeFilter();
 
-    const { data: saleItems } = await supabase
-      .from("sale_items")
-      .select("product_name, quantity, total_price")
+    // First get sales in the date range
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("id")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 
-    if (!saleItems) return;
+    const saleIds = sales?.map(sale => sale.id) || [];
+
+    // Then get sale items for those sales
+    let saleItems: any[] = [];
+    if (saleIds.length > 0) {
+      const { data } = await supabase
+        .from("sale_items")
+        .select("product_name, quantity, total_price")
+        .in("sale_id", saleIds);
+      saleItems = data || [];
+    }
+
+    if (!saleItems || saleItems.length === 0) {
+      setTopProducts([]);
+      return;
+    }
 
     // Aggregate by product name
     const productMap: { [key: string]: { quantity: number; revenue: number } } = {};
