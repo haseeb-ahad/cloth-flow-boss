@@ -66,6 +66,7 @@ export type Database = {
           notes: string | null
           paid_amount: number | null
           remaining_amount: number
+          sale_id: string | null
           status: string | null
           updated_at: string | null
         }
@@ -79,6 +80,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           remaining_amount: number
+          sale_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -92,10 +94,19 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           remaining_amount?: number
+          sale_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "credits_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       installment_payments: {
         Row: {

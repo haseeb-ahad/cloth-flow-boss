@@ -278,6 +278,7 @@ const Invoice = () => {
     if (paid < finalAmount) {
       const creditAmount = finalAmount - paid;
       await supabase.from("credits").insert({
+        sale_id: sale.id,
         customer_name: customerName || "Walk-in Customer",
         customer_phone: customerPhone || null,
         amount: creditAmount,
@@ -430,8 +431,7 @@ const Invoice = () => {
       const { data: existingCredit } = await supabase
         .from("credits")
         .select("*")
-        .ilike("notes", `%${invoiceNumber}%`)
-        .eq("customer_name", customerName || "Walk-in Customer")
+        .eq("sale_id", editSaleId)
         .maybeSingle();
 
       if (existingCredit) {
@@ -454,6 +454,7 @@ const Invoice = () => {
       } else if (paid < finalAmount) {
         const creditAmount = finalAmount - paid;
         const { error: creditInsertError } = await supabase.from("credits").insert({
+          sale_id: editSaleId,
           customer_name: customerName || "Walk-in Customer",
           customer_phone: customerPhone || null,
           amount: creditAmount,
