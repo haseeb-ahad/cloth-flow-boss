@@ -89,54 +89,61 @@ const Dashboard = () => {
 
   const getDateRangeFilter = () => {
     const now = new Date();
-    let start = new Date();
-    let end = new Date();
+    let start: Date;
+    let end: Date;
 
     switch (dateRange) {
       case "today":
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        // Get today's date at midnight UTC
+        const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        start = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 23, 59, 59, 999));
         break;
       case "yesterday":
-        start.setDate(now.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
-        end.setDate(now.getDate() - 1);
-        end.setHours(23, 59, 59, 999);
+        const yesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        start = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 23, 59, 59, 999));
         break;
       case "1week":
-        start.setDate(now.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        const weekAgoUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        start = new Date(Date.UTC(weekAgoUTC.getFullYear(), weekAgoUTC.getMonth(), weekAgoUTC.getDate(), 0, 0, 0, 0));
+        const todayEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(todayEndUTC.getFullYear(), todayEndUTC.getMonth(), todayEndUTC.getDate(), 23, 59, 59, 999));
         break;
       case "1month":
-        start.setMonth(now.getMonth() - 1);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        const monthAgoUTC = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        start = new Date(Date.UTC(monthAgoUTC.getFullYear(), monthAgoUTC.getMonth(), monthAgoUTC.getDate(), 0, 0, 0, 0));
+        const monthEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(monthEndUTC.getFullYear(), monthEndUTC.getMonth(), monthEndUTC.getDate(), 23, 59, 59, 999));
         break;
       case "1year":
-        start.setFullYear(now.getFullYear() - 1);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        const yearAgoUTC = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        start = new Date(Date.UTC(yearAgoUTC.getFullYear(), yearAgoUTC.getMonth(), yearAgoUTC.getDate(), 0, 0, 0, 0));
+        const yearEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(yearEndUTC.getFullYear(), yearEndUTC.getMonth(), yearEndUTC.getDate(), 23, 59, 59, 999));
         break;
       case "grand":
         start = new Date(0); // Beginning of time
-        end.setHours(23, 59, 59, 999);
+        const grandEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(grandEndUTC.getFullYear(), grandEndUTC.getMonth(), grandEndUTC.getDate(), 23, 59, 59, 999));
         break;
       case "custom":
         if (startDate) {
-          start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
+          start = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0));
+        } else {
+          start = new Date(0);
         }
         if (endDate) {
-          end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
+          end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999));
         } else {
-          end.setHours(23, 59, 59, 999);
+          const customEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = new Date(Date.UTC(customEndUTC.getFullYear(), customEndUTC.getMonth(), customEndUTC.getDate(), 23, 59, 59, 999));
         }
         break;
       default:
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        const defaultTodayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        start = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 23, 59, 59, 999));
     }
 
     return { start, end };
