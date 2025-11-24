@@ -114,13 +114,6 @@ const Sales = () => {
     if (!confirm("Are you sure you want to delete this sale?")) return;
 
     try {
-      // Get sale details first for credit cleanup
-      const { data: saleData } = await supabase
-        .from("sales")
-        .select("invoice_number, customer_name")
-        .eq("id", id)
-        .maybeSingle();
-
       const { data: saleItems } = await supabase
         .from("sale_items")
         .select("product_id, quantity")
@@ -145,20 +138,7 @@ const Sales = () => {
         await supabase.from("sale_items").delete().eq("sale_id", id);
       }
 
-      // Delete associated credit if it exists
-      if (saleData) {
-        const { data: associatedCredit } = await supabase
-          .from("credits")
-          .select("*")
-          .ilike("notes", `%${saleData.invoice_number}%`)
-          .eq("customer_name", saleData.customer_name || "Walk-in Customer")
-          .maybeSingle();
-
-        if (associatedCredit) {
-          await supabase.from("credits").delete().eq("id", associatedCredit.id);
-        }
-      }
-
+      // Delete sale (credits will be automatically deleted due to CASCADE)
       await supabase.from("sales").delete().eq("id", id);
       toast.success("Sale deleted successfully! Inventory and credits updated.");
       fetchSales();
