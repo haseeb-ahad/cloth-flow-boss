@@ -107,7 +107,17 @@ const Invoice = () => {
         setDiscount(sale.discount || 0);
         setPaymentMethod(sale.payment_method || "cash");
         setPaidAmount(sale.paid_amount?.toString() || "");
-        setInvoiceDate(sale.created_at ? new Date(sale.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+        
+        // Extract date from created_at timestamp and format as YYYY-MM-DD
+        if (sale.created_at) {
+          const saleDate = new Date(sale.created_at);
+          const year = saleDate.getFullYear();
+          const month = String(saleDate.getMonth() + 1).padStart(2, '0');
+          const day = String(saleDate.getDate()).padStart(2, '0');
+          setInvoiceDate(`${year}-${month}-${day}`);
+        } else {
+          setInvoiceDate(new Date().toISOString().split('T')[0]);
+        }
 
         const loadedItems = saleItems.map(item => ({
           product_id: item.product_id,
@@ -234,6 +244,9 @@ const Invoice = () => {
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
+    // Convert date to ISO string with time set to noon to avoid timezone issues
+    const invoiceDateISO = new Date(invoiceDate + 'T12:00:00').toISOString();
+
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
@@ -245,7 +258,7 @@ const Invoice = () => {
         final_amount: finalAmount,
         payment_method: paymentMethod,
         paid_amount: paid,
-        created_at: invoiceDate,
+        created_at: invoiceDateISO,
       })
       .select()
       .single();
@@ -341,6 +354,9 @@ const Invoice = () => {
       }
 
       // Step 2: Update sale record with accurate data
+      // Convert date to ISO string with time set to noon to avoid timezone issues
+      const invoiceDateISO = new Date(invoiceDate + 'T12:00:00').toISOString();
+      
       const { error: saleError } = await supabase.from("sales").update({
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
@@ -350,7 +366,7 @@ const Invoice = () => {
         payment_method: paymentMethod,
         paid_amount: paid,
         status: paid >= finalAmount ? "completed" : "pending",
-        created_at: invoiceDate,
+        created_at: invoiceDateISO,
       }).eq("id", editSaleId);
 
       if (saleError) {
