@@ -500,6 +500,14 @@ const Credits = () => {
 
   return (
     <div className="space-y-6">
+      {isLoading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground text-lg">Loading credits...</p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-foreground tracking-tight">Credit Management</h1>
@@ -517,7 +525,7 @@ const Credits = () => {
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button>
+                <Button disabled={isLoading}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add credit
               </Button>
@@ -615,6 +623,7 @@ const Credits = () => {
               onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
               variant="outline"
               className="w-full"
+              disabled={isLoading}
             >
               Clear Filters
             </Button>

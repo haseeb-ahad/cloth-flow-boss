@@ -54,13 +54,19 @@ const Invoice = () => {
   const [additionalPayment, setAdditionalPayment] = useState("");
   const [isFullPayment, setIsFullPayment] = useState(false);
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchProducts();
-    fetchCustomerNames();
-    if (editSaleId) {
-      loadSaleData(editSaleId);
-    }
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchProducts(), fetchCustomerNames()]);
+      if (editSaleId) {
+        await loadSaleData(editSaleId);
+      }
+      setIsLoading(false);
+    };
+    loadData();
   }, [editSaleId]);
 
   const fetchCustomerNames = async () => {
@@ -226,6 +232,7 @@ const Invoice = () => {
     
     if (!confirm(confirmMessage)) return;
 
+    setIsSaving(true);
     try {
       if (editSaleId) {
         await updateSale();
@@ -235,6 +242,8 @@ const Invoice = () => {
     } catch (error) {
       console.error(error);
       toast.error("Failed to save invoice");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -498,6 +507,7 @@ const Invoice = () => {
     if (!editSaleId) return;
     if (!confirm("Are you sure you want to delete this sale? This action cannot be undone.")) return;
 
+    setIsSaving(true);
     try {
       const { data: saleItems } = await supabase
         .from("sale_items")
@@ -629,7 +639,7 @@ const Invoice = () => {
                 Total: {items.length}
               </span>
             </div>
-            <Button onClick={addItem} size="sm" variant="outline">
+            <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving}>
               <Plus className="h-4 w-4 mr-2" />
               Add Item
             </Button>
@@ -723,7 +733,7 @@ const Invoice = () => {
               </div>
               <div className="flex flex-col">
                 <Label className="mb-2 opacity-0">Action</Label>
-                <Button onClick={() => removeItem(index)} variant="destructive" size="icon">
+                <Button onClick={() => removeItem(index)} variant="destructive" size="icon" disabled={isSaving}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -877,17 +887,32 @@ const Invoice = () => {
         </div>
 
         <div className="flex gap-2 mt-6">
-          <Button onClick={saveInvoice} className="flex-1">
-            <Printer className="h-4 w-4 mr-2" />
-            {editSaleId ? "Update Sale" : "Save & Print"}
+          <Button onClick={saveInvoice} className="flex-1" disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                {editSaleId ? "Updating..." : "Saving..."}
+              </>
+            ) : (
+              <>
+                <Printer className="h-4 w-4 mr-2" />
+                {editSaleId ? "Update Sale" : "Save & Print"}
+              </>
+            )}
           </Button>
           {editSaleId ? (
-            <Button onClick={handleDeleteSale} variant="destructive">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+            <Button onClick={handleDeleteSale} variant="destructive" disabled={isSaving}>
+              {isSaving ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </>
+              )}
             </Button>
           ) : (
-            <Button onClick={resetForm} variant="outline">
+            <Button onClick={resetForm} variant="outline" disabled={isSaving}>
               Reset
             </Button>
           )}
