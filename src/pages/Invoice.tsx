@@ -299,6 +299,7 @@ const Invoice = () => {
         remaining_amount: creditAmount,
         status: "pending",
         notes: `Partial payment for invoice ${newInvoiceNumber}`,
+        created_at: invoiceDateISO,
       });
     }
 
@@ -478,6 +479,7 @@ const Invoice = () => {
           remaining_amount: creditAmount,
           status: "pending",
           notes: `Partial payment for invoice ${invoiceNumber}`,
+          created_at: invoiceDateISO,
         });
         if (creditInsertError) {
           console.error("Error creating credit:", creditInsertError);
