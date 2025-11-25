@@ -163,6 +163,17 @@ const Sales = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading sales data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -213,6 +224,7 @@ const Sales = () => {
               onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
               variant="outline"
               className="w-full"
+              disabled={isLoading}
             >
               Clear Filters
             </Button>
@@ -283,7 +295,7 @@ const Sales = () => {
                     {getPaymentMethodBadge(sale.payment_method)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)}>
+                    <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)} disabled={isLoading}>
                       <Edit className="h-4 w-4" />
                     </Button>
                   </TableCell>

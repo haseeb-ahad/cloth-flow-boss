@@ -31,6 +31,8 @@ const Inventory = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -50,6 +52,7 @@ const Inventory = () => {
   }, [products, searchTerm, categoryFilter]);
 
   const fetchProducts = async () => {
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from("products")
@@ -65,8 +68,11 @@ const Inventory = () => {
         setProducts(data);
         setFilteredProducts(data);
       }
+      toast.success("Products refreshed");
     } catch (error) {
       toast.error("Failed to load products");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -155,6 +161,7 @@ const Inventory = () => {
       return;
     }
     
+    setIsSaving(true);
     try {
       // First check if product has been used in any sales
       const { data: saleItems, error: checkError } = await supabase
@@ -196,6 +203,8 @@ const Inventory = () => {
     } catch (error: any) {
       console.error("Delete exception:", error);
       toast.error(`Failed to delete product: ${error?.message || "Unknown error"}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -218,6 +227,17 @@ const Inventory = () => {
     return <Badge className="bg-success text-success-foreground">In Stock</Badge>;
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading inventory...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -226,8 +246,8 @@ const Inventory = () => {
           <p className="text-muted-foreground">Manage your products and stock</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={fetchProducts} variant="outline" size="icon">
-            <RefreshCw className="h-4 w-4" />
+          <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
             if (!open) {
@@ -236,7 +256,7 @@ const Inventory = () => {
             setIsDialogOpen(open);
           }}>
             <DialogTrigger asChild>
-              <Button onClick={() => setIsDialogOpen(true)}>
+              <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add product
               </Button>
@@ -335,13 +355,26 @@ const Inventory = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingProduct ? "Update product" : "Add product"}
+                <Button type="submit" className="flex-1" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {editingProduct ? "Updating..." : "Adding..."}
+                    </>
+                  ) : (
+                    editingProduct ? "Update product" : "Add product"
+                  )}
                 </Button>
                 {editingProduct && (
-                  <Button type="button" onClick={handleDelete} variant="destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                  <Button type="button" onClick={handleDelete} variant="destructive" disabled={isSaving}>
+                    {isSaving ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </>
+                    )}
                   </Button>
                 )}
               </div>

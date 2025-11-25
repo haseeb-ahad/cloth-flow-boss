@@ -105,63 +105,75 @@ const Customers = () => {
         </Button>
       </div>
 
-      <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label>Search by Name or Phone</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading customers...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Card className="p-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label>Search by Name or Phone</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search customers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={() => setSearchTerm("")} 
+                  variant="outline"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  Clear Search
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="flex items-end">
-            <Button 
-              onClick={() => setSearchTerm("")} 
-              variant="outline"
-              className="w-full"
-            >
-              Clear Search
-            </Button>
-          </div>
-        </div>
-      </Card>
+          </Card>
 
-      <Card className="p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Total Customers: <span className="font-semibold text-foreground">{filteredCustomers.length}</span>
-          </p>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Phone Number</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCustomers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
-                  No customers found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCustomers.map((customer, index) => (
-                <TableRow key={`${customer.name}-${index}`}>
-                  <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell>{customer.phone || "-"}</TableCell>
+          <Card className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Total Customers: <span className="font-semibold text-foreground">{filteredCustomers.length}</span>
+              </p>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer Name</TableHead>
+                  <TableHead>Phone Number</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                      No customers found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCustomers.map((customer, index) => (
+                    <TableRow key={`${customer.name}-${index}`}>
+                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell>{customer.phone || "-"}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
     </div>
   );
 };

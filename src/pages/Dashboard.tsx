@@ -415,6 +415,14 @@ const Dashboard = () => {
 
   return (
     <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-6 space-y-6">
+      {isLoading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground text-lg">Loading dashboard...</p>
+          </div>
+        </div>
+      )}
       <div id="dashboard-content" className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -431,7 +439,7 @@ const Dashboard = () => {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
-            <Select value={dateRange} onValueChange={setDateRange}>
+            <Select value={dateRange} onValueChange={setDateRange} disabled={isLoading}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Select range" />
               </SelectTrigger>
@@ -449,7 +457,7 @@ const Dashboard = () => {
             <>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !startDate && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !startDate && "text-muted-foreground")} disabled={isLoading}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     <span className="truncate">{startDate ? format(startDate, "PP") : "Start Date"}</span>
                   </Button>
@@ -460,7 +468,7 @@ const Dashboard = () => {
               </Popover>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !endDate && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !endDate && "text-muted-foreground")} disabled={isLoading}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     <span className="truncate">{endDate ? format(endDate, "PP") : "End Date"}</span>
                   </Button>
