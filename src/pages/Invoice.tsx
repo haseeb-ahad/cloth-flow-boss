@@ -56,6 +56,7 @@ const Invoice = () => {
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -103,6 +104,7 @@ const Invoice = () => {
 
   const loadSaleData = async (saleId: string) => {
     try {
+      setIsLoadingItems(true);
       const { data: sale } = await supabase.from("sales").select("*").eq("id", saleId).single();
       const { data: saleItems } = await supabase.from("sale_items").select("*").eq("sale_id", saleId);
 
@@ -140,6 +142,8 @@ const Invoice = () => {
       }
     } catch (error) {
       toast.error("Failed to load sale data");
+    } finally {
+      setIsLoadingItems(false);
     }
   };
 
@@ -674,13 +678,21 @@ const Invoice = () => {
                 Total: {items.length}
               </span>
             </div>
-            <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving}>
+            <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving || isLoadingItems}>
               <Plus className="h-4 w-4 mr-2" />
               Add Item
             </Button>
           </div>
 
-          {items.map((item, index) => (
+          {isLoadingItems ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">Loading items...</p>
+              </div>
+            </div>
+          ) : (
+            items.map((item, index) => (
             <div key={index} className="grid gap-3 md:grid-cols-[2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-start border-b pb-4">
               <div className="flex flex-col">
                 <Label className="mb-2">Product</Label>
@@ -773,7 +785,8 @@ const Invoice = () => {
                 </Button>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
