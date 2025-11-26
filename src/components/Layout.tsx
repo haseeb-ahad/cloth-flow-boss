@@ -31,7 +31,7 @@ const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background">
       {/* Modern Header with Glass Effect */}
       <nav className="sticky top-0 z-50 border-b border-border/40 bg-card/80 backdrop-blur-xl shadow-sm">
-        <div className="container mx-auto px-6">
+        <div className="px-5">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-glow">
@@ -46,7 +46,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </nav>
 
-      <div className="container mx-auto flex gap-6 p-6">
+      <div className="flex gap-6 p-5">
         {/* Modern Sidebar with Animations */}
         <aside className="w-72 space-y-2">
           <div className="rounded-xl bg-card border border-border/50 p-4 shadow-lg animate-in">
