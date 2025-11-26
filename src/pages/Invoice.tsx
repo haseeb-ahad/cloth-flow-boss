@@ -169,6 +169,22 @@ const Invoice = () => {
     if (field === "product_id") {
       const product = products.find(p => p.id === value);
       if (product) {
+        // Check for exact duplicate (same name, same purchase price, same selling price)
+        const exactDuplicate = items.find((item, idx) => 
+          idx !== index && 
+          item.product_name === product.name && 
+          item.purchase_price === product.purchase_price && 
+          item.unit_price === product.selling_price
+        );
+
+        if (exactDuplicate) {
+          toast.error(`${product.name} with same prices is already added`, {
+            duration: 3000,
+            className: "animate-shake",
+          });
+          return;
+        }
+
         newItems[index] = {
           ...newItems[index],
           product_id: value,
@@ -191,7 +207,25 @@ const Invoice = () => {
       newItems[index].quantity = enteredQuantity;
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     } else if (field === "unit_price") {
-      newItems[index].unit_price = parseFloat(value) || 0;
+      const enteredUnitPrice = parseFloat(value) || 0;
+      
+      // Check for exact duplicate when unit price is manually changed
+      const exactDuplicate = items.find((item, idx) => 
+        idx !== index && 
+        item.product_name === newItems[index].product_name && 
+        item.purchase_price === newItems[index].purchase_price && 
+        item.unit_price === enteredUnitPrice
+      );
+
+      if (exactDuplicate) {
+        toast.error(`${newItems[index].product_name} with same prices is already added`, {
+          duration: 3000,
+          className: "animate-shake",
+        });
+        return;
+      }
+
+      newItems[index].unit_price = enteredUnitPrice;
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
     setItems(newItems);
