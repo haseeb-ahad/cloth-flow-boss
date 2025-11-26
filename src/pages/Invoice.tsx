@@ -506,6 +506,7 @@ const Invoice = () => {
             amount: newCreditAmount,
             remaining_amount: newCreditAmount,
             paid_amount: 0,
+            created_at: invoiceDateISO,
           }).eq("id", existingCredit.id);
           if (creditUpdateError) {
             console.error("Error updating credit:", creditUpdateError);
