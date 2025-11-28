@@ -105,10 +105,28 @@ const Invoice = () => {
   const loadSaleData = async (saleId: string) => {
     try {
       setIsLoadingItems(true);
-      const { data: sale } = await supabase.from("sales").select("*").eq("id", saleId).single();
-      const { data: saleItems } = await supabase.from("sale_items").select("*").eq("sale_id", saleId);
+      const { data: sale, error: saleError } = await supabase.from("sales").select("*").eq("id", saleId).single();
+      const { data: saleItems, error: itemsError } = await supabase.from("sale_items").select("*").eq("sale_id", saleId);
 
-      if (sale && saleItems) {
+      if (saleError) {
+        console.error("Error loading sale:", saleError);
+        toast.error("Failed to load sale data");
+        return;
+      }
+
+      if (itemsError) {
+        console.error("Error loading sale items:", itemsError);
+        toast.error("Failed to load sale items");
+        return;
+      }
+
+      if (sale) {
+        // CRITICAL: Check if sale has items
+        if (!saleItems || saleItems.length === 0) {
+          toast.error("WARNING: This sale has no items! Cannot edit safely.");
+          console.error("Sale has no items:", sale.invoice_number);
+          return;
+        }
         setInvoiceNumber(sale.invoice_number);
         setCustomerName(sale.customer_name || "");
         setCustomerPhone(sale.customer_phone || "");
@@ -127,15 +145,27 @@ const Invoice = () => {
           setInvoiceDate(new Date().toISOString().split('T')[0]);
         }
 
-        const loadedItems = saleItems.map(item => ({
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          purchase_price: item.purchase_price,
-          total_price: item.total_price,
-          quantity_type: "Unit",
-        }));
+        // Fetch product details to get correct quantity_type
+        const productIds = saleItems.map(item => item.product_id);
+        const { data: productsData } = await supabase
+          .from("products")
+          .select("id, quantity_type")
+          .in("id", productIds);
+
+        const loadedItems = saleItems.map(item => {
+          const product = productsData?.find(p => p.id === item.product_id);
+          return {
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            purchase_price: item.purchase_price,
+            total_price: item.total_price,
+            quantity_type: product?.quantity_type || "Unit",
+          };
+        });
+        
+        console.log(`Loaded ${loadedItems.length} items for editing:`, loadedItems);
         setItems(loadedItems);
         // Create a deep copy to prevent reference issues
         setOriginalItems(loadedItems.map(item => ({...item})));
@@ -165,6 +195,19 @@ const Invoice = () => {
   };
 
   const removeItem = (index: number) => {
+    // CRITICAL PROTECTION: Prevent removing last item in edit mode
+    if (editSaleId && items.length === 1) {
+      toast.error("Cannot remove the last item! An invoice must have at least one product.");
+      return;
+    }
+    
+    // Warn user before removing last item in create mode
+    if (!editSaleId && items.length === 1) {
+      if (!confirm("This will remove the last item. Continue?")) {
+        return;
+      }
+    }
+    
     setItems(items.filter((_, i) => i !== index));
   };
 
@@ -259,14 +302,21 @@ const Invoice = () => {
   };
 
   const saveInvoice = async () => {
+    // CRITICAL VALIDATION: Ensure items exist
     if (items.length === 0) {
-      toast.error("Please add at least one item");
+      toast.error("Cannot save invoice without items! Please add at least one product.");
+      return;
+    }
+
+    // Additional validation for edit mode
+    if (editSaleId && originalItems.length === 0) {
+      toast.error("CRITICAL ERROR: Original items not loaded. Cannot safely update. Please reload the page.");
       return;
     }
 
     const confirmMessage = editSaleId 
-      ? "Are you sure you want to update this sale?" 
-      : "Are you sure you want to create this invoice?";
+      ? `Update sale with ${items.length} items?\n\nOriginal items: ${originalItems.length}\nNew items: ${items.length}` 
+      : `Create invoice with ${items.length} items?`;
     
     if (!confirm(confirmMessage)) return;
 
@@ -357,6 +407,18 @@ const Invoice = () => {
 
   const updateSale = async () => {
     try {
+      // CRITICAL VALIDATION: Prevent data loss
+      if (items.length === 0) {
+        toast.error("Cannot save invoice without items! Please add products before saving.");
+        return;
+      }
+
+      // Validate that we have original items to compare against
+      if (originalItems.length === 0) {
+        toast.error("Cannot update sale - original items not loaded. Please reload the page.");
+        return;
+      }
+
       const totalAmount = calculateTotal();
       const finalAmount = calculateFinalAmount();
       let paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
@@ -423,7 +485,14 @@ const Invoice = () => {
         throw saleError;
       }
 
-      // Step 3: Delete old sale items
+      // Step 3: CRITICAL - Only delete old items if we have new items to insert
+      // This prevents accidental data loss
+      if (items.length === 0) {
+        toast.error("CRITICAL: Cannot delete items without replacements. Operation aborted.");
+        throw new Error("Cannot delete items - no replacement items available");
+      }
+      
+      console.log(`Deleting old items and replacing with ${items.length} new items`);
       const { error: deleteError } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
       if (deleteError) {
         console.error("Error deleting old sale items:", deleteError);

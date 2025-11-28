@@ -252,14 +252,19 @@ const Credits = () => {
   };
 
   const handleEdit = async (credit: Credit) => {
-    const { data: saleData } = await supabase
+    const { data: saleData, error: saleError } = await supabase
       .from("sales")
       .select("*, sale_items(*)")
       .eq("customer_name", credit.customer_name)
       .eq("customer_phone", credit.customer_phone || "")
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    if (saleError) {
+      console.error("Error loading sale data:", saleError);
+      toast.error("Failed to load associated sale data");
+    }
 
     // Always open invoice edit dialog
     setSelectedCredit(credit);
@@ -273,6 +278,13 @@ const Credits = () => {
     });
     
     if (saleData) {
+      // CRITICAL: Check if sale has items
+      if (!saleData.sale_items || saleData.sale_items.length === 0) {
+        toast.error("WARNING: This sale has no items! Cannot edit safely.");
+        console.error("Sale has no items:", saleData.invoice_number);
+        return;
+      }
+
       setSaleId(saleData.id);
       setInvoiceNumber(saleData.invoice_number);
       setDiscount(saleData.discount || 0);
@@ -288,6 +300,7 @@ const Credits = () => {
         profit: item.profit,
         quantity_type: products.find(p => p.id === item.product_id)?.quantity_type || "Unit"
       }));
+      console.log(`Credits Edit: Loaded ${items.length} items for editing`);
       setInvoiceItems(items);
     } else {
       // No sale found, initialize empty invoice
@@ -318,6 +331,12 @@ const Credits = () => {
   };
 
   const handleRemoveInvoiceItem = (id: string) => {
+    // CRITICAL PROTECTION: Prevent removing last item when editing a sale
+    if (saleId && invoiceItems.length === 1) {
+      toast.error("Cannot remove the last item! An invoice must have at least one product.");
+      return;
+    }
+    
     setInvoiceItems(invoiceItems.filter((item) => item.id !== id));
   };
 
@@ -358,6 +377,12 @@ const Credits = () => {
   const handleSaveInvoice = async () => {
     if (!selectedCredit) return;
 
+    // CRITICAL VALIDATION: Ensure invoice items exist when editing a sale
+    if (saleId && invoiceItems.length === 0) {
+      toast.error("Cannot save invoice without items! Please add at least one product.");
+      return;
+    }
+
     try {
       const paidAmt = parseFloat(invoicePaidAmount) || 0;
       
@@ -380,7 +405,8 @@ const Credits = () => {
           })
           .eq("id", saleId);
 
-        // Delete old sale items
+        // CRITICAL: Only delete old items if we have new items to insert
+        console.log(`Credits Edit: Deleting old items and replacing with ${invoiceItems.length} new items`);
         await supabase.from("sale_items").delete().eq("sale_id", saleId);
 
         // Insert new sale items
