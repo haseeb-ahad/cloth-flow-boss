@@ -274,6 +274,9 @@ const Invoice = () => {
 
       newItems[index].unit_price = enteredUnitPrice;
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    } else if (field === "total_price") {
+      const enteredTotal = parseFloat(value) || 0;
+      newItems[index].total_price = enteredTotal;
     }
     setItems(newItems);
   };
@@ -845,7 +848,16 @@ const Invoice = () => {
               </div>
               <div className="flex flex-col">
                 <Label className="mb-2">Total</Label>
-                <Input type="number" value={item.total_price.toFixed(2)} disabled />
+                <Input 
+                  type="number" 
+                  value={item.total_price || ""} 
+                  onFocus={(e) => {
+                    if (item.total_price === 0) {
+                      updateItem(index, "total_price", "");
+                    }
+                  }}
+                  onChange={(e) => updateItem(index, "total_price", e.target.value)}
+                />
               </div>
               <div className="flex flex-col">
                 <Label className="mb-2 opacity-0">Action</Label>
