@@ -9,7 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -924,8 +924,11 @@ const Invoice = () => {
                     }
                   }}
                 />
-                <label htmlFor="fullPayment" className="text-sm font-medium cursor-pointer">
+                <label htmlFor="fullPayment" className="text-sm font-medium cursor-pointer flex items-center gap-2">
                   Full payment
+                  {isFullPayment && (
+                    <CheckCircle className="h-4 w-4 text-green-500 animate-in fade-in zoom-in duration-300" />
+                  )}
                 </label>
               </div>
               <Input
