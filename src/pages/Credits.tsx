@@ -387,9 +387,51 @@ const Credits = () => {
       const paidAmt = parseFloat(invoicePaidAmount) || 0;
       
       if (saleId && invoiceItems.length > 0) {
-        // Case 1: There's a sale - update sale and credit
+        // Case 1: There's a sale - update sale and credit with proper inventory management
         const { totalAmount, finalAmount } = calculateInvoiceTotals();
         const remainingAmt = finalAmount - paidAmt;
+
+        // TASK 3: Get original items to restore their stock first
+        const { data: originalItems, error: fetchOriginalError } = await supabase
+          .from("sale_items")
+          .select("*")
+          .eq("sale_id", saleId);
+
+        if (fetchOriginalError) {
+          console.error("Error fetching original items:", fetchOriginalError);
+          toast.error("Failed to load original items");
+          throw fetchOriginalError;
+        }
+
+        // Restore stock for all original items
+        console.log("Credits Edit: Restoring stock for original items:", originalItems);
+        for (const originalItem of originalItems || []) {
+          const { data: product, error: fetchError } = await supabase
+            .from("products")
+            .select("stock_quantity")
+            .eq("id", originalItem.product_id)
+            .single();
+
+          if (fetchError || !product) {
+            console.error("Error fetching product for restoration:", fetchError);
+            toast.error(`Failed to restore stock for ${originalItem.product_name}`);
+            throw fetchError || new Error("Product not found");
+          }
+
+          const restoredStock = product.stock_quantity + originalItem.quantity;
+          console.log(`Restoring ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
+
+          const { error: updateError } = await supabase
+            .from("products")
+            .update({ stock_quantity: restoredStock })
+            .eq("id", originalItem.product_id);
+          
+          if (updateError) {
+            console.error("Error restoring stock:", updateError);
+            toast.error(`Failed to restore stock for ${originalItem.product_name}`);
+            throw updateError;
+          }
+        }
 
         // Update sale
         await supabase
@@ -405,22 +447,72 @@ const Credits = () => {
           })
           .eq("id", saleId);
 
-        // CRITICAL: Only delete old items if we have new items to insert
+        // Delete old sale items
         console.log(`Credits Edit: Deleting old items and replacing with ${invoiceItems.length} new items`);
         await supabase.from("sale_items").delete().eq("sale_id", saleId);
 
-        // Insert new sale items
-        const saleItemsData = invoiceItems.map((item) => ({
-          sale_id: saleId,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          purchase_price: item.purchase_price,
-          total_price: item.total_price,
-          profit: item.profit,
-        }));
-        await supabase.from("sale_items").insert(saleItemsData);
+        // Insert new sale items with error handling and inventory deduction
+        console.log(`Credits Edit: Inserting ${invoiceItems.length} new items`);
+        for (let i = 0; i < invoiceItems.length; i++) {
+          const item = invoiceItems[i];
+          
+          // Insert the item
+          const { error: insertError } = await supabase.from("sale_items").insert({
+            sale_id: saleId,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            purchase_price: item.purchase_price,
+            total_price: item.total_price,
+            profit: item.profit,
+          });
+
+          if (insertError) {
+            console.error(`Error inserting item ${i + 1}/${invoiceItems.length}:`, insertError);
+            toast.error(`Failed to add ${item.product_name}`);
+            throw insertError;
+          }
+
+          console.log(`✓ Item ${i + 1}/${invoiceItems.length} inserted: ${item.product_name}`);
+
+          // Deduct stock from inventory
+          const { data: product, error: fetchError } = await supabase
+            .from("products")
+            .select("stock_quantity")
+            .eq("id", item.product_id)
+            .single();
+
+          if (fetchError || !product) {
+            console.error("Error fetching product:", fetchError);
+            toast.error(`Failed to update inventory for ${item.product_name}`);
+            throw fetchError || new Error("Product not found");
+          }
+
+          const newStock = product.stock_quantity - item.quantity;
+
+          if (newStock < 0) {
+            toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+            throw new Error("Insufficient stock");
+          }
+
+          console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
+
+          const { error: updateError } = await supabase
+            .from("products")
+            .update({ stock_quantity: newStock })
+            .eq("id", item.product_id);
+
+          if (updateError) {
+            console.error("Error updating inventory:", updateError);
+            toast.error(`Failed to update inventory for ${item.product_name}`);
+            throw updateError;
+          }
+
+          console.log(`✓ Inventory updated for ${item.product_name}`);
+        }
+
+        console.log("✓ Credits Edit: All items saved and inventory updated successfully");
 
         // Update credit with new invoice totals
         await supabase

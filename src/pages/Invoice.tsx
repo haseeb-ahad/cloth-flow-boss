@@ -365,10 +365,14 @@ const Invoice = () => {
 
     if (saleError) throw saleError;
 
-    for (const item of items) {
+    // TASK 1 & 2: Insert each item separately with proper error handling and inventory reduction
+    console.log(`Creating invoice with ${items.length} items`);
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
       const profit = (item.unit_price - item.purchase_price) * item.quantity;
       
-      await supabase.from("sale_items").insert({
+      // Step 1: Insert the sale item
+      const { error: itemInsertError } = await supabase.from("sale_items").insert({
         sale_id: sale.id,
         product_id: item.product_id,
         product_name: item.product_name,
@@ -379,14 +383,53 @@ const Invoice = () => {
         profit: profit,
       });
 
-      const product = products.find(p => p.id === item.product_id);
-      if (product) {
-        await supabase
-          .from("products")
-          .update({ stock_quantity: product.stock_quantity - item.quantity })
-          .eq("id", item.product_id);
+      if (itemInsertError) {
+        console.error(`Error inserting item ${i + 1}/${items.length}:`, itemInsertError);
+        toast.error(`Failed to add item: ${item.product_name}`);
+        throw itemInsertError;
       }
+
+      console.log(`✓ Item ${i + 1}/${items.length} inserted: ${item.product_name}`);
+
+      // Step 2: Fetch current stock from database (not from state)
+      const { data: product, error: fetchError } = await supabase
+        .from("products")
+        .select("stock_quantity")
+        .eq("id", item.product_id)
+        .single();
+
+      if (fetchError || !product) {
+        console.error("Error fetching product stock:", fetchError);
+        toast.error(`Failed to update inventory for ${item.product_name}`);
+        throw fetchError || new Error("Product not found");
+      }
+
+      // Step 3: Calculate new stock and validate
+      const newStock = product.stock_quantity - item.quantity;
+      
+      if (newStock < 0) {
+        toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+        throw new Error("Insufficient stock");
+      }
+
+      console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} → ${newStock}`);
+
+      // Step 4: Update inventory
+      const { error: updateError } = await supabase
+        .from("products")
+        .update({ stock_quantity: newStock })
+        .eq("id", item.product_id);
+
+      if (updateError) {
+        console.error("Error updating inventory:", updateError);
+        toast.error(`Failed to update inventory for ${item.product_name}`);
+        throw updateError;
+      }
+
+      console.log(`✓ Inventory updated for ${item.product_name}`);
     }
+
+    console.log("✓ All items saved and inventory updated successfully");
 
     if (paid < finalAmount) {
       const creditAmount = finalAmount - paid;
@@ -504,8 +547,9 @@ const Invoice = () => {
       }
 
       // Step 4: Insert new sale items and deduct stock
-      console.log("Starting stock deduction for new items:", items);
-      for (const item of items) {
+      console.log(`Inserting ${items.length} new items for updated invoice`);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         const profit = (item.unit_price - item.purchase_price) * item.quantity;
         
         const { error: insertError } = await supabase.from("sale_items").insert({
@@ -520,10 +564,12 @@ const Invoice = () => {
         });
 
         if (insertError) {
-          console.error("Error inserting sale item:", insertError);
+          console.error(`Error inserting item ${i + 1}/${items.length}:`, insertError);
           toast.error(`Failed to add ${item.product_name} to sale`);
           throw insertError;
         }
+
+        console.log(`✓ Item ${i + 1}/${items.length} inserted: ${item.product_name}`);
 
         // Deduct stock for new quantities
         const { data: product, error: fetchError } = await supabase
@@ -547,7 +593,7 @@ const Invoice = () => {
         console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${deductedStock}`);
 
         if (deductedStock < 0) {
-          toast.error(`Insufficient stock for ${item.product_name}`);
+          toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
           throw new Error("Insufficient stock");
         }
 
@@ -561,7 +607,11 @@ const Invoice = () => {
           toast.error(`Failed to update stock for ${item.product_name}`);
           throw updateError;
         }
+
+        console.log(`✓ Inventory updated for ${item.product_name}`);
       }
+
+      console.log("✓ All items inserted and inventory updated successfully");
 
       // Step 5: Handle credit updates
       const { data: existingCredit } = await supabase
