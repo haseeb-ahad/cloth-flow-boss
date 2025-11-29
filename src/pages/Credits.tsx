@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search } from "lucide-react";
+import AnimatedTick from "@/components/AnimatedTick";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -61,6 +62,7 @@ interface Sale {
   payment_method: string;
   created_at: string;
   status: string;
+  payment_status?: string;
 }
 
 const Credits = () => {
@@ -84,6 +86,7 @@ const Credits = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -225,6 +228,7 @@ const Credits = () => {
           .update({
             paid_amount: newPaidAmount,
             status: newStatus === "paid" ? "completed" : "pending",
+            payment_status: newStatus === "paid" ? "paid" : "pending",
           })
           .eq("id", saleData.id);
       }
@@ -288,6 +292,7 @@ const Credits = () => {
       setSaleId(saleData.id);
       setInvoiceNumber(saleData.invoice_number);
       setDiscount(saleData.discount || 0);
+      setCurrentPaymentStatus(saleData.payment_status || "");
       
       const items = saleData.sale_items.map((item: any) => ({
         id: item.id,
@@ -444,6 +449,7 @@ const Credits = () => {
             final_amount: finalAmount,
             paid_amount: paidAmt,
             status: remainingAmt > 0 ? "pending" : "completed",
+            payment_status: remainingAmt > 0 ? "pending" : "paid",
           })
           .eq("id", saleId);
 
@@ -1023,6 +1029,11 @@ const Credits = () => {
                     <span>Final amount:</span>
                     <span>Rs. {calculateInvoiceTotals().finalAmount.toFixed(2)}</span>
                   </div>
+                  {currentPaymentStatus === "paid" && (
+                    <div className="flex justify-center py-2 border-t">
+                      <AnimatedTick />
+                    </div>
+                  )}
                 </div>
               </Card>
 

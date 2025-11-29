@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle } from "lucide-react";
+import AnimatedTick from "@/components/AnimatedTick";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -133,6 +134,7 @@ const Invoice = () => {
         setDiscount(sale.discount || 0);
         setPaymentMethod(sale.payment_method || "cash");
         setPaidAmount(sale.paid_amount?.toString() || "");
+        setIsFullPayment(sale.payment_status === "paid");
         
         // Extract date from created_at timestamp and format as YYYY-MM-DD
         if (sale.created_at) {
@@ -358,6 +360,7 @@ const Invoice = () => {
         final_amount: finalAmount,
         payment_method: paymentMethod,
         paid_amount: paid,
+        payment_status: isFullPayment ? "paid" : "pending",
         created_at: invoiceDateISO,
       })
       .select()
@@ -522,6 +525,7 @@ const Invoice = () => {
         payment_method: paymentMethod,
         paid_amount: paid,
         status: paid >= finalAmount ? "completed" : "pending",
+        payment_status: isFullPayment ? "paid" : "pending",
         created_at: invoiceDateISO,
       }).eq("id", editSaleId);
 
@@ -1032,6 +1036,11 @@ const Invoice = () => {
                 <span>Total:</span>
                 <span className="text-success">Rs. {calculateFinalAmount().toFixed(2)}</span>
               </div>
+              {isFullPayment && (
+                <div className="flex justify-center py-2 border-t">
+                  <AnimatedTick />
+                </div>
+              )}
               {paidAmount && parseFloat(paidAmount) !== calculateFinalAmount() && (
                 <>
                   <div className="flex justify-between text-sm text-primary">
