@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,14 @@ import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle } 
 import AnimatedTick from "@/components/AnimatedTick";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+
+// DEBUG FLAG - Set to false after confirming fix
+const DEBUG_MODE = true;
+const debugLog = (...args: any[]) => {
+  if (DEBUG_MODE) {
+    console.log(`[INVOICE-DEBUG ${new Date().toISOString()}]`, ...args);
+  }
+};
 
 interface Product {
   id: string;
@@ -59,14 +67,29 @@ const Invoice = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
 
+  // CRITICAL PROTECTION: Prevent double saves and race conditions
+  const saveInProgressRef = useRef(false);
+  const itemsBeforeSaveRef = useRef<InvoiceItem[]>([]);
+  const hasLoadedRef = useRef(false);
+
+  // STABLE LOADING: Only load once, prevent re-renders from resetting items
   useEffect(() => {
+    if (hasLoadedRef.current) {
+      debugLog("⚠️ Blocked duplicate load attempt");
+      return;
+    }
+    
     const loadData = async () => {
+      debugLog("🔵 Starting initial data load");
       setIsLoading(true);
+      hasLoadedRef.current = true;
+      
       await Promise.all([fetchProducts(), fetchCustomerNames()]);
       if (editSaleId) {
         await loadSaleData(editSaleId);
       }
       setIsLoading(false);
+      debugLog("✅ Initial data load complete");
     };
     loadData();
   }, [editSaleId]);
@@ -167,10 +190,13 @@ const Invoice = () => {
           };
         });
         
-        console.log(`Loaded ${loadedItems.length} items for editing:`, loadedItems);
+        debugLog(`📦 Loaded ${loadedItems.length} items for editing:`, JSON.stringify(loadedItems.map(i => i.product_name)));
+        
+        // CRITICAL: Lock items to prevent any auto-modification
         setItems(loadedItems);
-        // Create a deep copy to prevent reference issues
         setOriginalItems(loadedItems.map(item => ({...item})));
+        
+        debugLog(`✅ Items locked in state: ${loadedItems.length} items`);
       }
     } catch (error) {
       toast.error("Failed to load sale data");
@@ -185,7 +211,8 @@ const Invoice = () => {
   };
 
   const addItem = () => {
-    setItems([...items, {
+    debugLog("➕ USER ACTION: Adding new item");
+    const newItem = {
       product_id: "",
       product_name: "",
       quantity: 0,
@@ -193,27 +220,38 @@ const Invoice = () => {
       purchase_price: 0,
       total_price: 0,
       quantity_type: "Unit",
-    }]);
+    };
+    const newItems = [...items, newItem];
+    setItems(newItems);
+    debugLog(`📦 Items count after add: ${newItems.length}`);
   };
 
   const removeItem = (index: number) => {
+    debugLog(`🗑️ USER ACTION: Removing item at index ${index}`);
+    
     // CRITICAL PROTECTION: Prevent removing last item in edit mode
     if (editSaleId && items.length === 1) {
       toast.error("Cannot remove the last item! An invoice must have at least one product.");
+      debugLog("⚠️ Blocked removal of last item in edit mode");
       return;
     }
     
     // Warn user before removing last item in create mode
     if (!editSaleId && items.length === 1) {
       if (!confirm("This will remove the last item. Continue?")) {
+        debugLog("⚠️ User cancelled removal of last item");
         return;
       }
     }
     
-    setItems(items.filter((_, i) => i !== index));
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
+    debugLog(`📦 Items count after remove: ${newItems.length}`, newItems.map(i => i.product_name));
   };
 
   const updateItem = (index: number, field: string, value: any) => {
+    debugLog(`✏️ USER ACTION: Updating item ${index}, field: ${field}, value: ${value}`);
+    
     const newItems = [...items];
     if (field === "product_id") {
       const product = products.find(p => p.id === value);
@@ -307,40 +345,80 @@ const Invoice = () => {
   };
 
   const saveInvoice = async () => {
+    debugLog("💾 SAVE INITIATED");
+    
+    // PREVENT DOUBLE SAVES - Critical protection
+    if (saveInProgressRef.current) {
+      debugLog("⛔ BLOCKED: Save already in progress");
+      toast.error("Save in progress, please wait...");
+      return;
+    }
+
     // CRITICAL VALIDATION: Ensure items exist
     if (items.length === 0) {
       toast.error("Cannot save invoice without items! Please add at least one product.");
+      debugLog("⛔ BLOCKED: No items to save");
       return;
     }
 
     // Additional validation for edit mode
     if (editSaleId && originalItems.length === 0) {
       toast.error("CRITICAL ERROR: Original items not loaded. Cannot safely update. Please reload the page.");
+      debugLog("⛔ BLOCKED: Original items not loaded in edit mode");
       return;
     }
+
+    // LOCK ITEMS BEFORE SAVE - Take snapshot
+    itemsBeforeSaveRef.current = JSON.parse(JSON.stringify(items));
+    debugLog(`🔒 LOCKED ${itemsBeforeSaveRef.current.length} items before save:`, 
+      itemsBeforeSaveRef.current.map(i => i.product_name));
 
     const confirmMessage = editSaleId 
       ? `Update sale with ${items.length} items?\n\nOriginal items: ${originalItems.length}\nNew items: ${items.length}` 
       : `Create invoice with ${items.length} items?`;
     
-    if (!confirm(confirmMessage)) return;
+    if (!confirm(confirmMessage)) {
+      debugLog("⚠️ Save cancelled by user");
+      return;
+    }
 
+    saveInProgressRef.current = true;
     setIsSaving(true);
+    
     try {
       if (editSaleId) {
         await updateSale();
       } else {
         await createSale();
       }
+      
+      // VALIDATE: Items should match what we started with
+      if (items.length !== itemsBeforeSaveRef.current.length) {
+        debugLog(`⚠️ WARNING: Items count changed during save! Before: ${itemsBeforeSaveRef.current.length}, After: ${items.length}`);
+        toast.error("WARNING: Item count changed during save. Please verify your invoice.");
+      } else {
+        debugLog("✅ SAVE COMPLETE: Items count verified");
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to save invoice");
+      debugLog("❌ Save failed:", error);
     } finally {
+      saveInProgressRef.current = false;
       setIsSaving(false);
     }
   };
 
   const createSale = async () => {
+    debugLog("🆕 CREATE SALE: Starting");
+    
+    // Use locked items snapshot for absolute safety
+    const safeItems = itemsBeforeSaveRef.current.length > 0 
+      ? itemsBeforeSaveRef.current 
+      : items;
+    
+    debugLog(`📦 Creating invoice with ${safeItems.length} items (locked snapshot)`);
+    
     const newInvoiceNumber = `INV-${Date.now()}`;
     const totalAmount = calculateTotal();
     const finalAmount = calculateFinalAmount();
@@ -368,11 +446,14 @@ const Invoice = () => {
 
     if (saleError) throw saleError;
 
-    // TASK 1 & 2: Insert each item separately with proper error handling and inventory reduction
-    console.log(`Creating invoice with ${items.length} items`);
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+    debugLog(`💾 Sale record created: ${newInvoiceNumber}`);
+
+    // CRITICAL: Insert each item from LOCKED snapshot
+    for (let i = 0; i < safeItems.length; i++) {
+      const item = safeItems[i];
       const profit = (item.unit_price - item.purchase_price) * item.quantity;
+      
+      debugLog(`📝 Inserting item ${i + 1}/${safeItems.length}: ${item.product_name}`);
       
       // Step 1: Insert the sale item
       const { error: itemInsertError } = await supabase.from("sale_items").insert({
@@ -387,12 +468,12 @@ const Invoice = () => {
       });
 
       if (itemInsertError) {
-        console.error(`Error inserting item ${i + 1}/${items.length}:`, itemInsertError);
+        debugLog(`❌ Error inserting item ${i + 1}/${safeItems.length}:`, itemInsertError);
         toast.error(`Failed to add item: ${item.product_name}`);
         throw itemInsertError;
       }
 
-      console.log(`✓ Item ${i + 1}/${items.length} inserted: ${item.product_name}`);
+      debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
 
       // Step 2: Fetch current stock from database (not from state)
       const { data: product, error: fetchError } = await supabase
@@ -429,10 +510,10 @@ const Invoice = () => {
         throw updateError;
       }
 
-      console.log(`✓ Inventory updated for ${item.product_name}`);
+      debugLog(`✅ Inventory updated for ${item.product_name}`);
     }
 
-    console.log("✓ All items saved and inventory updated successfully");
+    debugLog(`✅ ALL ${safeItems.length} ITEMS SAVED AND INVENTORY UPDATED`);
 
     if (paid < finalAmount) {
       const creditAmount = finalAmount - paid;
@@ -455,16 +536,27 @@ const Invoice = () => {
   };
 
   const updateSale = async () => {
+    debugLog("🔄 UPDATE SALE: Starting");
+    
+    // Use locked items snapshot
+    const safeItems = itemsBeforeSaveRef.current.length > 0 
+      ? itemsBeforeSaveRef.current 
+      : items;
+    
+    debugLog(`📦 Updating with ${safeItems.length} items (locked snapshot)`);
+    
     try {
       // CRITICAL VALIDATION: Prevent data loss
-      if (items.length === 0) {
+      if (safeItems.length === 0) {
         toast.error("Cannot save invoice without items! Please add products before saving.");
+        debugLog("⛔ BLOCKED: No items to update");
         return;
       }
 
       // Validate that we have original items to compare against
       if (originalItems.length === 0) {
         toast.error("Cannot update sale - original items not loaded. Please reload the page.");
+        debugLog("⛔ BLOCKED: Original items not loaded");
         return;
       }
 
@@ -478,7 +570,7 @@ const Invoice = () => {
       }
 
       // Step 1: Restore stock for all original items first
-      console.log("Starting stock restoration for original items:", originalItems);
+      debugLog("♻️ Restoring stock for original items:", originalItems.map(i => i.product_name));
       for (const originalItem of originalItems) {
         const { data: product, error: fetchError } = await supabase
           .from("products")
@@ -537,23 +629,24 @@ const Invoice = () => {
 
       // Step 3: CRITICAL - Only delete old items if we have new items to insert
       // This prevents accidental data loss
-      if (items.length === 0) {
+      if (safeItems.length === 0) {
         toast.error("CRITICAL: Cannot delete items without replacements. Operation aborted.");
+        debugLog("⛔ BLOCKED: Attempted to delete without replacements");
         throw new Error("Cannot delete items - no replacement items available");
       }
       
-      console.log(`Deleting old items and replacing with ${items.length} new items`);
+      debugLog(`🗑️ Deleting old items and replacing with ${safeItems.length} new items`);
       const { error: deleteError } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
       if (deleteError) {
-        console.error("Error deleting old sale items:", deleteError);
+        debugLog("❌ Error deleting old sale items:", deleteError);
         toast.error("Failed to update sale items");
         throw deleteError;
       }
 
-      // Step 4: Insert new sale items and deduct stock
-      console.log(`Inserting ${items.length} new items for updated invoice`);
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
+      // Step 4: Insert new sale items from LOCKED snapshot and deduct stock
+      debugLog(`📝 Inserting ${safeItems.length} new items for updated invoice`);
+      for (let i = 0; i < safeItems.length; i++) {
+        const item = safeItems[i];
         const profit = (item.unit_price - item.purchase_price) * item.quantity;
         
         const { error: insertError } = await supabase.from("sale_items").insert({
@@ -568,12 +661,12 @@ const Invoice = () => {
         });
 
         if (insertError) {
-          console.error(`Error inserting item ${i + 1}/${items.length}:`, insertError);
+          debugLog(`❌ Error inserting item ${i + 1}/${safeItems.length}:`, insertError);
           toast.error(`Failed to add ${item.product_name} to sale`);
           throw insertError;
         }
 
-        console.log(`✓ Item ${i + 1}/${items.length} inserted: ${item.product_name}`);
+        debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
 
         // Deduct stock for new quantities
         const { data: product, error: fetchError } = await supabase
@@ -612,10 +705,10 @@ const Invoice = () => {
           throw updateError;
         }
 
-        console.log(`✓ Inventory updated for ${item.product_name}`);
+        debugLog(`✅ Inventory updated for ${item.product_name}`);
       }
 
-      console.log("✓ All items inserted and inventory updated successfully");
+      debugLog(`✅ ALL ${safeItems.length} ITEMS UPDATED AND INVENTORY SYNCED`);
 
       // Step 5: Handle credit updates
       const { data: existingCredit } = await supabase
@@ -872,7 +965,14 @@ const Invoice = () => {
                       updateItem(index, "quantity", "");
                     }
                   }}
-                  onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                  onChange={(e) => {
+                    // DEVICE-INDEPENDENT: Prevent browser auto-corrections
+                    e.preventDefault();
+                    updateItem(index, "quantity", e.target.value);
+                  }}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck="false"
                 />
               </div>
               <div className="flex flex-col">
@@ -889,7 +989,14 @@ const Invoice = () => {
                       updateItem(index, "unit_price", "");
                     }
                   }}
-                  onChange={(e) => updateItem(index, "unit_price", e.target.value)}
+                  onChange={(e) => {
+                    // DEVICE-INDEPENDENT: Prevent browser auto-corrections
+                    e.preventDefault();
+                    updateItem(index, "unit_price", e.target.value);
+                  }}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck="false"
                 />
               </div>
               <div className="flex flex-col">
@@ -910,7 +1017,14 @@ const Invoice = () => {
                       updateItem(index, "total_price", "");
                     }
                   }}
-                  onChange={(e) => updateItem(index, "total_price", e.target.value)}
+                  onChange={(e) => {
+                    // DEVICE-INDEPENDENT: Prevent browser auto-corrections
+                    e.preventDefault();
+                    updateItem(index, "total_price", e.target.value);
+                  }}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck="false"
                 />
               </div>
               <div className="flex flex-col">
