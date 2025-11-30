@@ -9,7 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store } from "lucide-react";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -829,6 +829,25 @@ const Invoice = () => {
 
   return (
     <div className="space-y-6">
+      {/* Invoice Header with Contact Info and Logo */}
+      <Card className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-3">
+            <div>
+              <p className="font-semibold text-foreground">Ameer Hamza Sadiq</p>
+              <p className="text-sm text-muted-foreground">0303 7370346</p>
+              <p className="text-sm text-muted-foreground">0310 6570056</p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Ameer Abbas Sadiq</p>
+            </div>
+          </div>
+          <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-muted border border-border">
+            <Store className="h-10 w-10 text-muted-foreground" />
+          </div>
+        </div>
+      </Card>
+
       <div className="flex items-center gap-4">
         {editSaleId && (
           <Button onClick={() => navigate("/sales")} variant="outline" size="icon">
