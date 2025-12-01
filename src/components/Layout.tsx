@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -8,7 +10,10 @@ import {
   FileText, 
   CreditCard,
   Store,
-  Users
+  Users,
+  Settings,
+  LogOut,
+  UserCog
 } from "lucide-react";
 
 interface LayoutProps {
@@ -17,6 +22,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const { userRole, signOut, user } = useAuth();
 
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -25,6 +31,8 @@ const Layout = ({ children }: LayoutProps) => {
     { path: "/sales", icon: FileText, label: "Sales History" },
     { path: "/credits", icon: CreditCard, label: "Credits" },
     { path: "/customers", icon: Users, label: "Customers" },
+    ...(userRole === "admin" ? [{ path: "/workers", icon: UserCog, label: "Manage Workers" }] : []),
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
   return (
@@ -41,6 +49,16 @@ const Layout = ({ children }: LayoutProps) => {
                 <span className="text-lg font-bold text-foreground">Cloth Shop Manager</span>
                 <span className="text-xs text-muted-foreground">Business Management Suite</span>
               </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-foreground">{user?.email}</p>
+                <p className="text-xs text-muted-foreground capitalize">{userRole} Account</p>
+              </div>
+              <Button onClick={signOut} variant="outline" size="sm">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
