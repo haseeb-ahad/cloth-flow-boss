@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon, RefreshCw, Download } from "lucide-react";
+import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon, RefreshCw, Download, Eye, EyeOff } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Line, LineChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -76,6 +76,10 @@ const Dashboard = () => {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
+  const [valuesHidden, setValuesHidden] = useState(() => {
+    const saved = localStorage.getItem("dashboardValuesHidden");
+    return saved === "true";
+  });
 
   useEffect(() => {
     handleRefresh();
@@ -362,11 +366,23 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (amount: number) => {
+    if (valuesHidden) return "••••••";
     return new Intl.NumberFormat('en-PK', {
       style: 'currency',
       currency: 'PKR',
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatNumber = (num: number) => {
+    if (valuesHidden) return "••••";
+    return num.toString();
+  };
+
+  const toggleValuesVisibility = () => {
+    const newValue = !valuesHidden;
+    setValuesHidden(newValue);
+    localStorage.setItem("dashboardValuesHidden", newValue.toString());
   };
 
   const getDateRangeLabel = () => {
@@ -430,6 +446,15 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your business performance</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
+            <Button 
+              onClick={toggleValuesVisibility} 
+              variant="outline" 
+              size="icon"
+              title={valuesHidden ? "Show values" : "Hide values"}
+              className="hover:bg-primary hover:text-primary-foreground transition-colors shrink-0"
+            >
+              {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
             <Button 
               onClick={handleRefresh} 
               variant="outline" 
@@ -574,19 +599,19 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground font-medium">Unit:</span>
-                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Unit}</span>
+                  <span className="text-lg font-bold text-foreground">{formatNumber(stats.totalStockByType.Unit)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground font-medium">Than:</span>
-                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Than}</span>
+                  <span className="text-lg font-bold text-foreground">{formatNumber(stats.totalStockByType.Than)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground font-medium">Suit:</span>
-                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Suit}</span>
+                  <span className="text-lg font-bold text-foreground">{formatNumber(stats.totalStockByType.Suit)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground font-medium">Meter:</span>
-                  <span className="text-lg font-bold text-foreground">{stats.totalStockByType.Meter}</span>
+                  <span className="text-lg font-bold text-foreground">{formatNumber(stats.totalStockByType.Meter)}</span>
                 </div>
               </div>
             </CardContent>
@@ -603,11 +628,11 @@ const Dashboard = () => {
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium mb-1">Total Products</p>
-                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{stats.totalProducts}</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatNumber(stats.totalProducts)}</div>
                 </div>
                 <div className="pt-2 border-t border-border">
                   <p className="text-xs text-muted-foreground font-medium mb-1">Low Stock Items</p>
-                  <div className="text-2xl sm:text-3xl font-bold text-destructive tracking-tight">{stats.lowStockCount}</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-destructive tracking-tight">{formatNumber(stats.lowStockCount)}</div>
                 </div>
               </div>
             </CardContent>
@@ -667,13 +692,13 @@ const Dashboard = () => {
                     axisLine={false}
                     dy={5}
                   />
-                  <YAxis 
+                   <YAxis 
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
                     dx={-5}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
                   />
                   <ChartTooltip 
                     content={<ChartTooltipContent />}
@@ -772,13 +797,13 @@ const Dashboard = () => {
                     tickLine={false}
                     axisLine={false}
                   />
-                  <YAxis 
+                   <YAxis 
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
                     dx={-5}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
                   />
                   <ChartTooltip 
                     content={<ChartTooltipContent />}
