@@ -92,6 +92,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Error fetching user role and permissions:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
