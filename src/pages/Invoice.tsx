@@ -976,7 +976,7 @@ const Invoice = () => {
                 <Label className="mb-2">Quantity</Label>
                 <Input
                   type="number"
-                  step="1"
+                  step="0.01"
                   min="0"
                   value={item.quantity || ""}
                   onFocus={(e) => {
