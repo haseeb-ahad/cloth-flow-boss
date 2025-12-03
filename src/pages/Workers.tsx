@@ -3,11 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Users, Trash2, Edit } from "lucide-react";
+import { Loader2, Users, Trash2, Edit, Plus, Mail, Phone, User, Lock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { z } from "zod";
 
 interface Worker {
   id: string;
@@ -42,12 +43,29 @@ interface Permission {
 
 const FEATURES = ["invoice", "inventory", "sales", "credits", "customers"];
 
+const workerSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export default function Workers() {
   const { userRole } = useAuth();
   const [loading, setLoading] = useState(false);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [permissions, setPermissions] = useState<Record<string, Permission>>({});
+  const [addWorkerOpen, setAddWorkerOpen] = useState(false);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [newWorker, setNewWorker] = useState({
+    email: "",
+    phoneNumber: "",
+    fullName: "",
+    password: "",
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [creatingWorker, setCreatingWorker] = useState(false);
 
   useEffect(() => {
     if (userRole === "admin") {
@@ -125,6 +143,7 @@ export default function Workers() {
   const handleEditPermissions = (worker: Worker) => {
     setSelectedWorker(worker);
     loadWorkerPermissions(worker.user_id);
+    setPermissionsDialogOpen(true);
   };
 
   const handleSavePermissions = async () => {
@@ -155,6 +174,7 @@ export default function Workers() {
       if (error) throw error;
 
       toast.success("Permissions updated successfully!");
+      setPermissionsDialogOpen(false);
       setSelectedWorker(null);
     } catch (error: any) {
       console.error("Error saving permissions:", error);
@@ -187,6 +207,67 @@ export default function Workers() {
     }
   };
 
+  const handleAddWorker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors({});
+
+    // Validate
+    const result = workerSchema.safeParse(newWorker);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setFormErrors(fieldErrors);
+      return;
+    }
+
+    setCreatingWorker(true);
+    try {
+      // Create user using Supabase Auth
+      const { error } = await supabase.auth.signUp({
+        email: newWorker.email,
+        password: newWorker.password,
+        options: {
+          data: {
+            phone_number: newWorker.phoneNumber,
+            full_name: newWorker.fullName,
+            role: "worker",
+          },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Worker created successfully! They can now login with their credentials.");
+      setAddWorkerOpen(false);
+      setNewWorker({ email: "", phoneNumber: "", fullName: "", password: "" });
+      
+      // Reload workers after a short delay to allow the trigger to complete
+      setTimeout(() => {
+        loadWorkers();
+      }, 1000);
+    } catch (error: any) {
+      console.error("Error creating worker:", error);
+      toast.error(error.message || "Failed to create worker");
+    } finally {
+      setCreatingWorker(false);
+    }
+  };
+
+  const togglePermission = (feature: string, permType: "can_view" | "can_create" | "can_edit" | "can_delete") => {
+    setPermissions({
+      ...permissions,
+      [feature]: {
+        ...permissions[feature],
+        [permType]: !permissions[feature]?.[permType],
+      },
+    });
+  };
+
   if (userRole !== "admin") {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -205,6 +286,99 @@ export default function Workers() {
           <Users className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">Manage Workers</h1>
         </div>
+        <Dialog open={addWorkerOpen} onOpenChange={setAddWorkerOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Worker
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Worker</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddWorker} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="workerFullName">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="workerFullName"
+                    type="text"
+                    placeholder="Enter full name"
+                    className="pl-10"
+                    value={newWorker.fullName}
+                    onChange={(e) => setNewWorker({ ...newWorker, fullName: e.target.value })}
+                    disabled={creatingWorker}
+                  />
+                </div>
+                {formErrors.fullName && <p className="text-sm text-destructive">{formErrors.fullName}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workerEmail">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="workerEmail"
+                    type="email"
+                    placeholder="Enter email"
+                    className="pl-10"
+                    value={newWorker.email}
+                    onChange={(e) => setNewWorker({ ...newWorker, email: e.target.value })}
+                    disabled={creatingWorker}
+                  />
+                </div>
+                {formErrors.email && <p className="text-sm text-destructive">{formErrors.email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workerPhone">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="workerPhone"
+                    type="tel"
+                    placeholder="Enter phone number"
+                    className="pl-10"
+                    value={newWorker.phoneNumber}
+                    onChange={(e) => setNewWorker({ ...newWorker, phoneNumber: e.target.value })}
+                    disabled={creatingWorker}
+                  />
+                </div>
+                {formErrors.phoneNumber && <p className="text-sm text-destructive">{formErrors.phoneNumber}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workerPassword">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="workerPassword"
+                    type="password"
+                    placeholder="Create a password"
+                    className="pl-10"
+                    value={newWorker.password}
+                    onChange={(e) => setNewWorker({ ...newWorker, password: e.target.value })}
+                    disabled={creatingWorker}
+                  />
+                </div>
+                {formErrors.password && <p className="text-sm text-destructive">{formErrors.password}</p>}
+              </div>
+
+              <Button type="submit" className="w-full" disabled={creatingWorker}>
+                {creatingWorker ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Worker"
+                )}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="p-6">
@@ -214,7 +388,7 @@ export default function Workers() {
           </div>
         ) : workers.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No workers found. Workers will appear here after they sign up.</p>
+            <p className="text-muted-foreground">No workers found. Click "Add Worker" to create one.</p>
           </div>
         ) : (
           <Table>
@@ -234,96 +408,13 @@ export default function Workers() {
                   <TableCell>{worker.phone_number}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleEditPermissions(worker)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>Edit Permissions - {worker.full_name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Feature</TableHead>
-                                  <TableHead>View</TableHead>
-                                  <TableHead>Create</TableHead>
-                                  <TableHead>Edit</TableHead>
-                                  <TableHead>Delete</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {FEATURES.map((feature) => (
-                                  <TableRow key={feature}>
-                                    <TableCell className="font-medium capitalize">{feature}</TableCell>
-                                    <TableCell>
-                                      <Checkbox
-                                        checked={permissions[feature]?.can_view || false}
-                                        onCheckedChange={(checked) =>
-                                          setPermissions({
-                                            ...permissions,
-                                            [feature]: { ...permissions[feature], can_view: !!checked },
-                                          })
-                                        }
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Checkbox
-                                        checked={permissions[feature]?.can_create || false}
-                                        onCheckedChange={(checked) =>
-                                          setPermissions({
-                                            ...permissions,
-                                            [feature]: { ...permissions[feature], can_create: !!checked },
-                                          })
-                                        }
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Checkbox
-                                        checked={permissions[feature]?.can_edit || false}
-                                        onCheckedChange={(checked) =>
-                                          setPermissions({
-                                            ...permissions,
-                                            [feature]: { ...permissions[feature], can_edit: !!checked },
-                                          })
-                                        }
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Checkbox
-                                        checked={permissions[feature]?.can_delete || false}
-                                        onCheckedChange={(checked) =>
-                                          setPermissions({
-                                            ...permissions,
-                                            [feature]: { ...permissions[feature], can_delete: !!checked },
-                                          })
-                                        }
-                                      />
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                            <Button onClick={handleSavePermissions} disabled={loading}>
-                              {loading ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Saving...
-                                </>
-                              ) : (
-                                "Save Permissions"
-                              )}
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEditPermissions(worker)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="destructive"
                         size="icon"
@@ -339,6 +430,69 @@ export default function Workers() {
           </Table>
         )}
       </Card>
+
+      {/* Permissions Dialog */}
+      <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Permissions - {selectedWorker?.full_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Feature</TableHead>
+                  <TableHead className="text-center">View</TableHead>
+                  <TableHead className="text-center">Create</TableHead>
+                  <TableHead className="text-center">Edit</TableHead>
+                  <TableHead className="text-center">Delete</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {FEATURES.map((feature) => (
+                  <TableRow key={feature}>
+                    <TableCell className="font-medium capitalize">{feature}</TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={permissions[feature]?.can_view || false}
+                        onCheckedChange={() => togglePermission(feature, "can_view")}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={permissions[feature]?.can_create || false}
+                        onCheckedChange={() => togglePermission(feature, "can_create")}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={permissions[feature]?.can_edit || false}
+                        onCheckedChange={() => togglePermission(feature, "can_edit")}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={permissions[feature]?.can_delete || false}
+                        onCheckedChange={() => togglePermission(feature, "can_delete")}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Button onClick={handleSavePermissions} disabled={loading} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Permissions"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
