@@ -319,9 +319,16 @@ const Invoice = () => {
       newItems[index].total_price = enteredTotal;
       
       // Auto-calculate unit price: Price = Total / Quantity
-      if (newItems[index].quantity > 0) {
+      // If total is empty/zero, restore original product price
+      if (enteredTotal > 0 && newItems[index].quantity > 0) {
         const calculatedUnitPrice = enteredTotal / newItems[index].quantity;
-        newItems[index].unit_price = Math.round(calculatedUnitPrice * 100) / 100; // Round to 2 decimal places
+        newItems[index].unit_price = Math.round(calculatedUnitPrice * 100) / 100;
+      } else if (enteredTotal === 0) {
+        // Restore original selling price from product
+        const product = products.find(p => p.id === newItems[index].product_id);
+        if (product) {
+          newItems[index].unit_price = product.selling_price;
+        }
       }
     }
     setItems(newItems);
