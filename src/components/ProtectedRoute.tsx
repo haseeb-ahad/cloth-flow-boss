@@ -7,10 +7,11 @@ interface ProtectedRouteProps {
   children: ReactNode;
   feature?: string;
   requirePermission?: "view" | "create" | "edit" | "delete";
+  adminOnly?: boolean;
 }
 
-export const ProtectedRoute = ({ children, feature, requirePermission }: ProtectedRouteProps) => {
-  const { user, loading, hasPermission } = useAuth();
+export const ProtectedRoute = ({ children, feature, requirePermission, adminOnly }: ProtectedRouteProps) => {
+  const { user, loading, hasPermission, userRole } = useAuth();
 
   if (loading) {
     return (
@@ -22,6 +23,18 @@ export const ProtectedRoute = ({ children, feature, requirePermission }: Protect
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check admin-only routes
+  if (adminOnly && userRole !== "admin") {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
+          <p className="text-muted-foreground">This page is only accessible to administrators.</p>
+        </div>
+      </div>
+    );
   }
 
   // Check feature permission if required

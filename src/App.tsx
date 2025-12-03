@@ -35,7 +35,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected routes */}
-            <Route path="/" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute adminOnly><Layout><Index /></Layout></ProtectedRoute>} />
             <Route path="/invoice" element={<ProtectedRoute feature="invoice" requirePermission="view"><Layout><Invoice /></Layout></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute feature="inventory" requirePermission="view"><Layout><Inventory /></Layout></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute feature="sales" requirePermission="view"><Layout><Sales /></Layout></ProtectedRoute>} />
