@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Lock, Mail, Phone, User } from "lucide-react";
 import { z } from "zod";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -16,7 +15,6 @@ const signupSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
-  role: z.enum(["admin", "worker"], { required_error: "Please select a user type" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -31,7 +29,6 @@ export default function Signup() {
     fullName: "",
     password: "",
     confirmPassword: "",
-    role: "worker" as "admin" | "worker",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -61,7 +58,7 @@ export default function Signup() {
           data: {
             phone_number: formData.phoneNumber,
             full_name: formData.fullName,
-            role: formData.role,
+            role: "admin", // Only admins can sign up through this form
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -83,8 +80,8 @@ export default function Signup() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md p-8 space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold text-foreground">Create Account</h1>
-          <p className="text-muted-foreground">Sign up to get started</p>
+          <h1 className="text-3xl font-bold text-foreground">Create Admin Account</h1>
+          <p className="text-muted-foreground">Sign up as an administrator</p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
@@ -137,26 +134,6 @@ export default function Signup() {
               />
             </div>
             {errors.phoneNumber && <p className="text-sm text-destructive">{errors.phoneNumber}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label>User Type</Label>
-            <RadioGroup
-              value={formData.role}
-              onValueChange={(value) => setFormData({ ...formData, role: value as "admin" | "worker" })}
-              disabled={loading}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="admin" id="admin" />
-                <Label htmlFor="admin" className="font-normal cursor-pointer">Admin</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="worker" id="worker" />
-                <Label htmlFor="worker" className="font-normal cursor-pointer">Worker</Label>
-              </div>
-            </RadioGroup>
-            {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
           </div>
 
           <div className="space-y-2">
