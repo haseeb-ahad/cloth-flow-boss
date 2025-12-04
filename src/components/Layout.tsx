@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,18 +22,37 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { userRole, signOut, user } = useAuth();
+  const { userRole, signOut, user, hasPermission } = useAuth();
 
-  const navItems = [
-    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/invoice", icon: ShoppingCart, label: "New Invoice" },
-    { path: "/inventory", icon: Package, label: "Inventory" },
-    { path: "/sales", icon: FileText, label: "Sales History" },
-    { path: "/credits", icon: CreditCard, label: "Credits" },
-    { path: "/customers", icon: Users, label: "Customers" },
-    ...(userRole === "admin" ? [{ path: "/workers", icon: UserCog, label: "Manage Workers" }] : []),
-    { path: "/settings", icon: Settings, label: "Settings" },
-  ];
+  const navItems = useMemo(() => {
+    const allItems = [
+      { path: "/", icon: LayoutDashboard, label: "Dashboard", feature: null, adminOnly: true },
+      { path: "/invoice", icon: ShoppingCart, label: "New Invoice", feature: "invoice", adminOnly: false },
+      { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
+      { path: "/sales", icon: FileText, label: "Sales History", feature: "sales", adminOnly: false },
+      { path: "/credits", icon: CreditCard, label: "Credits", feature: "credits", adminOnly: false },
+      { path: "/customers", icon: Users, label: "Customers", feature: "customers", adminOnly: false },
+      { path: "/workers", icon: UserCog, label: "Manage Workers", feature: null, adminOnly: true },
+      { path: "/settings", icon: Settings, label: "Settings", feature: null, adminOnly: false },
+    ];
+
+    // Filter items based on role and permissions
+    return allItems.filter(item => {
+      // Admin sees everything
+      if (userRole === "admin") return true;
+      
+      // Workers don't see admin-only items
+      if (item.adminOnly) return false;
+      
+      // Workers see items they have view permission for
+      if (item.feature) {
+        return hasPermission(item.feature, "view");
+      }
+      
+      // Non-feature items (settings) are visible to all
+      return true;
+    });
+  }, [userRole, hasPermission]);
 
   return (
     <div className="min-h-screen bg-background">

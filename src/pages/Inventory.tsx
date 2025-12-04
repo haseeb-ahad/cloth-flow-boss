@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ interface Product {
 }
 
 const Inventory = () => {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -128,7 +130,7 @@ const Inventory = () => {
         await supabase.from("products").update(productData).eq("id", editingProduct.id);
         toast.success("Product updated successfully!");
       } else {
-        await supabase.from("products").insert(productData);
+        await supabase.from("products").insert({ ...productData, owner_id: user?.id });
         toast.success("Product added successfully!");
       }
       

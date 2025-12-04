@@ -189,13 +189,17 @@ export default function Workers() {
 
     setLoading(true);
     try {
-      // Delete will cascade to user_roles and worker_permissions
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("user_id", workerId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke("delete-worker", {
+        body: { workerId },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
+      if (response.data?.error) throw new Error(response.data.error);
 
       toast.success("Worker deleted successfully!");
       loadWorkers();
