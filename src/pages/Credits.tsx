@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,7 @@ interface Sale {
 }
 
 const Credits = () => {
+  const { user } = useAuth();
   const [credits, setCredits] = useState<Credit[]>([]);
   const [filteredCredits, setFilteredCredits] = useState<Credit[]>([]);
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});
@@ -243,6 +245,7 @@ const Credits = () => {
           amount: payment,
           transaction_date: new Date().toISOString().split('T')[0],
           notes: fullPayment ? "Full payment received" : "Partial payment received",
+          owner_id: user?.id,
         });
 
       toast.success("Payment recorded successfully!");

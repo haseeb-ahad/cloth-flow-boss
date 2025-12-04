@@ -47,6 +47,7 @@ export type Database = {
           customer_phone: string | null
           id: string
           notes: string | null
+          owner_id: string | null
           transaction_date: string
         }
         Insert: {
@@ -57,6 +58,7 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           notes?: string | null
+          owner_id?: string | null
           transaction_date?: string
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           notes?: string | null
+          owner_id?: string | null
           transaction_date?: string
         }
         Relationships: [
@@ -88,6 +91,7 @@ export type Database = {
           due_date: string | null
           id: string
           notes: string | null
+          owner_id: string | null
           paid_amount: number | null
           remaining_amount: number
           sale_id: string | null
@@ -102,6 +106,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          owner_id?: string | null
           paid_amount?: number | null
           remaining_amount: number
           sale_id?: string | null
@@ -116,6 +121,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          owner_id?: string | null
           paid_amount?: number | null
           remaining_amount?: number
           sale_id?: string | null
@@ -139,6 +145,7 @@ export type Database = {
           id: string
           installment_id: string
           notes: string | null
+          owner_id: string | null
           payment_date: string
         }
         Insert: {
@@ -147,6 +154,7 @@ export type Database = {
           id?: string
           installment_id: string
           notes?: string | null
+          owner_id?: string | null
           payment_date?: string
         }
         Update: {
@@ -155,6 +163,7 @@ export type Database = {
           id?: string
           installment_id?: string
           notes?: string | null
+          owner_id?: string | null
           payment_date?: string
         }
         Relationships: [
@@ -177,6 +186,7 @@ export type Database = {
           installment_amount: number
           next_due_date: string | null
           notes: string | null
+          owner_id: string | null
           paid_amount: number
           remaining_amount: number
           status: string
@@ -192,6 +202,7 @@ export type Database = {
           installment_amount: number
           next_due_date?: string | null
           notes?: string | null
+          owner_id?: string | null
           paid_amount?: number
           remaining_amount: number
           status?: string
@@ -207,6 +218,7 @@ export type Database = {
           installment_amount?: number
           next_due_date?: string | null
           notes?: string | null
+          owner_id?: string | null
           paid_amount?: number
           remaining_amount?: number
           status?: string
@@ -222,6 +234,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          owner_id: string | null
           purchase_price: number
           quantity_type: string | null
           selling_price: number
@@ -234,6 +247,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          owner_id?: string | null
           purchase_price: number
           quantity_type?: string | null
           selling_price: number
@@ -246,6 +260,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          owner_id?: string | null
           purchase_price?: number
           quantity_type?: string | null
           selling_price?: number
@@ -350,6 +365,7 @@ export type Database = {
           final_amount: number
           id: string
           invoice_number: string
+          owner_id: string | null
           paid_amount: number | null
           payment_method: string | null
           payment_status: string | null
@@ -364,6 +380,7 @@ export type Database = {
           final_amount: number
           id?: string
           invoice_number: string
+          owner_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string | null
@@ -378,6 +395,7 @@ export type Database = {
           final_amount?: number
           id?: string
           invoice_number?: string
+          owner_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string | null

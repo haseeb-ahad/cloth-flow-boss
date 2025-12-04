@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ interface InvoiceItem {
 const Invoice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const editSaleId = searchParams.get("edit");
   
   const [products, setProducts] = useState<Product[]>([]);
@@ -453,6 +455,7 @@ const Invoice = () => {
         paid_amount: paid,
         payment_status: isFullPayment ? "paid" : "pending",
         created_at: invoiceDateISO,
+        owner_id: user?.id,
       })
       .select()
       .single();
@@ -540,6 +543,7 @@ const Invoice = () => {
         status: "pending",
         notes: `Partial payment for invoice ${newInvoiceNumber}`,
         created_at: invoiceDateISO,
+        owner_id: user?.id,
       });
     }
 
