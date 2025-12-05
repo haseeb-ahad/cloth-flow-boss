@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, feature, requirePermission, adminOnly }: ProtectedRouteProps) => {
-  const { user, loading, hasPermission, userRole } = useAuth();
+  const { user, loading, hasPermission, userRole, getFirstPermittedRoute } = useAuth();
 
   if (loading) {
     return (
@@ -25,28 +25,16 @@ export const ProtectedRoute = ({ children, feature, requirePermission, adminOnly
     return <Navigate to="/login" replace />;
   }
 
-  // Check admin-only routes
+  // Check admin-only routes - redirect workers to their first permitted route
   if (adminOnly && userRole !== "admin") {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
-          <p className="text-muted-foreground">This page is only accessible to administrators.</p>
-        </div>
-      </div>
-    );
+    const redirectRoute = getFirstPermittedRoute();
+    return <Navigate to={redirectRoute} replace />;
   }
 
-  // Check feature permission if required
+  // Check feature permission if required - redirect to first permitted route
   if (feature && requirePermission && !hasPermission(feature, requirePermission)) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have permission to access this feature.</p>
-        </div>
-      </div>
-    );
+    const redirectRoute = getFirstPermittedRoute();
+    return <Navigate to={redirectRoute} replace />;
   }
 
   return <>{children}</>;
