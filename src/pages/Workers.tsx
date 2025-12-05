@@ -201,8 +201,9 @@ export default function Workers() {
       if (response.error) throw response.error;
       if (response.data?.error) throw new Error(response.data.error);
 
+      // Update the workers list immediately by filtering out the deleted worker
+      setWorkers((prevWorkers) => prevWorkers.filter((w) => w.user_id !== workerId));
       toast.success("Worker deleted successfully!");
-      loadWorkers();
     } catch (error: any) {
       console.error("Error deleting worker:", error);
       toast.error(error.message || "Failed to delete worker");

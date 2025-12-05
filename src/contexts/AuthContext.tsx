@@ -11,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   hasPermission: (feature: string, action: "view" | "create" | "edit" | "delete") => boolean;
+  getFirstPermittedRoute: () => string;
 }
 
 interface WorkerPermission {
@@ -123,6 +124,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const getFirstPermittedRoute = (): string => {
+    // Admins go to dashboard
+    if (userRole === "admin") return "/";
+    
+    // For workers, find the first feature they have view permission for
+    const featureRouteMap: Record<string, string> = {
+      invoice: "/invoice",
+      inventory: "/inventory",
+      sales: "/sales",
+      credits: "/credits",
+      customers: "/customers",
+    };
+    
+    const firstPermittedFeature = permissions.find(p => p.can_view);
+    if (firstPermittedFeature) {
+      return featureRouteMap[firstPermittedFeature.feature] || "/settings";
+    }
+    
+    // Default to settings if no permissions
+    return "/settings";
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -133,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         signOut,
         hasPermission,
+        getFirstPermittedRoute,
       }}
     >
       {children}
