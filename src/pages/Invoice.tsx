@@ -1009,7 +1009,6 @@ const Invoice = () => {
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck="false"
-                  className="font-semibold"
                 />
               </div>
               <div className="flex flex-col">
@@ -1034,7 +1033,6 @@ const Invoice = () => {
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck="false"
-                  className="font-semibold"
                 />
               </div>
               <div className="flex flex-col">
@@ -1063,7 +1061,6 @@ const Invoice = () => {
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck="false"
-                  className="font-semibold"
                 />
               </div>
               <div className="flex flex-col">
