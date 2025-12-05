@@ -231,21 +231,23 @@ export default function Workers() {
 
     setCreatingWorker(true);
     try {
-      // Create user using Supabase Auth
-      const { error } = await supabase.auth.signUp({
-        email: newWorker.email,
-        password: newWorker.password,
-        options: {
-          data: {
-            phone_number: newWorker.phoneNumber,
-            full_name: newWorker.fullName,
-            role: "worker",
-          },
-          emailRedirectTo: `${window.location.origin}/`,
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      // Use edge function to create worker without affecting admin session
+      const response = await supabase.functions.invoke("create-worker", {
+        body: {
+          email: newWorker.email,
+          password: newWorker.password,
+          phoneNumber: newWorker.phoneNumber,
+          fullName: newWorker.fullName,
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
         },
       });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
+      if (response.data?.error) throw new Error(response.data.error);
 
       toast.success("Worker created successfully! They can now login with their credentials.");
       setAddWorkerOpen(false);
