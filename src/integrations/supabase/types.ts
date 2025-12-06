@@ -227,6 +227,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_ledger: {
+        Row: {
+          created_at: string
+          customer_name: string
+          customer_phone: string | null
+          details: Json
+          id: string
+          notes: string | null
+          owner_id: string | null
+          payment_amount: number
+          payment_date: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          customer_phone?: string | null
+          details?: Json
+          id?: string
+          notes?: string | null
+          owner_id?: string | null
+          payment_amount: number
+          payment_date?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string | null
+          details?: Json
+          id?: string
+          notes?: string | null
+          owner_id?: string | null
+          payment_amount?: number
+          payment_date?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null

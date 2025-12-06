@@ -163,6 +163,16 @@ const Sales = () => {
     );
   };
 
+  const getPaymentStatusBadge = (finalAmount: number, paidAmount: number) => {
+    const remaining = finalAmount - (paidAmount || 0);
+    if (remaining <= 0) {
+      return <Badge className="bg-success text-success-foreground">Paid</Badge>;
+    } else if (paidAmount > 0) {
+      return <Badge className="bg-warning text-warning-foreground">Partial</Badge>;
+    }
+    return <Badge variant="destructive">Unpaid</Badge>;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -247,6 +257,7 @@ const Sales = () => {
               <TableHead className="text-right">Final amount</TableHead>
               <TableHead className="text-right">Paid</TableHead>
               <TableHead className="text-right">Remaining</TableHead>
+              <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Payment</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
@@ -290,6 +301,9 @@ const Sales = () => {
                         All Done ✓
                       </Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {getPaymentStatusBadge(sale.final_amount, sale.paid_amount)}
                   </TableCell>
                   <TableCell className="text-center">
                     {getPaymentMethodBadge(sale.payment_method)}
