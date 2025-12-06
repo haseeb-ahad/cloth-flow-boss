@@ -5,17 +5,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Search, RefreshCw, Users } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
-interface Customer {
+interface CustomerWithTotals {
   name: string;
   phone: string | null;
+  total_credit: number;
+  total_paid: number;
+  remaining_balance: number;
+  oldest_unpaid_date: string | null;
 }
 
 const Customers = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerWithTotals[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithTotals[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,36 +36,44 @@ const Customers = () => {
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
+      // Fetch all sales data
       const { data: salesData } = await supabase
         .from("sales")
-        .select("customer_name, customer_phone")
-        .not("customer_name", "is", null);
-      
-      const { data: creditsData } = await supabase
-        .from("credits")
-        .select("customer_name, customer_phone");
+        .select("customer_name, customer_phone, final_amount, paid_amount, created_at")
+        .not("customer_name", "is", null)
+        .order("created_at", { ascending: true });
 
-      // Create a map to ensure unique customers
-      const customerMap = new Map<string, string | null>();
-      
-      salesData?.forEach(s => {
-        if (s.customer_name && !customerMap.has(s.customer_name)) {
-          customerMap.set(s.customer_name, s.customer_phone);
+      // Create a map to aggregate customer data
+      const customerMap = new Map<string, CustomerWithTotals>();
+
+      salesData?.forEach((sale) => {
+        if (!sale.customer_name) return;
+
+        const existing = customerMap.get(sale.customer_name);
+        const remainingAmount = sale.final_amount - (sale.paid_amount || 0);
+        const isUnpaid = remainingAmount > 0;
+
+        if (existing) {
+          existing.total_credit += sale.final_amount;
+          existing.total_paid += sale.paid_amount || 0;
+          existing.remaining_balance += remainingAmount;
+          // Update oldest unpaid date only if this invoice is unpaid and older
+          if (isUnpaid && (!existing.oldest_unpaid_date || sale.created_at < existing.oldest_unpaid_date)) {
+            existing.oldest_unpaid_date = sale.created_at;
+          }
+        } else {
+          customerMap.set(sale.customer_name, {
+            name: sale.customer_name,
+            phone: sale.customer_phone,
+            total_credit: sale.final_amount,
+            total_paid: sale.paid_amount || 0,
+            remaining_balance: remainingAmount,
+            oldest_unpaid_date: isUnpaid ? sale.created_at : null,
+          });
         }
       });
-      
-      creditsData?.forEach(c => {
-        if (c.customer_name && !customerMap.has(c.customer_name)) {
-          customerMap.set(c.customer_name, c.customer_phone);
-        }
-      });
 
-      // Convert map to array of customer objects
-      const uniqueCustomers = Array.from(customerMap.entries()).map(([name, phone]) => ({
-        name,
-        phone
-      }));
-
+      const uniqueCustomers = Array.from(customerMap.values());
       setCustomers(uniqueCustomers);
       setFilteredCustomers(uniqueCustomers);
       toast.success("Customer list refreshed");
@@ -76,11 +90,12 @@ const Customers = () => {
       return;
     }
 
-    const filtered = customers.filter(customer => 
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm)
+    const filtered = customers.filter(
+      (customer) =>
+        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone?.includes(searchTerm)
     );
-    
+
     setFilteredCustomers(filtered);
   };
 
@@ -92,11 +107,11 @@ const Customers = () => {
             <Users className="h-10 w-10 text-primary" />
             Customer List
           </h1>
-          <p className="text-muted-foreground mt-1 text-base">View all customers</p>
+          <p className="text-muted-foreground mt-1 text-base">View all customers with credit summary</p>
         </div>
-        <Button 
-          onClick={fetchCustomers} 
-          variant="outline" 
+        <Button
+          onClick={fetchCustomers}
+          variant="outline"
           size="icon"
           disabled={isLoading}
           className="hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -129,8 +144,8 @@ const Customers = () => {
                 </div>
               </div>
               <div className="flex items-end">
-                <Button 
-                  onClick={() => setSearchTerm("")} 
+                <Button
+                  onClick={() => setSearchTerm("")}
                   variant="outline"
                   className="w-full"
                   disabled={isLoading}
@@ -152,12 +167,16 @@ const Customers = () => {
                 <TableRow>
                   <TableHead>Customer Name</TableHead>
                   <TableHead>Phone Number</TableHead>
+                  <TableHead className="text-right">Total Credit</TableHead>
+                  <TableHead className="text-right">Total Paid</TableHead>
+                  <TableHead className="text-right">Remaining Balance</TableHead>
+                  <TableHead>Oldest Unpaid</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCustomers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No customers found
                     </TableCell>
                   </TableRow>
@@ -166,6 +185,28 @@ const Customers = () => {
                     <TableRow key={`${customer.name}-${index}`}>
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>{customer.phone || "-"}</TableCell>
+                      <TableCell className="text-right">Rs. {customer.total_credit.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-primary">
+                        Rs. {customer.total_paid.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {customer.remaining_balance > 0 ? (
+                          <span className="text-warning font-medium">
+                            Rs. {customer.remaining_balance.toFixed(2)}
+                          </span>
+                        ) : (
+                          <Badge className="bg-success text-success-foreground">Paid</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {customer.oldest_unpaid_date ? (
+                          <Badge variant="outline" className="text-destructive border-destructive">
+                            {format(new Date(customer.oldest_unpaid_date), "dd MMM yyyy")}
+                          </Badge>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

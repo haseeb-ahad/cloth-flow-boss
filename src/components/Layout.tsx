@@ -13,7 +13,8 @@ import {
   Users,
   Settings,
   LogOut,
-  UserCog
+  UserCog,
+  Banknote
 } from "lucide-react";
 
 interface LayoutProps {
@@ -31,6 +32,7 @@ const Layout = ({ children }: LayoutProps) => {
       { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
       { path: "/sales", icon: FileText, label: "Sales History", feature: "sales", adminOnly: false },
       { path: "/credits", icon: CreditCard, label: "Credits", feature: "credits", adminOnly: false },
+      { path: "/receive-payment", icon: Banknote, label: "Receive Payment", feature: "credits", adminOnly: false },
       { path: "/customers", icon: Users, label: "Customers", feature: "customers", adminOnly: false },
       { path: "/workers", icon: UserCog, label: "Manage Workers", feature: null, adminOnly: true },
       { path: "/settings", icon: Settings, label: "Settings", feature: null, adminOnly: false },
