@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store } from "lucide-react";
 import AnimatedTick from "@/components/AnimatedTick";
+import ItemStatusIcon from "@/components/ItemStatusIcon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +69,7 @@ const Invoice = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: number]: {product: boolean, quantity: boolean, price: boolean}}>({});
 
   // CRITICAL PROTECTION: Prevent double saves and race conditions
   const saveInProgressRef = useRef(false);
@@ -212,8 +214,54 @@ const Invoice = () => {
     if (data) setProducts(data);
   };
 
+  // Check if an item is complete (all required fields filled)
+  const isItemComplete = (item: InvoiceItem): boolean => {
+    return item.product_id !== "" && 
+           item.product_name !== "" && 
+           item.quantity > 0 && 
+           item.unit_price > 0;
+  };
+
+  // Validate last item and show errors
+  const validateLastItem = (): boolean => {
+    if (items.length === 0) return true;
+    
+    const lastIndex = items.length - 1;
+    const lastItem = items[lastIndex];
+    
+    const errors = {
+      product: !lastItem.product_id || !lastItem.product_name,
+      quantity: lastItem.quantity <= 0,
+      price: lastItem.unit_price <= 0
+    };
+    
+    const hasErrors = errors.product || errors.quantity || errors.price;
+    
+    if (hasErrors) {
+      setValidationErrors(prev => ({...prev, [lastIndex]: errors}));
+      toast.error("Please complete the current item before adding a new one");
+      return false;
+    }
+    
+    // Clear errors for this item if all valid
+    setValidationErrors(prev => {
+      const newErrors = {...prev};
+      delete newErrors[lastIndex];
+      return newErrors;
+    });
+    
+    return true;
+  };
+
   const addItem = () => {
     debugLog("➕ USER ACTION: Adding new item");
+    
+    // Validate last item before adding new one
+    if (!validateLastItem()) {
+      debugLog("⚠️ Cannot add item - last item incomplete");
+      return;
+    }
+    
     const newItem = {
       product_id: "",
       product_name: "",
@@ -947,133 +995,188 @@ const Invoice = () => {
               </div>
             </div>
           ) : (
-            items.map((item, index) => (
-            <div key={index} className="grid gap-3 md:grid-cols-[2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-start border-b pb-4">
-              <div className="flex flex-col">
-                <Label className="mb-2">Product</Label>
-                <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={openProductIndex === index} className="w-full justify-between">
-                      {item.product_name || "Select product..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            items.map((item, index) => {
+              const itemComplete = isItemComplete(item);
+              const errors = validationErrors[index];
+              
+              return (
+                <div key={index} className={cn(
+                  "grid gap-3 md:grid-cols-[auto_2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-start border-b pb-4 transition-all duration-300",
+                  !itemComplete && errors && "bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border-red-200 dark:border-red-800"
+                )}>
+                  {/* Status Icon */}
+                  <div className="flex flex-col items-center justify-center pt-7">
+                    <ItemStatusIcon isComplete={itemComplete} />
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <Label className={cn("mb-2", errors?.product && "text-red-500 font-semibold")}>
+                      Product {errors?.product && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          role="combobox" 
+                          aria-expanded={openProductIndex === index} 
+                          className={cn(
+                            "w-full justify-between",
+                            errors?.product && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
+                          )}
+                        >
+                          {item.product_name || "Select product..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search product..." />
+                          <CommandList>
+                            <CommandEmpty>No product found.</CommandEmpty>
+                            <CommandGroup>
+                              {products.map((product) => (
+                                <CommandItem
+                                  key={product.id}
+                                  value={product.name}
+                                  onSelect={() => {
+                                    updateItem(index, "product_id", product.id);
+                                    setOpenProductIndex(null);
+                                    // Clear product error when selected
+                                    setValidationErrors(prev => {
+                                      if (prev[index]) {
+                                        return {...prev, [index]: {...prev[index], product: false}};
+                                      }
+                                      return prev;
+                                    });
+                                  }}
+                                  className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
+                                  <div className="flex flex-col">
+                                    <span>{product.name}</span>
+                                    <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
+                                      Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className={cn("mb-2", errors?.quantity && "text-red-500 font-semibold")}>
+                      Quantity {errors?.quantity && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={item.quantity || ""}
+                      onFocus={(e) => {
+                        if (item.quantity === 0) {
+                          updateItem(index, "quantity", "");
+                        }
+                      }}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateItem(index, "quantity", e.target.value);
+                        // Clear quantity error when value entered
+                        if (parseFloat(e.target.value) > 0) {
+                          setValidationErrors(prev => {
+                            if (prev[index]) {
+                              return {...prev, [index]: {...prev[index], quantity: false}};
+                            }
+                            return prev;
+                          });
+                        }
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      className={cn(
+                        "font-semibold",
+                        errors?.quantity && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
+                      )}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="mb-2">Type</Label>
+                    <Input type="text" value={item.quantity_type} disabled className="text-xs" />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className={cn("mb-2", errors?.price && "text-red-500 font-semibold")}>
+                      Price {errors?.price && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Input 
+                      type="number" 
+                      value={item.unit_price || ""} 
+                      onFocus={(e) => {
+                        if (item.unit_price === 0) {
+                          updateItem(index, "unit_price", "");
+                        }
+                      }}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateItem(index, "unit_price", e.target.value);
+                        // Clear price error when value entered
+                        if (parseFloat(e.target.value) > 0) {
+                          setValidationErrors(prev => {
+                            if (prev[index]) {
+                              return {...prev, [index]: {...prev[index], price: false}};
+                            }
+                            return prev;
+                          });
+                        }
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      className={cn(
+                        "font-semibold",
+                        errors?.price && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
+                      )}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="mb-2">Cost</Label>
+                    <Input type="number" value={(item.purchase_price * item.quantity).toFixed(2)} disabled className="text-destructive font-medium" />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="mb-2">Profit</Label>
+                    <Input type="number" value={((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} disabled className="text-success font-medium" />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="mb-2">Total</Label>
+                    <Input 
+                      type="number" 
+                      value={item.total_price || ""} 
+                      onFocus={(e) => {
+                        if (item.total_price === 0) {
+                          updateItem(index, "total_price", "");
+                        }
+                      }}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateItem(index, "total_price", e.target.value);
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      className="font-semibold"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="mb-2 opacity-0">Action</Label>
+                    <Button onClick={() => removeItem(index)} variant="destructive" size="icon" disabled={isSaving}>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search product..." />
-                      <CommandList>
-                        <CommandEmpty>No product found.</CommandEmpty>
-                        <CommandGroup>
-                          {products.map((product) => (
-                            <CommandItem
-                              key={product.id}
-                              value={product.name}
-                              onSelect={() => {
-                                updateItem(index, "product_id", product.id);
-                                setOpenProductIndex(null);
-                              }}
-                              className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
-                              <div className="flex flex-col">
-                                <span>{product.name}</span>
-                                <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
-                                  Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2">Quantity</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={item.quantity || ""}
-                  onFocus={(e) => {
-                    if (item.quantity === 0) {
-                      updateItem(index, "quantity", "");
-                    }
-                  }}
-                  onChange={(e) => {
-                    // DEVICE-INDEPENDENT: Prevent browser auto-corrections
-                    e.preventDefault();
-                    updateItem(index, "quantity", e.target.value);
-                  }}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  className="font-semibold"
-                />
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2">Type</Label>
-                <Input type="text" value={item.quantity_type} disabled className="text-xs" />
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2">Price</Label>
-                <Input 
-                  type="number" 
-                  value={item.unit_price || ""} 
-                  onFocus={(e) => {
-                    if (item.unit_price === 0) {
-                      updateItem(index, "unit_price", "");
-                    }
-                  }}
-                  onChange={(e) => {
-                    // DEVICE-INDEPENDENT: Prevent browser auto-corrections
-                    e.preventDefault();
-                    updateItem(index, "unit_price", e.target.value);
-                  }}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  className="font-semibold"
-                />
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2">Cost</Label>
-                <Input type="number" value={(item.purchase_price * item.quantity).toFixed(2)} disabled className="text-destructive font-medium" />
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2">Profit</Label>
-                <Input type="number" value={((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} disabled className="text-success font-medium" />
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2">Total</Label>
-                <Input 
-                  type="number" 
-                  value={item.total_price || ""} 
-                  onFocus={(e) => {
-                    if (item.total_price === 0) {
-                      updateItem(index, "total_price", "");
-                    }
-                  }}
-                  onChange={(e) => {
-                    // DEVICE-INDEPENDENT: Prevent browser auto-corrections
-                    e.preventDefault();
-                    updateItem(index, "total_price", e.target.value);
-                  }}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  className="font-semibold"
-                />
-              </div>
-              <div className="flex flex-col">
-                <Label className="mb-2 opacity-0">Action</Label>
-                <Button onClick={() => removeItem(index)} variant="destructive" size="icon" disabled={isSaving}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
