@@ -17,17 +17,19 @@ import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// Credit now represents a sale/invoice with remaining balance
 interface Credit {
   id: string;
   customer_name: string;
   customer_phone: string | null;
-  amount: number;
+  amount: number; // final_amount from sales
   paid_amount: number;
   remaining_amount: number;
   due_date: string | null;
-  status: string;
+  status: string; // payment_status from sales
   notes: string | null;
   created_at: string;
+  invoice_number: string;
 }
 
 interface Product {
@@ -127,13 +129,31 @@ const Credits = () => {
   const fetchCredits = async () => {
     setIsLoading(true);
     try {
-      const { data } = await supabase
-        .from("credits")
+      // Fetch from sales table - this is the source of truth updated by Receive Payment
+      const { data: salesData } = await supabase
+        .from("sales")
         .select("*")
-        .order("created_at", { ascending: false });
-      if (data) {
-        setCredits(data);
-        setFilteredCredits(data);
+        .not("customer_name", "is", null)
+        .order("created_at", { ascending: true }); // Oldest first for FIFO display
+
+      if (salesData) {
+        // Map sales to credit format - only read values, no recalculation
+        const creditsFromSales: Credit[] = salesData.map(sale => ({
+          id: sale.id,
+          customer_name: sale.customer_name || "",
+          customer_phone: sale.customer_phone || null,
+          amount: sale.final_amount, // Total invoice amount
+          paid_amount: sale.paid_amount || 0, // Exact value from sales table
+          remaining_amount: sale.final_amount - (sale.paid_amount || 0), // Calculated from sales table values
+          due_date: null,
+          status: sale.payment_status || "pending", // Exact status from sales table
+          notes: null,
+          created_at: sale.created_at || "",
+          invoice_number: sale.invoice_number,
+        }));
+
+        setCredits(creditsFromSales);
+        setFilteredCredits(creditsFromSales);
       }
       toast.success("Credits data refreshed");
     } catch (error) {
@@ -614,15 +634,24 @@ const Credits = () => {
     setExpandedCustomers(newExpanded);
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === "paid") {
+  const getStatusBadge = (credit: Credit) => {
+    // Determine status based on remaining_amount - same logic as Receive Payment
+    if (credit.remaining_amount <= 0) {
       return <Badge className="bg-success text-success-foreground">Paid</Badge>;
+    } else if (credit.paid_amount > 0 && credit.remaining_amount > 0) {
+      return <Badge className="bg-warning text-warning-foreground">Partial</Badge>;
     }
-    return <Badge className="bg-warning text-warning-foreground">Pending</Badge>;
+    return <Badge className="bg-destructive text-destructive-foreground">Unpaid</Badge>;
   };
 
   const getCustomerTotal = (customerCredits: Credit[]) => {
+    // Sum remaining_amount directly from sales table data - no recalculation
     return customerCredits.reduce((sum, credit) => sum + credit.remaining_amount, 0);
+  };
+
+  // Filter to show only unpaid invoices (remaining_amount > 0)
+  const getUnpaidCredits = (customerCredits: Credit[]) => {
+    return customerCredits.filter(credit => credit.remaining_amount > 0);
   };
 
   return (
@@ -762,8 +791,12 @@ const Credits = () => {
         <div className="space-y-4">
           {Object.entries(groupedCredits).map(([key, customerCredits]) => {
             const firstCredit = customerCredits[0];
+            const unpaidCredits = getUnpaidCredits(customerCredits);
             const totalRemaining = getCustomerTotal(customerCredits);
             const isExpanded = expandedCustomers.has(key);
+
+            // Skip customers with no remaining balance
+            if (totalRemaining <= 0) return null;
 
             return (
               <Collapsible key={key} open={isExpanded} onOpenChange={() => toggleCustomer(key)}>
@@ -783,7 +816,7 @@ const Credits = () => {
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Total Remaining</p>
                           <p className="text-2xl font-bold text-warning">Rs. {totalRemaining.toFixed(2)}</p>
-                          <p className="text-xs text-muted-foreground">{customerCredits.length} credit(s)</p>
+                          <p className="text-xs text-muted-foreground">{unpaidCredits.length} unpaid invoice(s)</p>
                         </div>
                       </div>
                     </div>
@@ -792,23 +825,29 @@ const Credits = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead>Invoice #</TableHead>
                           <TableHead>Date</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right font-semibold">Remaining</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Due date</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {customerCredits.map((credit) => (
+                        {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
+                            <TableCell className="font-medium">{credit.invoice_number}</TableCell>
                             <TableCell>{format(new Date(credit.created_at), "dd MMM yyyy")}</TableCell>
+                            <TableCell className="text-right">
+                              Rs. {credit.amount.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right text-success">
+                              Rs. {credit.paid_amount.toFixed(2)}
+                            </TableCell>
                             <TableCell className="text-right text-warning font-semibold">
                               Rs. {credit.remaining_amount.toFixed(2)}
                             </TableCell>
-                            <TableCell>{getStatusBadge(credit.status)}</TableCell>
-                            <TableCell>
-                              {credit.due_date ? format(new Date(credit.due_date), "dd MMM yyyy") : "-"}
-                            </TableCell>
+                            <TableCell>{getStatusBadge(credit)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -898,7 +937,7 @@ const Credits = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <div className="mt-1">{getStatusBadge(selectedCredit.status)}</div>
+                    <div className="mt-1">{getStatusBadge(selectedCredit)}</div>
                   </div>
                 </div>
               </Card>
