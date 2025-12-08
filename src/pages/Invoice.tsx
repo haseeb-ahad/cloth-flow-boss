@@ -459,6 +459,30 @@ const Invoice = () => {
       return;
     }
 
+    // CRITICAL VALIDATION: Check for incomplete items
+    const incompleteItems = items.filter(item => !isItemComplete(item));
+    if (incompleteItems.length > 0) {
+      // Mark all incomplete items with validation errors
+      const newErrors: {[key: number]: {product: boolean, quantity: boolean, price: boolean}} = {};
+      items.forEach((item, index) => {
+        if (!isItemComplete(item)) {
+          newErrors[index] = {
+            product: !item.product_id || !item.product_name,
+            quantity: !item.quantity || item.quantity <= 0,
+            price: !item.unit_price || item.unit_price <= 0,
+          };
+        }
+      });
+      setValidationErrors(newErrors);
+      
+      toast.error(`${incompleteItems.length} incomplete item(s) found! Please complete or delete them before saving.`, {
+        duration: 4000,
+        className: "animate-shake",
+      });
+      debugLog(`⛔ BLOCKED: ${incompleteItems.length} incomplete items found`);
+      return;
+    }
+
     // Additional validation for edit mode
     if (editSaleId && originalItems.length === 0) {
       toast.error("CRITICAL ERROR: Original items not loaded. Cannot safely update. Please reload the page.");
