@@ -70,6 +70,9 @@ const Invoice = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: number]: {product: boolean, quantity: boolean, price: boolean}}>({});
+  
+  // Refs for auto-focus
+  const quantityInputRefs = useRef<{[key: number]: HTMLInputElement | null}>({});
 
   // CRITICAL PROTECTION: Prevent double saves and race conditions
   const saveInProgressRef = useRef(false);
@@ -299,6 +302,25 @@ const Invoice = () => {
     debugLog(`📦 Items count after remove: ${newItems.length}`, newItems.map(i => i.product_name));
   };
 
+  // Check if item is complete and auto-add new item
+  const checkAndAutoAddItem = (currentItems: InvoiceItem[], index: number) => {
+    const item = currentItems[index];
+    if (item && isItemComplete(item) && index === currentItems.length - 1) {
+      // Auto-add new item when last item is complete
+      debugLog("✨ Auto-adding new item - current item complete");
+      const newItem = {
+        product_id: "",
+        product_name: "",
+        quantity: 0,
+        unit_price: 0,
+        purchase_price: 0,
+        total_price: 0,
+        quantity_type: "Unit",
+      };
+      setItems([...currentItems, newItem]);
+    }
+  };
+
   const updateItem = (index: number, field: string, value: any) => {
     debugLog(`✏️ USER ACTION: Updating item ${index}, field: ${field}, value: ${value}`);
     
@@ -306,16 +328,14 @@ const Invoice = () => {
     if (field === "product_id") {
       const product = products.find(p => p.id === value);
       if (product) {
-        // Check for exact duplicate (same name, same purchase price, same selling price)
-        const exactDuplicate = items.find((item, idx) => 
+        // Check if same product already exists (by product_id)
+        const duplicateProduct = items.find((item, idx) => 
           idx !== index && 
-          item.product_name === product.name && 
-          item.purchase_price === product.purchase_price && 
-          item.unit_price === product.selling_price
+          item.product_id === product.id
         );
 
-        if (exactDuplicate) {
-          toast.error(`${product.name} with same prices is already added`, {
+        if (duplicateProduct) {
+          toast.error(`${product.name} is already added to this invoice`, {
             duration: 3000,
             className: "animate-shake",
           });
@@ -331,6 +351,18 @@ const Invoice = () => {
           quantity_type: product.quantity_type || "Unit",
           total_price: product.selling_price * newItems[index].quantity,
         };
+        
+        setItems(newItems);
+        
+        // Auto-focus to quantity input after product selection
+        setTimeout(() => {
+          const quantityInput = quantityInputRefs.current[index];
+          if (quantityInput) {
+            quantityInput.focus();
+            quantityInput.select();
+          }
+        }, 100);
+        return;
       }
     } else if (field === "quantity") {
       const enteredQuantity = parseFloat(value) || 0;
@@ -382,6 +414,9 @@ const Invoice = () => {
       }
     }
     setItems(newItems);
+    
+    // Check if item is complete and auto-add new item
+    checkAndAutoAddItem(newItems, index);
   };
 
   const calculateTotal = () => {
@@ -1071,6 +1106,7 @@ const Invoice = () => {
                       Quantity {errors?.quantity && <span className="text-red-500">*</span>}
                     </Label>
                     <Input
+                      ref={(el) => { quantityInputRefs.current[index] = el; }}
                       type="number"
                       step="0.01"
                       min="0"
