@@ -13,8 +13,10 @@ Deno.serve(async (req) => {
 
   try {
     const { email, password, phoneNumber, fullName } = await req.json();
+    console.log(`[CREATE-WORKER] Request received for email: ${email}`);
 
     if (!email || !password) {
+      console.log("[CREATE-WORKER] Missing email or password");
       return new Response(
         JSON.stringify({ error: "Email and password are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -36,6 +38,7 @@ Deno.serve(async (req) => {
     // Verify the requesting user is an admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.log("[CREATE-WORKER] No authorization header");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -46,6 +49,7 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !userData.user) {
+      console.log("[CREATE-WORKER] Invalid token or user not found", userError);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -60,13 +64,27 @@ Deno.serve(async (req) => {
       .single();
 
     if (roleError || roleData?.role !== "admin") {
+      console.log("[CREATE-WORKER] User is not admin", roleError);
       return new Response(
         JSON.stringify({ error: "Only admins can create workers" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Check if user with this email already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === email);
+    
+    if (existingUser) {
+      console.log(`[CREATE-WORKER] User with email ${email} already exists`);
+      return new Response(
+        JSON.stringify({ error: "A user with this email already exists" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Create user using admin API (does not affect current session)
+    console.log(`[CREATE-WORKER] Creating user with email: ${email}`);
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -79,21 +97,21 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
-      console.error("Error creating worker:", createError);
+      console.error("[CREATE-WORKER] Error creating worker:", createError);
       return new Response(
         JSON.stringify({ error: createError.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Worker ${newUser.user?.id} created successfully by admin ${userData.user.id}`);
+    console.log(`[CREATE-WORKER] Worker ${newUser.user?.id} created successfully by admin ${userData.user.id}`);
 
     return new Response(
       JSON.stringify({ success: true, user: newUser.user }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("Error in create-worker function:", error);
+    console.error("[CREATE-WORKER] Unexpected error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),
