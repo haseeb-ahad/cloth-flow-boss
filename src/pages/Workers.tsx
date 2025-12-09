@@ -184,15 +184,10 @@ export default function Workers() {
     }
   };
 
-  const [deletingWorkerId, setDeletingWorkerId] = useState<string | null>(null);
-
   const handleDeleteWorker = async (workerId: string) => {
     if (!confirm("Are you sure you want to delete this worker?")) return;
-    
-    // Prevent double-click
-    if (deletingWorkerId === workerId) return;
 
-    setDeletingWorkerId(workerId);
+    setLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       
@@ -213,7 +208,7 @@ export default function Workers() {
       console.error("Error deleting worker:", error);
       toast.error(error.message || "Failed to delete worker");
     } finally {
-      setDeletingWorkerId(null);
+      setLoading(false);
     }
   };
 
@@ -431,13 +426,8 @@ export default function Workers() {
                         variant="destructive"
                         size="icon"
                         onClick={() => handleDeleteWorker(worker.user_id)}
-                        disabled={deletingWorkerId === worker.user_id}
                       >
-                        {deletingWorkerId === worker.user_id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
