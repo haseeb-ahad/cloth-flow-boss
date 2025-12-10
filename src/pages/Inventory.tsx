@@ -4,13 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Package, RefreshCw, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Package, RefreshCw, Search, PackageSearch, DollarSign, TrendingUp } from "lucide-react";
 
 interface Product {
   id: string;
@@ -24,6 +24,20 @@ interface Product {
   created_at: string | null;
 }
 
+interface StockStats {
+  stockCost: number;
+  stockSellWorth: number;
+  sellProfit: number;
+  totalProducts: number;
+  lowStockCount: number;
+  totalStockByType: {
+    Unit: number;
+    Than: number;
+    Suit: number;
+    Meter: number;
+  };
+}
+
 const Inventory = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -35,6 +49,14 @@ const Inventory = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [stockStats, setStockStats] = useState<StockStats>({
+    stockCost: 0,
+    stockSellWorth: 0,
+    sellProfit: 0,
+    totalProducts: 0,
+    lowStockCount: 0,
+    totalStockByType: { Unit: 0, Than: 0, Suit: 0, Meter: 0 },
+  });
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -69,6 +91,7 @@ const Inventory = () => {
       if (data) {
         setProducts(data);
         setFilteredProducts(data);
+        calculateStockStats(data);
       }
       toast.success("Products refreshed");
     } catch (error) {
@@ -76,6 +99,48 @@ const Inventory = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const calculateStockStats = (productsData: Product[]) => {
+    const stockCost = productsData.reduce(
+      (sum, product) => sum + Number(product.purchase_price) * product.stock_quantity,
+      0
+    );
+    
+    const stockSellWorth = productsData.reduce(
+      (sum, product) => sum + Number(product.selling_price) * product.stock_quantity,
+      0
+    );
+    
+    const sellProfit = stockSellWorth - stockCost;
+    
+    const totalStockByType = productsData.reduce(
+      (acc, product) => {
+        const type = product.quantity_type || 'Unit';
+        acc[type as keyof typeof acc] = (acc[type as keyof typeof acc] || 0) + product.stock_quantity;
+        return acc;
+      },
+      { Unit: 0, Than: 0, Suit: 0, Meter: 0 }
+    );
+    
+    const lowStockCount = productsData.filter(p => p.stock_quantity < 10).length;
+    
+    setStockStats({
+      stockCost,
+      stockSellWorth,
+      sellProfit,
+      totalProducts: productsData.length,
+      lowStockCount,
+      totalStockByType,
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-PK', {
+      style: 'currency',
+      currency: 'PKR',
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
   const filterProducts = () => {
@@ -247,6 +312,101 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your products and stock</p>
         </div>
+      </div>
+
+      {/* Stock Stats Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <Card className="hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold tracking-wide">Stock Cost</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
+              <PackageSearch className="h-5 w-5 text-destructive" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground tracking-tight">{formatCurrency(stockStats.stockCost)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Total purchase cost</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold tracking-wide">Stock Sell Worth</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
+              <DollarSign className="h-5 w-5 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground tracking-tight">{formatCurrency(stockStats.stockSellWorth)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Total selling price value</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold tracking-wide">Sell Profit</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success tracking-tight">{formatCurrency(stockStats.sellProfit)}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Potential profit margin</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold tracking-wide">Total Stock</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center ring-4 ring-accent/5">
+              <PackageSearch className="h-5 w-5 text-accent-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Unit:</span>
+                <span className="font-bold">{stockStats.totalStockByType.Unit}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Than:</span>
+                <span className="font-bold">{stockStats.totalStockByType.Than}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Suit:</span>
+                <span className="font-bold">{stockStats.totalStockByType.Suit}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Meter:</span>
+                <span className="font-bold">{stockStats.totalStockByType.Meter}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold tracking-wide">Products Overview</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
+              <PackageSearch className="h-5 w-5 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Total Products</p>
+                <div className="text-2xl font-bold text-foreground">{stockStats.totalProducts}</div>
+              </div>
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground font-medium">Low Stock Items</p>
+                <div className="text-2xl font-bold text-destructive">{stockStats.lowStockCount}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex items-center justify-end">
         <div className="flex gap-2">
           <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
