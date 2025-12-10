@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search } from "lucide-react";
 import AnimatedTick from "@/components/AnimatedTick";
-import { format } from "date-fns";
+import { formatDatePKT } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -69,7 +69,7 @@ interface Sale {
 }
 
 const Credits = () => {
-  const { user } = useAuth();
+  const { ownerId } = useAuth();
   const [credits, setCredits] = useState<Credit[]>([]);
   const [filteredCredits, setFilteredCredits] = useState<Credit[]>([]);
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});
@@ -265,7 +265,7 @@ const Credits = () => {
           amount: payment,
           transaction_date: new Date().toISOString().split('T')[0],
           notes: fullPayment ? "Full payment received" : "Partial payment received",
-          owner_id: user?.id,
+          owner_id: ownerId,
         });
 
       toast.success("Payment recorded successfully!");
@@ -837,7 +837,7 @@ const Credits = () => {
                         {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell className="font-medium">{credit.invoice_number}</TableCell>
-                            <TableCell>{format(new Date(credit.created_at), "dd MMM yyyy")}</TableCell>
+                            <TableCell>{formatDatePKT(credit.created_at)}</TableCell>
                             <TableCell className="text-right">
                               Rs. {credit.amount.toFixed(2)}
                             </TableCell>

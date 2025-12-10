@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
+import { formatDatePKT } from "@/lib/utils";
 import { Edit, Trash2, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -269,7 +269,7 @@ const Sales = () => {
                 <TableRow key={sale.id}>
                   <TableCell className="font-medium">{sale.invoice_number}</TableCell>
                   <TableCell>
-                    {format(new Date(sale.created_at), "dd MMM yyyy, hh:mm a")}
+                    {formatDatePKT(sale.created_at, 'datetime')}
                   </TableCell>
                   <TableCell>{sale.customer_name || "Walk-in Customer"}</TableCell>
                   <TableCell className="text-center">

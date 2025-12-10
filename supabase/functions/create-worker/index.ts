@@ -104,6 +104,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Update user_roles to set admin_id (link worker to admin who created them)
+    if (newUser.user) {
+      const { error: updateRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .update({ admin_id: userData.user.id })
+        .eq("user_id", newUser.user.id);
+
+      if (updateRoleError) {
+        console.error("[CREATE-WORKER] Error updating admin_id:", updateRoleError);
+        // Don't fail the request, just log the error
+      } else {
+        console.log(`[CREATE-WORKER] Set admin_id ${userData.user.id} for worker ${newUser.user.id}`);
+      }
+    }
+
     console.log(`[CREATE-WORKER] Worker ${newUser.user?.id} created successfully by admin ${userData.user.id}`);
 
     return new Response(

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Banknote, RefreshCw, Calendar, User } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { formatDatePKT, formatDateInputPKT } from "@/lib/utils";
 
 interface Customer {
   name: string;
@@ -42,11 +42,11 @@ interface LedgerEntry {
 }
 
 const ReceivePayment = () => {
-  const { user } = useAuth();
+  const { ownerId } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [paymentAmount, setPaymentAmount] = useState<string>("");
-  const [paymentDate, setPaymentDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const [paymentDate, setPaymentDate] = useState<string>(formatDateInputPKT(new Date()));
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [unpaidInvoices, setUnpaidInvoices] = useState<UnpaidInvoice[]>([]);
@@ -235,7 +235,7 @@ const ReceivePayment = () => {
             transaction_date: paymentDate,
             customer_name: selectedCustomer,
             customer_phone: customer?.phone || null,
-            owner_id: user?.id,
+            owner_id: ownerId,
           });
         }
 
@@ -257,7 +257,7 @@ const ReceivePayment = () => {
         payment_amount: amount,
         payment_date: paymentDate,
         details: paymentDetails,
-        owner_id: user?.id,
+        owner_id: ownerId,
       });
 
       if (ledgerError) throw ledgerError;
@@ -402,7 +402,7 @@ const ReceivePayment = () => {
                       <div>
                         <span className="font-medium">#{inv.invoice_number}</span>
                         <span className="text-muted-foreground ml-2">
-                          {format(new Date(inv.created_at), "dd MMM yyyy")}
+                          {formatDatePKT(inv.created_at)}
                         </span>
                         {index === 0 && (
                           <Badge variant="outline" className="ml-2 text-xs">
@@ -449,7 +449,7 @@ const ReceivePayment = () => {
                       <div>
                         <p className="font-medium">{payment.customer_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(payment.payment_date), "dd MMM yyyy")}
+                          {formatDatePKT(payment.payment_date)}
                         </p>
                       </div>
                       <Badge variant="outline" className="bg-primary/10 text-primary">
