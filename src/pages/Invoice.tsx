@@ -47,7 +47,7 @@ interface InvoiceItem {
 const Invoice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { ownerId } = useAuth();
   const editSaleId = searchParams.get("edit");
   
   const [products, setProducts] = useState<Product[]>([]);
@@ -562,7 +562,7 @@ const Invoice = () => {
         paid_amount: paid,
         payment_status: isFullPayment ? "paid" : "pending",
         created_at: invoiceDateISO,
-        owner_id: user?.id,
+        owner_id: ownerId,
       })
       .select()
       .single();
@@ -650,7 +650,7 @@ const Invoice = () => {
         status: "pending",
         notes: `Partial payment for invoice ${newInvoiceNumber}`,
         created_at: invoiceDateISO,
-        owner_id: user?.id,
+        owner_id: ownerId,
       });
     }
 

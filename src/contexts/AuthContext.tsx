@@ -9,6 +9,7 @@ interface AuthContextType {
   userRole: "admin" | "worker" | null;
   permissions: WorkerPermission[];
   loading: boolean;
+  ownerId: string | null; // The admin_id for workers, or user_id for admins
   signOut: () => Promise<void>;
   hasPermission: (feature: string, action: "view" | "create" | "edit" | "delete") => boolean;
   getFirstPermittedRoute: () => string;
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<"admin" | "worker" | null>(null);
   const [permissions, setPermissions] = useState<WorkerPermission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -69,15 +71,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserRoleAndPermissions = async (userId: string) => {
     try {
-      // Fetch user role
+      // Fetch user role and admin_id
       const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
-        .select("role")
+        .select("role, admin_id")
         .eq("user_id", userId)
         .single();
 
       if (roleError) throw roleError;
       setUserRole(roleData?.role || null);
+      
+      // Set owner_id: for admins it's their own id, for workers it's their admin_id
+      if (roleData?.role === "admin") {
+        setOwnerId(userId);
+      } else if (roleData?.role === "worker") {
+        setOwnerId(roleData.admin_id || userId);
+      }
 
       // Fetch permissions if worker
       if (roleData?.role === "worker") {
@@ -104,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setUserRole(null);
     setPermissions([]);
+    setOwnerId(null);
     navigate("/login");
   };
 
@@ -154,6 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userRole,
         permissions,
         loading,
+        ownerId,
         signOut,
         hasPermission,
         getFirstPermittedRoute,

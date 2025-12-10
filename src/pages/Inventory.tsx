@@ -25,7 +25,7 @@ interface Product {
 }
 
 const Inventory = () => {
-  const { user } = useAuth();
+  const { ownerId } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -130,7 +130,7 @@ const Inventory = () => {
         await supabase.from("products").update(productData).eq("id", editingProduct.id);
         toast.success("Product updated successfully!");
       } else {
-        await supabase.from("products").insert({ ...productData, owner_id: user?.id });
+        await supabase.from("products").insert({ ...productData, owner_id: ownerId });
         toast.success("Product added successfully!");
       }
       

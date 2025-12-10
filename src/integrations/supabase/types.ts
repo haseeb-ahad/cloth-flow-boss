@@ -442,6 +442,7 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          admin_id: string | null
           created_at: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
@@ -449,6 +450,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_id?: string | null
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
@@ -456,6 +458,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_id?: string | null
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
@@ -502,6 +505,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_owner_id: { Args: { user_id: string }; Returns: string }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
