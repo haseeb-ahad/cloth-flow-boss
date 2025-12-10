@@ -752,7 +752,7 @@ const Credits = () => {
         </div>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-4 sticky top-0 z-10 bg-card shadow-sm">
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
             <Label>Search by Name or Phone</Label>

@@ -386,7 +386,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-4 sticky top-0 z-10 bg-card shadow-sm">
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
             <Label>Search by Name or Category</Label>
@@ -430,7 +430,7 @@ const Inventory = () => {
 
       <Card className="p-6">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-[88px] z-10 bg-card">
             <TableRow>
               <TableHead className="w-16">ID</TableHead>
               <TableHead>Product name</TableHead>
