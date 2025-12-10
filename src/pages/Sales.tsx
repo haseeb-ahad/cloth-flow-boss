@@ -207,7 +207,7 @@ const Sales = () => {
         </Button>
       </div>
 
-      <Card className="p-4 sticky top-0 z-10 bg-card shadow-sm">
+      <Card className="p-4">
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
             <Label>Search by Name, Phone, or Invoice</Label>
@@ -244,7 +244,7 @@ const Sales = () => {
 
       <Card className="p-6">
         <Table>
-          <TableHeader className="sticky top-[88px] z-10 bg-card">
+          <TableHeader>
             <TableRow>
               <TableHead>Invoice #</TableHead>
               <TableHead>Date</TableHead>

@@ -129,7 +129,7 @@ const Customers = () => {
         </div>
       ) : (
         <>
-          <Card className="p-4 sticky top-0 z-10 bg-card shadow-sm">
+          <Card className="p-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label>Search by Name or Phone</Label>
@@ -163,7 +163,7 @@ const Customers = () => {
               </p>
             </div>
             <Table>
-              <TableHeader className="sticky top-[72px] z-10 bg-card">
+              <TableHeader>
                 <TableRow>
                   <TableHead>Customer Name</TableHead>
                   <TableHead>Phone Number</TableHead>
