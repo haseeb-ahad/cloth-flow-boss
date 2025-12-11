@@ -17,6 +17,7 @@ import Customers from "./pages/Customers";
 import Settings from "./pages/Settings";
 import Workers from "./pages/Workers";
 import ReceivePayment from "./pages/ReceivePayment";
+import Expenses from "./pages/Expenses";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/credits" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><Credits /></Layout></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute feature="customers" requirePermission="view"><Layout><Customers /></Layout></ProtectedRoute>} />
             <Route path="/receive-payment" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><ReceivePayment /></Layout></ProtectedRoute>} />
+            <Route path="/expenses" element={<ProtectedRoute adminOnly><Layout><Expenses /></Layout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
             <Route path="/workers" element={<ProtectedRoute><Layout><Workers /></Layout></ProtectedRoute>} />
 
