@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, RefreshCw, Users } from "lucide-react";
+import { Search, RefreshCw, Users, Download } from "lucide-react";
 import { toast } from "sonner";
+import { exportCustomersToPDF } from "@/lib/pdfExport";
 import { format } from "date-fns";
 
 interface CustomerWithTotals {
@@ -109,15 +110,25 @@ const Customers = () => {
           </h1>
           <p className="text-muted-foreground mt-1 text-base">View all customers with credit summary</p>
         </div>
-        <Button
-          onClick={fetchCustomers}
-          variant="outline"
-          size="icon"
-          disabled={isLoading}
-          className="hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => exportCustomersToPDF(filteredCustomers)} 
+            variant="outline"
+            disabled={isLoading || filteredCustomers.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button
+            onClick={fetchCustomers}
+            variant="outline"
+            size="icon"
+            disabled={isLoading}
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

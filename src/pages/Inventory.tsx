@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Package, RefreshCw, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download } from "lucide-react";
+import { exportInventoryToPDF } from "@/lib/pdfExport";
 
 interface Product {
   id: string;
@@ -248,6 +249,14 @@ const Inventory = () => {
           <p className="text-muted-foreground">Manage your products and stock</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={() => exportInventoryToPDF(filteredProducts)} 
+            variant="outline"
+            disabled={isLoading || filteredProducts.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
           <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
