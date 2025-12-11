@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +57,52 @@ export default function Expenses() {
     description: "",
     expense_date: formatDateInputPKT(new Date())
   });
+
+  // Real-time subscription for expenses and sales
+  useEffect(() => {
+    const expensesChannel = supabase
+      .channel('expenses-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'expenses' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["expenses"] });
+          queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
+          queryClient.invalidateQueries({ queryKey: ["yesterdayExpenses"] });
+        }
+      )
+      .subscribe();
+
+    const salesChannel = supabase
+      .channel('sales-realtime-expenses')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["filteredProfit"] });
+          queryClient.invalidateQueries({ queryKey: ["yesterdayProfit"] });
+        }
+      )
+      .subscribe();
+
+    const saleItemsChannel = supabase
+      .channel('sale-items-realtime-expenses')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sale_items' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["filteredProfit"] });
+          queryClient.invalidateQueries({ queryKey: ["yesterdayProfit"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(expensesChannel);
+      supabase.removeChannel(salesChannel);
+      supabase.removeChannel(saleItemsChannel);
+    };
+  }, [queryClient]);
 
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,6 +200,56 @@ export default function Expenses() {
     return { start, end };
   };
 
+  // Get previous period date range for comparison
+  const getPreviousPeriodRange = () => {
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+
+    switch (dateFilter) {
+      case "today":
+        // Compare with yesterday
+        const yesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        start = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "yesterday":
+        // Compare with day before yesterday
+        const dayBeforeUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+        start = new Date(Date.UTC(dayBeforeUTC.getFullYear(), dayBeforeUTC.getMonth(), dayBeforeUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(dayBeforeUTC.getFullYear(), dayBeforeUTC.getMonth(), dayBeforeUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "1week":
+        // Compare with previous week
+        const prevWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+        const prevWeekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 8);
+        start = new Date(Date.UTC(prevWeekStart.getFullYear(), prevWeekStart.getMonth(), prevWeekStart.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(prevWeekEnd.getFullYear(), prevWeekEnd.getMonth(), prevWeekEnd.getDate(), 23, 59, 59, 999));
+        break;
+      case "1month":
+        // Compare with previous month
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+        const prevMonthEnd = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate() - 1);
+        start = new Date(Date.UTC(prevMonthStart.getFullYear(), prevMonthStart.getMonth(), prevMonthStart.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), prevMonthEnd.getDate(), 23, 59, 59, 999));
+        break;
+      case "1year":
+        // Compare with previous year
+        const prevYearStart = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
+        const prevYearEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate() - 1);
+        start = new Date(Date.UTC(prevYearStart.getFullYear(), prevYearStart.getMonth(), prevYearStart.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(prevYearEnd.getFullYear(), prevYearEnd.getMonth(), prevYearEnd.getDate(), 23, 59, 59, 999));
+        break;
+      default:
+        // Default to yesterday for comparison
+        const defaultYesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        start = new Date(Date.UTC(defaultYesterdayUTC.getFullYear(), defaultYesterdayUTC.getMonth(), defaultYesterdayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(defaultYesterdayUTC.getFullYear(), defaultYesterdayUTC.getMonth(), defaultYesterdayUTC.getDate(), 23, 59, 59, 999));
+    }
+
+    return { start, end };
+  };
+
   const getDateRangeLabel = () => {
     switch (dateFilter) {
       case "today": return "Today's";
@@ -164,6 +260,17 @@ export default function Expenses() {
       case "grand": return "All Time";
       case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom";
       default: return "Today's";
+    }
+  };
+
+  const getComparisonLabel = () => {
+    switch (dateFilter) {
+      case "today": return "vs yesterday";
+      case "yesterday": return "vs day before";
+      case "1week": return "vs last week";
+      case "1month": return "vs last month";
+      case "1year": return "vs last year";
+      default: return "";
     }
   };
 
@@ -216,8 +323,37 @@ export default function Expenses() {
     enabled: !!ownerId
   });
 
+  // Fetch previous period profit for comparison
+  const { data: previousProfit = 0 } = useQuery({
+    queryKey: ["previousProfit", dateFilter, ownerId],
+    queryFn: async () => {
+      if (dateFilter === "grand" || dateFilter === "custom") return 0;
+      
+      const { start, end } = getPreviousPeriodRange();
+      
+      const { data: sales } = await supabase
+        .from("sales")
+        .select("id")
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString());
+      
+      if (!sales || sales.length === 0) return 0;
+      
+      const saleIds = sales.map(sale => sale.id);
+      
+      const { data, error } = await supabase
+        .from("sale_items")
+        .select("profit")
+        .in("sale_id", saleIds);
+      
+      if (error) throw error;
+      return data?.reduce((sum, item) => sum + (Number(item.profit) || 0), 0) || 0;
+    },
+    enabled: !!ownerId && dateFilter !== "grand" && dateFilter !== "custom"
+  });
+
   // Fetch expenses total based on filter
-  const { data: filteredExpensesTotal = 0 } = useQuery({
+  const { data: filteredExpensesTotal = 0, isLoading: expensesTotalLoading } = useQuery({
     queryKey: ["filteredExpensesTotal", dateFilter, ownerId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       const { start, end } = getDateRange();
@@ -234,12 +370,43 @@ export default function Expenses() {
     enabled: !!ownerId
   });
 
+  // Fetch previous period expenses for comparison
+  const { data: previousExpenses = 0 } = useQuery({
+    queryKey: ["previousExpenses", dateFilter, ownerId],
+    queryFn: async () => {
+      if (dateFilter === "grand" || dateFilter === "custom") return 0;
+      
+      const { start, end } = getPreviousPeriodRange();
+      
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("amount")
+        .gte("expense_date", start.toISOString().split('T')[0])
+        .lte("expense_date", end.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      return data?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
+    },
+    enabled: !!ownerId && dateFilter !== "grand" && dateFilter !== "custom"
+  });
+
   // Calculate filtered totals
   const filteredTotalExpenses = useMemo(() => {
     return expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
   }, [expenses]);
 
   const netProfit = filteredProfit - filteredExpensesTotal;
+  const previousNetProfit = previousProfit - previousExpenses;
+
+  // Calculate percentage changes
+  const calculatePercentageChange = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / Math.abs(previous)) * 100;
+  };
+
+  const profitChange = calculatePercentageChange(filteredProfit, previousProfit);
+  const expensesChange = calculatePercentageChange(filteredExpensesTotal, previousExpenses);
+  const netProfitChange = calculatePercentageChange(netProfit, previousNetProfit);
 
   // Add expense mutation
   const addExpenseMutation = useMutation({
@@ -410,11 +577,26 @@ export default function Expenses() {
             </CardHeader>
             <CardContent>
               {profitLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <div className="text-2xl font-bold text-green-600">
-                  Rs. {filteredProfit.toLocaleString()}
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-muted-foreground text-sm">Loading...</span>
                 </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-green-600">
+                    Rs. {filteredProfit.toLocaleString()}
+                  </div>
+                  {dateFilter !== "grand" && dateFilter !== "custom" && (
+                    <div className={`flex items-center gap-1 mt-1 text-xs ${profitChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {profitChange >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      <span>{Math.abs(profitChange).toFixed(1)}% {getComparisonLabel()}</span>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -425,9 +607,28 @@ export default function Expenses() {
               <TrendingDown className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                Rs. {filteredExpensesTotal.toLocaleString()}
-              </div>
+              {expensesTotalLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-muted-foreground text-sm">Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-red-600">
+                    Rs. {filteredExpensesTotal.toLocaleString()}
+                  </div>
+                  {dateFilter !== "grand" && dateFilter !== "custom" && (
+                    <div className={`flex items-center gap-1 mt-1 text-xs ${expensesChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {expensesChange > 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      <span>{Math.abs(expensesChange).toFixed(1)}% {getComparisonLabel()}</span>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
           
@@ -437,9 +638,28 @@ export default function Expenses() {
               <DollarSign className={`h-4 w-4 ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                Rs. {netProfit.toLocaleString()}
-              </div>
+              {profitLoading || expensesTotalLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-muted-foreground text-sm">Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    Rs. {netProfit.toLocaleString()}
+                  </div>
+                  {dateFilter !== "grand" && dateFilter !== "custom" && (
+                    <div className={`flex items-center gap-1 mt-1 text-xs ${netProfitChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {netProfitChange >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      <span>{Math.abs(netProfitChange).toFixed(1)}% {getComparisonLabel()}</span>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
