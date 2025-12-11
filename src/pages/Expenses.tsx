@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download, Upload } from "lucide-react";
-import { formatDatePKT, formatDateInputPKT, toPKT } from "@/lib/utils";
+import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download, Upload, CalendarIcon } from "lucide-react";
+import { formatDatePKT, formatDateInputPKT, toPKT, cn } from "@/lib/utils";
 import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
-import { useRef } from "react";
+import { format } from "date-fns";
 
 const EXPENSE_TYPES = [
   "Utilities",
@@ -30,10 +32,11 @@ const EXPENSE_TYPES = [
 const DATE_FILTERS = [
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
-  { label: "This Week", value: "week" },
-  { label: "This Month", value: "month" },
-  { label: "This Year", value: "year" },
-  { label: "All Time", value: "all" },
+  { label: "1 Week", value: "1week" },
+  { label: "1 Month", value: "1month" },
+  { label: "1 Year", value: "1year" },
+  { label: "Grand Report", value: "grand" },
+  { label: "Custom", value: "custom" },
 ];
 
 export default function Expenses() {
@@ -44,6 +47,8 @@ export default function Expenses() {
   const [isImporting, setIsImporting] = useState(false);
   const [dateFilter, setDateFilter] = useState("today");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -89,40 +94,88 @@ export default function Expenses() {
 
   // Calculate date range based on filter
   const getDateRange = () => {
-    const now = toPKT(new Date());
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+
     switch (dateFilter) {
       case "today":
-        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+        const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        start = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 23, 59, 59, 999));
+        break;
       case "yesterday":
-        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        return { start: yesterday, end: today };
-      case "week":
-        const weekStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return { start: weekStart, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "month":
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        return { start: monthStart, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "year":
-        const yearStart = new Date(today.getFullYear(), 0, 1);
-        return { start: yearStart, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+        const yesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        start = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "1week":
+        const weekAgoUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        start = new Date(Date.UTC(weekAgoUTC.getFullYear(), weekAgoUTC.getMonth(), weekAgoUTC.getDate(), 0, 0, 0, 0));
+        const todayEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(todayEndUTC.getFullYear(), todayEndUTC.getMonth(), todayEndUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "1month":
+        const monthAgoUTC = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        start = new Date(Date.UTC(monthAgoUTC.getFullYear(), monthAgoUTC.getMonth(), monthAgoUTC.getDate(), 0, 0, 0, 0));
+        const monthEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(monthEndUTC.getFullYear(), monthEndUTC.getMonth(), monthEndUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "1year":
+        const yearAgoUTC = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        start = new Date(Date.UTC(yearAgoUTC.getFullYear(), yearAgoUTC.getMonth(), yearAgoUTC.getDate(), 0, 0, 0, 0));
+        const yearEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(yearEndUTC.getFullYear(), yearEndUTC.getMonth(), yearEndUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "grand":
+        start = new Date(0);
+        const grandEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(grandEndUTC.getFullYear(), grandEndUTC.getMonth(), grandEndUTC.getDate(), 23, 59, 59, 999));
+        break;
+      case "custom":
+        if (startDate) {
+          start = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0));
+        } else {
+          start = new Date(0);
+        }
+        if (endDate) {
+          end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999));
+        } else {
+          const customEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = new Date(Date.UTC(customEndUTC.getFullYear(), customEndUTC.getMonth(), customEndUTC.getDate(), 23, 59, 59, 999));
+        }
+        break;
       default:
-        return null;
+        const defaultTodayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        start = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 0, 0, 0, 0));
+        end = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 23, 59, 59, 999));
+    }
+
+    return { start, end };
+  };
+
+  const getDateRangeLabel = () => {
+    switch (dateFilter) {
+      case "today": return "Today's";
+      case "yesterday": return "Yesterday's";
+      case "1week": return "Weekly";
+      case "1month": return "Monthly";
+      case "1year": return "Yearly";
+      case "grand": return "All Time";
+      case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom";
+      default: return "Today's";
     }
   };
 
   // Fetch expenses
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
-    queryKey: ["expenses", dateFilter, typeFilter, ownerId],
+    queryKey: ["expenses", dateFilter, typeFilter, ownerId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       let query = supabase.from("expenses").select("*").order("expense_date", { ascending: false });
       
-      const dateRange = getDateRange();
-      if (dateRange) {
-        query = query.gte("expense_date", formatDateInputPKT(dateRange.start))
-                     .lt("expense_date", formatDateInputPKT(dateRange.end));
-      }
+      const { start, end } = getDateRange();
+      query = query.gte("expense_date", start.toISOString().split('T')[0])
+                   .lte("expense_date", end.toISOString().split('T')[0]);
       
       if (typeFilter !== "all") {
         query = query.eq("expense_type", typeFilter);
@@ -135,19 +188,27 @@ export default function Expenses() {
     enabled: !!ownerId
   });
 
-  // Fetch today's profit (sales profit for today)
-  const { data: todayProfit = 0, isLoading: profitLoading } = useQuery({
-    queryKey: ["todayProfit", ownerId],
+  // Fetch profit based on filter
+  const { data: filteredProfit = 0, isLoading: profitLoading } = useQuery({
+    queryKey: ["filteredProfit", dateFilter, ownerId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
-      const now = toPKT(new Date());
-      const todayStart = formatDateInputPKT(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-      const tomorrowStart = formatDateInputPKT(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+      const { start, end } = getDateRange();
+      
+      // First get sales in the date range
+      const { data: sales } = await supabase
+        .from("sales")
+        .select("id")
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString());
+      
+      if (!sales || sales.length === 0) return 0;
+      
+      const saleIds = sales.map(sale => sale.id);
       
       const { data, error } = await supabase
         .from("sale_items")
-        .select("profit, sales!inner(created_at, owner_id)")
-        .gte("sales.created_at", todayStart)
-        .lt("sales.created_at", tomorrowStart);
+        .select("profit")
+        .in("sale_id", saleIds);
       
       if (error) throw error;
       return data?.reduce((sum, item) => sum + (Number(item.profit) || 0), 0) || 0;
@@ -155,19 +216,17 @@ export default function Expenses() {
     enabled: !!ownerId
   });
 
-  // Fetch today's expenses total
-  const { data: todayExpenses = 0 } = useQuery({
-    queryKey: ["todayExpenses", ownerId],
+  // Fetch expenses total based on filter
+  const { data: filteredExpensesTotal = 0 } = useQuery({
+    queryKey: ["filteredExpensesTotal", dateFilter, ownerId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
-      const now = toPKT(new Date());
-      const todayStart = formatDateInputPKT(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-      const tomorrowStart = formatDateInputPKT(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+      const { start, end } = getDateRange();
       
       const { data, error } = await supabase
         .from("expenses")
         .select("amount")
-        .gte("expense_date", todayStart)
-        .lt("expense_date", tomorrowStart);
+        .gte("expense_date", start.toISOString().split('T')[0])
+        .lte("expense_date", end.toISOString().split('T')[0]);
       
       if (error) throw error;
       return data?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
@@ -180,7 +239,7 @@ export default function Expenses() {
     return expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
   }, [expenses]);
 
-  const netProfit = todayProfit - todayExpenses;
+  const netProfit = filteredProfit - filteredExpensesTotal;
 
   // Add expense mutation
   const addExpenseMutation = useMutation({
@@ -346,7 +405,7 @@ export default function Expenses() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Profit</CardTitle>
+              <CardTitle className="text-sm font-medium">{getDateRangeLabel()} Profit</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
@@ -354,7 +413,7 @@ export default function Expenses() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <div className="text-2xl font-bold text-green-600">
-                  Rs. {todayProfit.toLocaleString()}
+                  Rs. {filteredProfit.toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -362,19 +421,19 @@ export default function Expenses() {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Expenses</CardTitle>
+              <CardTitle className="text-sm font-medium">{getDateRangeLabel()} Expenses</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                Rs. {todayExpenses.toLocaleString()}
+                Rs. {filteredExpensesTotal.toLocaleString()}
               </div>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Profit (Today)</CardTitle>
+              <CardTitle className="text-sm font-medium">Net Profit ({getDateRangeLabel()})</CardTitle>
               <DollarSign className={`h-4 w-4 ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
             </CardHeader>
             <CardContent>
@@ -388,8 +447,8 @@ export default function Expenses() {
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+              <div className="flex-1 min-w-[150px]">
                 <Label>Date Filter</Label>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
                   <SelectTrigger>
@@ -402,7 +461,39 @@ export default function Expenses() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
+              {dateFilter === "custom" && (
+                <>
+                  <div className="flex-1 min-w-[150px]">
+                    <Label>Start Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, "PP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex-1 min-w-[150px]">
+                    <Label>End Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDate ? format(endDate, "PP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
+              <div className="flex-1 min-w-[150px]">
                 <Label>Expense Type</Label>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger>
