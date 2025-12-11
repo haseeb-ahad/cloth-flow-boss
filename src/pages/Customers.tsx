@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Search, RefreshCw, Users, Download } from "lucide-react";
 import { toast } from "sonner";
-import { exportCustomersToPDF } from "@/lib/pdfExport";
+import { exportCustomersToCSV } from "@/lib/csvExport";
 import { format } from "date-fns";
 
 interface CustomerWithTotals {
@@ -112,12 +112,12 @@ const Customers = () => {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={() => exportCustomersToPDF(filteredCustomers)} 
+            onClick={() => exportCustomersToCSV(filteredCustomers)} 
             variant="outline"
             disabled={isLoading || filteredCustomers.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export PDF
+            Export CSV
           </Button>
           <Button
             onClick={fetchCustomers}

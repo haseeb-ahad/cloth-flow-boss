@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download } from "lucide-react";
-import { exportCreditsToPDF } from "@/lib/pdfExport";
+import { exportCreditsToCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { formatDatePKT } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -672,12 +672,12 @@ const Credits = () => {
         </div>
         <div className="flex gap-3">
           <Button 
-            onClick={() => exportCreditsToPDF(filteredCredits)} 
+            onClick={() => exportCreditsToCSV(filteredCredits)} 
             variant="outline"
             disabled={isLoading || filteredCredits.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export PDF
+            Export CSV
           </Button>
           <Button 
             onClick={fetchCredits} 

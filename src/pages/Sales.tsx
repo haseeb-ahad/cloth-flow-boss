@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDatePKT } from "@/lib/utils";
 import { Edit, Trash2, Search, RefreshCw, Download } from "lucide-react";
-import { exportSalesToPDF } from "@/lib/pdfExport";
+import { exportSalesToCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
 
 interface Sale {
@@ -199,12 +199,12 @@ const Sales = () => {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={() => exportSalesToPDF(filteredSales)} 
+            onClick={() => exportSalesToCSV(filteredSales)} 
             variant="outline"
             disabled={isLoading || filteredSales.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export PDF
+            Export CSV
           </Button>
           <Button 
             onClick={fetchSales} 

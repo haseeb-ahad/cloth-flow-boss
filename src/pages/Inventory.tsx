@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download } from "lucide-react";
-import { exportInventoryToPDF } from "@/lib/pdfExport";
+import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload } from "lucide-react";
+import { exportInventoryToCSV, parseInventoryCSV } from "@/lib/csvExport";
+import { useRef } from "react";
 
 interface Product {
   id: string;
@@ -36,6 +37,8 @@ const Inventory = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -45,6 +48,39 @@ const Inventory = () => {
     category: "",
     quantity_type: "Unit",
   });
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const parsedProducts = parseInventoryCSV(text);
+      
+      if (parsedProducts.length === 0) {
+        toast.error("No valid products found in CSV");
+        return;
+      }
+
+      let imported = 0;
+      for (const product of parsedProducts) {
+        const { error } = await supabase.from("products").insert({
+          ...product,
+          owner_id: ownerId,
+        });
+        if (!error) imported++;
+      }
+
+      toast.success(`Successfully imported ${imported} products`);
+      fetchProducts();
+    } catch (error) {
+      toast.error("Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -249,13 +285,28 @@ const Inventory = () => {
           <p className="text-muted-foreground">Manage your products and stock</p>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
           <Button 
-            onClick={() => exportInventoryToPDF(filteredProducts)} 
+            onClick={() => fileInputRef.current?.click()} 
+            variant="outline"
+            disabled={isLoading || isImporting}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {isImporting ? "Importing..." : "Import CSV"}
+          </Button>
+          <Button 
+            onClick={() => exportInventoryToCSV(filteredProducts)} 
             variant="outline"
             disabled={isLoading || filteredProducts.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export PDF
+            Export CSV
           </Button>
           <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
