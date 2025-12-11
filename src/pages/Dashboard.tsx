@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon, RefreshCw, Download, Eye, EyeOff } from "lucide-react";
+import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Line, LineChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,8 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { toast } from "sonner";
 
 interface DashboardStats {
@@ -395,37 +393,6 @@ const Dashboard = () => {
       case "grand": return "All Time (Grand Report)";
       case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom Range";
       default: return "Today";
-    }
-  };
-
-  const handleExportPDF = async () => {
-    try {
-      toast.info("Generating PDF...");
-      const dashboardElement = document.getElementById("dashboard-content");
-      if (!dashboardElement) return;
-
-      const canvas = await html2canvas(dashboardElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const imgWidth = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`dashboard-${format(new Date(), "yyyy-MM-dd")}.pdf`);
-      toast.success("Dashboard exported successfully!");
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast.error("Failed to export dashboard");
     }
   };
 
