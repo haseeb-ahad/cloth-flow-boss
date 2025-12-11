@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDatePKT } from "@/lib/utils";
-import { Edit, Trash2, Search, RefreshCw } from "lucide-react";
+import { Edit, Trash2, Search, RefreshCw, Download } from "lucide-react";
+import { exportSalesToPDF } from "@/lib/pdfExport";
 import { toast } from "sonner";
 
 interface Sale {
@@ -196,15 +197,25 @@ const Sales = () => {
             Total: {filteredSales.length}
           </span>
         </div>
-        <Button 
-          onClick={fetchSales} 
-          variant="outline" 
-          size="icon"
-          disabled={isLoading}
-          className="hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => exportSalesToPDF(filteredSales)} 
+            variant="outline"
+            disabled={isLoading || filteredSales.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button 
+            onClick={fetchSales} 
+            variant="outline" 
+            size="icon"
+            disabled={isLoading}
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">

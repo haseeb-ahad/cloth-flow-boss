@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download } from "lucide-react";
 import { formatDatePKT, formatDateInputPKT, toPKT } from "@/lib/utils";
+import { exportExpensesToPDF } from "@/lib/pdfExport";
 
 const EXPENSE_TYPES = [
   "Utilities",
@@ -213,10 +214,19 @@ export default function Expenses() {
     <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-3xl font-bold">Expenses</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => exportExpensesToPDF(expenses)} 
+              variant="outline"
+              disabled={expensesLoading || expenses.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
                 Add Expense
               </Button>
             </DialogTrigger>
@@ -277,6 +287,7 @@ export default function Expenses() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Profit Summary Cards */}

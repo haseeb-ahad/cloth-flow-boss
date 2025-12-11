@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Banknote, RefreshCw, Calendar, User } from "lucide-react";
+import { Banknote, RefreshCw, Calendar, User, Download } from "lucide-react";
 import { toast } from "sonner";
+import { exportPaymentsToPDF } from "@/lib/pdfExport";
 import { formatDatePKT, formatDateInputPKT } from "@/lib/utils";
 
 interface Customer {
@@ -293,18 +294,28 @@ const ReceivePayment = () => {
             Record customer payments with auto credit adjustment
           </p>
         </div>
-        <Button
-          onClick={() => {
-            fetchCustomers();
-            fetchRecentPayments();
-          }}
-          variant="outline"
-          size="icon"
-          disabled={isLoading}
-          className="hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => exportPaymentsToPDF(recentPayments)} 
+            variant="outline"
+            disabled={isLoading || recentPayments.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button
+            onClick={() => {
+              fetchCustomers();
+              fetchRecentPayments();
+            }}
+            variant="outline"
+            size="icon"
+            disabled={isLoading}
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
