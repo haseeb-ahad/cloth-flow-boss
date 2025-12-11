@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download } from "lucide-react";
+import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download, Upload } from "lucide-react";
 import { formatDatePKT, formatDateInputPKT, toPKT } from "@/lib/utils";
-import { exportExpensesToPDF } from "@/lib/pdfExport";
+import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
+import { useRef } from "react";
 
 const EXPENSE_TYPES = [
   "Utilities",
@@ -40,8 +41,10 @@ export default function Expenses() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [dateFilter, setDateFilter] = useState("today");
   const [typeFilter, setTypeFilter] = useState("all");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     expense_type: "",
@@ -49,6 +52,40 @@ export default function Expenses() {
     description: "",
     expense_date: formatDateInputPKT(new Date())
   });
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const parsedExpenses = parseExpensesCSV(text);
+      
+      if (parsedExpenses.length === 0) {
+        toast.error("No valid expenses found in CSV");
+        return;
+      }
+
+      let imported = 0;
+      for (const expense of parsedExpenses) {
+        const { error } = await supabase.from("expenses").insert({
+          ...expense,
+          owner_id: ownerId,
+        });
+        if (!error) imported++;
+      }
+
+      toast.success(`Successfully imported ${imported} expenses`);
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["todayExpenses"] });
+    } catch (error) {
+      toast.error("Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Calculate date range based on filter
   const getDateRange = () => {
@@ -215,13 +252,28 @@ export default function Expenses() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-3xl font-bold">Expenses</h1>
           <div className="flex gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".csv"
+              onChange={handleImportCSV}
+              className="hidden"
+            />
             <Button 
-              onClick={() => exportExpensesToPDF(expenses)} 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline"
+              disabled={expensesLoading || isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import CSV"}
+            </Button>
+            <Button 
+              onClick={() => exportExpensesToCSV(expenses)} 
               variant="outline"
               disabled={expensesLoading || expenses.length === 0}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              Export CSV
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
