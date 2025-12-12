@@ -76,10 +76,19 @@ export default function Workers() {
   const loadWorkers = async () => {
     setLoading(true);
     try {
+      // Get current admin's user id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      // Only fetch workers created by THIS admin (admin_id = current user's id)
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "worker");
+        .eq("role", "worker")
+        .eq("admin_id", user.id);
 
       if (rolesError) throw rolesError;
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,13 @@ interface CustomerWithTotals {
 }
 
 const Customers = () => {
+  const { hasPermission, userRole } = useAuth();
+  
+  // Permission checks - customers is primarily view-only, but we still track permissions
+  const canCreate = userRole === "admin" || hasPermission("customers", "create");
+  const canEdit = userRole === "admin" || hasPermission("customers", "edit");
+  const canDelete = userRole === "admin" || hasPermission("customers", "delete");
+  
   const [customers, setCustomers] = useState<CustomerWithTotals[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithTotals[]>([]);
   const [searchTerm, setSearchTerm] = useState("");

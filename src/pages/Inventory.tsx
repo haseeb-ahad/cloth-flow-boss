@@ -27,7 +27,12 @@ interface Product {
 }
 
 const Inventory = () => {
-  const { ownerId } = useAuth();
+  const { ownerId, hasPermission, userRole } = useAuth();
+  
+  // Permission checks
+  const canCreate = userRole === "admin" || hasPermission("inventory", "create");
+  const canEdit = userRole === "admin" || hasPermission("inventory", "edit");
+  const canDelete = userRole === "admin" || hasPermission("inventory", "delete");
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -146,6 +151,16 @@ const Inventory = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // PERMISSION CHECK
+    if (editingProduct && !canEdit) {
+      toast.error("You do not have permission to edit products.");
+      return;
+    }
+    if (!editingProduct && !canCreate) {
+      toast.error("You do not have permission to create products.");
+      return;
+    }
+    
     const confirmMessage = editingProduct 
       ? "Are you sure you want to update this product?" 
       : "Are you sure you want to add this product?";
@@ -195,6 +210,12 @@ const Inventory = () => {
 
   const handleDelete = async () => {
     if (!editingProduct) return;
+    
+    // PERMISSION CHECK
+    if (!canDelete) {
+      toast.error("You do not have permission to delete products.");
+      return;
+    }
     
     if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) {
       return;
@@ -292,14 +313,16 @@ const Inventory = () => {
             onChange={handleImportCSV}
             className="hidden"
           />
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            variant="outline"
-            disabled={isLoading || isImporting}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {isImporting ? "Importing..." : "Import CSV"}
-          </Button>
+          {canCreate && (
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline"
+              disabled={isLoading || isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import CSV"}
+            </Button>
+          )}
           <Button 
             onClick={() => exportInventoryToCSV(filteredProducts)} 
             variant="outline"
@@ -311,18 +334,19 @@ const Inventory = () => {
           <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            if (!open) {
-              resetForm();
-            }
-            setIsDialogOpen(open);
-          }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add product
-              </Button>
-            </DialogTrigger>
+          {canCreate && (
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              if (!open) {
+                resetForm();
+              }
+              setIsDialogOpen(open);
+            }}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add product
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingProduct ? "Edit product" : "Add new product"}</DialogTitle>
@@ -417,17 +441,19 @@ const Inventory = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {editingProduct ? "Updating..." : "Adding..."}
-                    </>
-                  ) : (
-                    editingProduct ? "Update product" : "Add product"
-                  )}
-                </Button>
-                {editingProduct && (
+                {(editingProduct ? canEdit : canCreate) && (
+                  <Button type="submit" className="flex-1" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {editingProduct ? "Updating..." : "Adding..."}
+                      </>
+                    ) : (
+                      editingProduct ? "Update product" : "Add product"
+                    )}
+                  </Button>
+                )}
+                {editingProduct && canDelete && (
                   <Button type="button" onClick={handleDelete} variant="destructive" disabled={isSaving}>
                     {isSaving ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -443,6 +469,7 @@ const Inventory = () => {
             </form>
           </DialogContent>
         </Dialog>
+          )}
         </div>
       </div>
 
@@ -531,9 +558,11 @@ const Inventory = () => {
                 </TableCell>
                 <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
                 <TableCell className="text-center">
-                  <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  {canEdit && (
+                    <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
