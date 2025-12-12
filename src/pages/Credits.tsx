@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, Loader2 } from "lucide-react";
-import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download } from "lucide-react";
+import { exportCreditsToCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { formatDatePKT } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -89,11 +89,9 @@ const Credits = () => {
   const [fullPayment, setFullPayment] = useState(false);
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -101,39 +99,6 @@ const Credits = () => {
     due_date: "",
     notes: "",
   });
-
-  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    try {
-      const text = await file.text();
-      const parsedCredits = parseCreditsCSV(text);
-      
-      if (parsedCredits.length === 0) {
-        toast.error("No valid credits found in CSV");
-        return;
-      }
-
-      let imported = 0;
-      for (const credit of parsedCredits) {
-        const { error } = await supabase.from("credits").insert({
-          ...credit,
-          owner_id: ownerId,
-        });
-        if (!error) imported++;
-      }
-
-      toast.success(`Successfully imported ${imported} credits`);
-      fetchCredits();
-    } catch (error) {
-      toast.error("Failed to import CSV");
-    } finally {
-      setIsImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   useEffect(() => {
     fetchCredits();
@@ -706,25 +671,6 @@ const Credits = () => {
           <p className="text-muted-foreground mt-1 text-base">Track customer loans and payments</p>
         </div>
         <div className="flex gap-3">
-          <input
-            type="file"
-            accept=".csv"
-            ref={fileInputRef}
-            onChange={handleImportCSV}
-            className="hidden"
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            variant="outline"
-            disabled={isLoading || isImporting}
-          >
-            {isImporting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            Import CSV
-          </Button>
           <Button 
             onClick={() => exportCreditsToCSV(filteredCredits)} 
             variant="outline"

@@ -1,15 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, RefreshCw, Users, Download, Upload, Loader2 } from "lucide-react";
+import { Search, RefreshCw, Users, Download } from "lucide-react";
 import { toast } from "sonner";
-import { exportCustomersToCSV, parseCustomersCSV } from "@/lib/csvExport";
+import { exportCustomersToCSV } from "@/lib/csvExport";
 import { format } from "date-fns";
 
 interface CustomerWithTotals {
@@ -22,68 +21,10 @@ interface CustomerWithTotals {
 }
 
 const Customers = () => {
-  const { ownerId } = useAuth();
   const [customers, setCustomers] = useState<CustomerWithTotals[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithTotals[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    try {
-      const text = await file.text();
-      const parsedCustomers = parseCustomersCSV(text);
-      
-      if (parsedCustomers.length === 0) {
-        toast.error("No valid customers found in CSV");
-        return;
-      }
-
-      let imported = 0;
-      for (const customer of parsedCustomers) {
-        // Check if customer already exists
-        const { data: existingCustomer } = await supabase
-          .from("sales")
-          .select("id")
-          .eq("customer_name", customer.customer_name)
-          .limit(1)
-          .maybeSingle();
-
-        if (existingCustomer) {
-          console.log(`Skipping existing customer: ${customer.customer_name}`);
-          continue;
-        }
-
-        // Create a placeholder sale to add the customer
-        const { error } = await supabase.from("sales").insert({
-          invoice_number: `IMP-${Date.now()}-${imported}`,
-          customer_name: customer.customer_name,
-          customer_phone: customer.customer_phone,
-          total_amount: 0,
-          final_amount: 0,
-          paid_amount: 0,
-          payment_method: "cash",
-          payment_status: "paid",
-          status: "completed",
-          owner_id: ownerId,
-        });
-        if (!error) imported++;
-      }
-
-      toast.success(`Successfully imported ${imported} customers`);
-      fetchCustomers();
-    } catch (error) {
-      toast.error("Failed to import CSV");
-    } finally {
-      setIsImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   useEffect(() => {
     fetchCustomers();
@@ -170,25 +111,6 @@ const Customers = () => {
           <p className="text-muted-foreground mt-1 text-base">View all customers with credit summary</p>
         </div>
         <div className="flex gap-2">
-          <input
-            type="file"
-            accept=".csv"
-            ref={fileInputRef}
-            onChange={handleImportCSV}
-            className="hidden"
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            variant="outline"
-            disabled={isLoading || isImporting}
-          >
-            {isImporting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            Import CSV
-          </Button>
           <Button 
             onClick={() => exportCustomersToCSV(filteredCustomers)} 
             variant="outline"
