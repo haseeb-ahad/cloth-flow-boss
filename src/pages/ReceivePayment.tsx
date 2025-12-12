@@ -45,8 +45,8 @@ interface LedgerEntry {
 const ReceivePayment = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   
-  // Permission checks - receive payment is tied to credits feature
-  const canCreate = userRole === "admin" || hasPermission("credits", "create");
+  // Permission checks - receive payment has its own permission
+  const canCreate = userRole === "admin" || hasPermission("receive_payment", "create");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [paymentAmount, setPaymentAmount] = useState<string>("");

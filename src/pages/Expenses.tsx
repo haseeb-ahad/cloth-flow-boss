@@ -40,7 +40,7 @@ const DATE_FILTERS = [
 ];
 
 export default function Expenses() {
-  const { user, ownerId } = useAuth();
+  const { user, ownerId, hasPermission, userRole } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -458,6 +458,13 @@ export default function Expenses() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Permission check for create
+    if (!hasPermission("expenses", "create")) {
+      toast.error("You don't have permission to add expenses");
+      return;
+    }
+    
     if (!formData.expense_type || !formData.amount) {
       toast.error("Please fill in required fields");
       return;
@@ -471,6 +478,12 @@ export default function Expenses() {
   };
 
   const handleDelete = (id: string) => {
+    // Permission check for delete
+    if (!hasPermission("expenses", "delete")) {
+      toast.error("You don't have permission to delete expenses");
+      return;
+    }
+    
     if (confirm("Are you sure you want to delete this expense?")) {
       deleteExpenseMutation.mutate(id);
     }
@@ -488,14 +501,16 @@ export default function Expenses() {
               onChange={handleImportCSV}
               className="hidden"
             />
-            <Button 
-              onClick={() => fileInputRef.current?.click()} 
-              variant="outline"
-              disabled={expensesLoading || isImporting}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? "Importing..." : "Import CSV"}
-            </Button>
+            {hasPermission("expenses", "create") && (
+              <Button 
+                onClick={() => fileInputRef.current?.click()} 
+                variant="outline"
+                disabled={expensesLoading || isImporting}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isImporting ? "Importing..." : "Import CSV"}
+              </Button>
+            )}
             <Button 
               onClick={() => exportExpensesToCSV(expenses)} 
               variant="outline"
@@ -504,13 +519,14 @@ export default function Expenses() {
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
+            {hasPermission("expenses", "create") && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                  Add Expense
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Expense</DialogTitle>
@@ -568,6 +584,7 @@ export default function Expenses() {
               </form>
             </DialogContent>
           </Dialog>
+            )}
           </div>
         </div>
 
@@ -776,14 +793,16 @@ export default function Expenses() {
                         Rs. {Number(expense.amount).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(expense.id)}
-                          disabled={deleteExpenseMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {hasPermission("expenses", "delete") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(expense.id)}
+                            disabled={deleteExpenseMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

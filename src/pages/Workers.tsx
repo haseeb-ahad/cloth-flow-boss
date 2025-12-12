@@ -41,7 +41,17 @@ interface Permission {
   can_delete: boolean;
 }
 
-const FEATURES = ["invoice", "inventory", "sales", "credits", "customers"];
+const FEATURES = ["invoice", "inventory", "sales", "credits", "customers", "expenses", "receive_payment"];
+
+const FEATURE_LABELS: Record<string, string> = {
+  invoice: "Invoice",
+  inventory: "Inventory",
+  sales: "Sales",
+  credits: "Credits",
+  customers: "Customers",
+  expenses: "Expenses",
+  receive_payment: "Receive Payment",
+};
 
 const workerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -477,7 +487,7 @@ export default function Workers() {
               <TableBody>
                 {FEATURES.map((feature) => (
                   <TableRow key={feature}>
-                    <TableCell className="font-medium capitalize">{feature}</TableCell>
+                    <TableCell className="font-medium">{FEATURE_LABELS[feature] || feature}</TableCell>
                     <TableCell className="text-center">
                       <Switch
                         checked={permissions[feature]?.can_view || false}
