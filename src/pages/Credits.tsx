@@ -70,7 +70,12 @@ interface Sale {
 }
 
 const Credits = () => {
-  const { ownerId } = useAuth();
+  const { ownerId, hasPermission, userRole } = useAuth();
+  
+  // Permission checks
+  const canCreate = userRole === "admin" || hasPermission("credits", "create");
+  const canEdit = userRole === "admin" || hasPermission("credits", "edit");
+  const canDelete = userRole === "admin" || hasPermission("credits", "delete");
   const [credits, setCredits] = useState<Credit[]>([]);
   const [filteredCredits, setFilteredCredits] = useState<Credit[]>([]);
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});
@@ -186,6 +191,12 @@ const Credits = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // PERMISSION CHECK
+    if (!canCreate) {
+      toast.error("You do not have permission to create credits.");
+      return;
+    }
 
     const amount = parseFloat(formData.amount);
     const creditData = {
@@ -405,6 +416,12 @@ const Credits = () => {
 
   const handleSaveInvoice = async () => {
     if (!selectedCredit) return;
+    
+    // PERMISSION CHECK
+    if (!canEdit) {
+      toast.error("You do not have permission to edit credits.");
+      return;
+    }
 
     // CRITICAL VALIDATION: Ensure invoice items exist when editing a sale
     if (saleId && invoiceItems.length === 0) {
@@ -601,6 +618,12 @@ const Credits = () => {
 
 
   const handleDelete = async (id: string) => {
+    // PERMISSION CHECK
+    if (!canDelete) {
+      toast.error("You do not have permission to delete credits.");
+      return;
+    }
+    
     if (!confirm("Are you sure you want to delete this credit record? This action cannot be undone.")) {
       return;
     }
@@ -688,13 +711,14 @@ const Credits = () => {
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button disabled={isLoading}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add credit
-              </Button>
-            </DialogTrigger>
+          {canCreate && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                  <Button disabled={isLoading}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add credit
+                </Button>
+              </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <div className="flex items-center justify-between">
@@ -758,6 +782,7 @@ const Credits = () => {
             </form>
           </DialogContent>
         </Dialog>
+          )}
         </div>
       </div>
 

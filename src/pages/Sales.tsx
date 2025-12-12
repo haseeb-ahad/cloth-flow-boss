@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,11 @@ interface SaleWithDetails extends Sale {
 
 const Sales = () => {
   const navigate = useNavigate();
+  const { hasPermission, userRole } = useAuth();
+  
+  // Permission checks
+  const canEdit = userRole === "admin" || hasPermission("sales", "edit");
+  const canDelete = userRole === "admin" || hasPermission("sales", "delete");
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,10 +114,18 @@ const Sales = () => {
   };
 
   const handleEdit = (saleId: string) => {
+    if (!canEdit) {
+      toast.error("You do not have permission to edit sales.");
+      return;
+    }
     navigate(`/invoice?edit=${saleId}`);
   };
 
   const handleDelete = async (id: string) => {
+    if (!canDelete) {
+      toast.error("You do not have permission to delete sales.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this sale?")) return;
 
     try {
@@ -320,9 +334,11 @@ const Sales = () => {
                     {getPaymentMethodBadge(sale.payment_method)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)} disabled={isLoading}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    {canEdit && (
+                      <Button size="icon" variant="outline" onClick={() => handleEdit(sale.id)} disabled={isLoading}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );

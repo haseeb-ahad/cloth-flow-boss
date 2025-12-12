@@ -47,8 +47,13 @@ interface InvoiceItem {
 const Invoice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { ownerId } = useAuth();
+  const { ownerId, hasPermission, userRole } = useAuth();
   const editSaleId = searchParams.get("edit");
+  
+  // Permission checks
+  const canCreate = userRole === "admin" || hasPermission("invoice", "create");
+  const canEdit = userRole === "admin" || hasPermission("invoice", "edit");
+  const canDelete = userRole === "admin" || hasPermission("invoice", "delete");
   
   const [products, setProducts] = useState<Product[]>([]);
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -444,6 +449,18 @@ const Invoice = () => {
 
   const saveInvoice = async () => {
     debugLog("💾 SAVE INITIATED");
+    
+    // PERMISSION CHECK: Block save if user lacks permission
+    if (editSaleId && !canEdit) {
+      toast.error("You do not have permission to edit invoices.");
+      debugLog("⛔ BLOCKED: No edit permission");
+      return;
+    }
+    if (!editSaleId && !canCreate) {
+      toast.error("You do not have permission to create invoices.");
+      debugLog("⛔ BLOCKED: No create permission");
+      return;
+    }
     
     // PREVENT DOUBLE SAVES - Critical protection
     if (saveInProgressRef.current) {
