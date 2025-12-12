@@ -226,3 +226,49 @@ export const exportPaymentsToCSV = (payments: any[]) => {
     data: payments,
   });
 };
+
+// Parse Payments CSV
+export const parsePaymentsCSV = (text: string) => {
+  const { headers, rows } = parseCSV(text);
+  const headerMap: Record<string, number> = {};
+  headers.forEach((h, i) => headerMap[h.toLowerCase().trim()] = i);
+
+  return rows.map(row => ({
+    payment_date: row[headerMap["date"]] || row[headerMap["payment_date"]] || new Date().toISOString().split("T")[0],
+    customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || "",
+    customer_phone: row[headerMap["customer phone"]] || row[headerMap["customer_phone"]] || null,
+    payment_amount: parseFloat(row[headerMap["amount"]] || row[headerMap["payment_amount"]] || "0") || 0,
+    notes: row[headerMap["notes"]] || null,
+  })).filter(p => p.customer_name && p.payment_amount > 0);
+};
+
+// Parse Customers CSV
+export const parseCustomersCSV = (text: string) => {
+  const { headers, rows } = parseCSV(text);
+  const headerMap: Record<string, number> = {};
+  headers.forEach((h, i) => headerMap[h.toLowerCase().trim()] = i);
+
+  return rows.map(row => ({
+    customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || "",
+    customer_phone: row[headerMap["phone"]] || row[headerMap["customer_phone"]] || null,
+  })).filter(c => c.customer_name);
+};
+
+// Parse Sales CSV
+export const parseSalesCSV = (text: string) => {
+  const { headers, rows } = parseCSV(text);
+  const headerMap: Record<string, number> = {};
+  headers.forEach((h, i) => headerMap[h.toLowerCase().trim()] = i);
+
+  return rows.map(row => ({
+    invoice_number: row[headerMap["invoice number"]] || row[headerMap["invoice_number"]] || "",
+    customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || null,
+    customer_phone: row[headerMap["customer phone"]] || row[headerMap["customer_phone"]] || null,
+    total_amount: parseFloat(row[headerMap["total amount"]] || row[headerMap["total_amount"]] || "0") || 0,
+    discount: parseFloat(row[headerMap["discount"]] || "0") || 0,
+    final_amount: parseFloat(row[headerMap["final amount"]] || row[headerMap["final_amount"]] || "0") || 0,
+    paid_amount: parseFloat(row[headerMap["paid amount"]] || row[headerMap["paid_amount"]] || "0") || 0,
+    payment_method: row[headerMap["payment method"]] || row[headerMap["payment_method"]] || "cash",
+    payment_status: row[headerMap["payment status"]] || row[headerMap["payment_status"]] || "pending",
+  })).filter(s => s.invoice_number && s.final_amount > 0);
+};

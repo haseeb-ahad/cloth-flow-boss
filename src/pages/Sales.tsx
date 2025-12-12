@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDatePKT } from "@/lib/utils";
-import { Edit, Trash2, Search, RefreshCw, Download } from "lucide-react";
-import { exportSalesToCSV } from "@/lib/csvExport";
+import { Edit, Trash2, Search, RefreshCw, Download, Upload, Loader2 } from "lucide-react";
+import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
-
 interface Sale {
   id: string;
   invoice_number: string;
@@ -34,11 +34,59 @@ interface SaleWithDetails extends Sale {
 
 const Sales = () => {
   const navigate = useNavigate();
+  const { ownerId } = useAuth();
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const parsedSales = parseSalesCSV(text);
+      
+      if (parsedSales.length === 0) {
+        toast.error("No valid sales found in CSV");
+        return;
+      }
+
+      let imported = 0;
+      for (const sale of parsedSales) {
+        // Check for duplicate invoice number
+        const { data: existingSale } = await supabase
+          .from("sales")
+          .select("id")
+          .eq("invoice_number", sale.invoice_number)
+          .maybeSingle();
+
+        if (existingSale) {
+          console.log(`Skipping duplicate invoice: ${sale.invoice_number}`);
+          continue;
+        }
+
+        const { error } = await supabase.from("sales").insert({
+          ...sale,
+          owner_id: ownerId,
+        });
+        if (!error) imported++;
+      }
+
+      toast.success(`Successfully imported ${imported} sales`);
+      fetchSales();
+    } catch (error) {
+      toast.error("Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchSales();
@@ -198,6 +246,25 @@ const Sales = () => {
           </span>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            accept=".csv"
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+            className="hidden"
+          />
+          <Button 
+            onClick={() => fileInputRef.current?.click()} 
+            variant="outline"
+            disabled={isLoading || isImporting}
+          >
+            {isImporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Import CSV
+          </Button>
           <Button 
             onClick={() => exportSalesToCSV(filteredSales)} 
             variant="outline"
