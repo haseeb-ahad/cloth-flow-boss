@@ -129,7 +129,8 @@ export default function Expenses() {
 
       toast.success(`Successfully imported ${imported} expenses`);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["todayExpenses"] });
+      queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
+      queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
     } catch (error) {
       toast.error("Failed to import CSV");
     } finally {
@@ -422,7 +423,8 @@ export default function Expenses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["todayExpenses"] });
+      queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
+      queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
       toast.success("Expense added successfully");
       setIsDialogOpen(false);
       setFormData({
@@ -445,7 +447,8 @@ export default function Expenses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["todayExpenses"] });
+      queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
+      queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
       toast.success("Expense deleted");
     },
     onError: (error) => {
