@@ -534,19 +534,28 @@ export default function Expenses() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="expense_type">Expense Type *</Label>
-                  <Select
-                    value={formData.expense_type}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, expense_type: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EXPENSE_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={EXPENSE_TYPES.includes(formData.expense_type) ? formData.expense_type : ""}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, expense_type: value }))}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPENSE_TYPES.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="flex items-center text-muted-foreground text-sm">or</span>
+                    <Input
+                      className="flex-1"
+                      value={EXPENSE_TYPES.includes(formData.expense_type) ? "" : formData.expense_type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expense_type: e.target.value }))}
+                      placeholder="Type custom"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount *</Label>
