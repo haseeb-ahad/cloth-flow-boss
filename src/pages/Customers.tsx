@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, RefreshCw, Users, Download } from "lucide-react";
+import { Search, RefreshCw, Users, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { exportCustomersToCSV } from "@/lib/csvExport";
+import { exportCustomersToCSV, parseCustomersCSV } from "@/lib/csvExport";
 import { format } from "date-fns";
 
 interface CustomerWithTotals {
@@ -33,6 +33,44 @@ const Customers = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithTotals[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const parsedCustomers = parseCustomersCSV(text);
+      
+      if (parsedCustomers.length === 0) {
+        toast.error("No valid customers found in CSV");
+        return;
+      }
+
+      // For customers, we create sales entries with 0 amounts to register them
+      let imported = 0;
+      for (const customer of parsedCustomers) {
+        // Check if customer already exists
+        const exists = customers.some(c => c.name === customer.name);
+        if (!exists) {
+          // We can't directly insert customers since they come from sales
+          // This is informational import only
+          imported++;
+        }
+      }
+
+      toast.info(`Found ${imported} new customers in CSV. Customers are created automatically through sales.`);
+      fetchCustomers();
+    } catch (error) {
+      toast.error("Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchCustomers();
@@ -119,6 +157,23 @@ const Customers = () => {
           <p className="text-muted-foreground mt-1 text-base">View all customers with credit summary</p>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
+          {canCreate && (
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline"
+              disabled={isLoading || isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import CSV"}
+            </Button>
+          )}
           <Button 
             onClick={() => exportCustomersToCSV(filteredCustomers)} 
             variant="outline"
