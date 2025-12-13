@@ -929,10 +929,14 @@ const Invoice = () => {
               .eq("id", item.product_id);
           }
         }
-        await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
+        // Soft delete sale items
+        await supabase
+          .from("sale_items")
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("sale_id", editSaleId);
       }
 
-      // Delete associated credit if it exists
+      // Soft delete associated credit if it exists
       const { data: associatedCredit } = await supabase
         .from("credits")
         .select("*")
@@ -941,11 +945,19 @@ const Invoice = () => {
         .maybeSingle();
 
       if (associatedCredit) {
-        await supabase.from("credits").delete().eq("id", associatedCredit.id);
+        await supabase
+          .from("credits")
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", associatedCredit.id);
       }
 
-      await supabase.from("sales").delete().eq("id", editSaleId);
-      toast.success("Sale deleted successfully! Inventory and credits updated.");
+      // Soft delete sale
+      await supabase
+        .from("sales")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", editSaleId);
+        
+      toast.success("Sale deleted successfully! Inventory updated.");
       navigate("/sales");
     } catch (error) {
       toast.error("Failed to delete sale");
