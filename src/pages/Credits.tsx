@@ -106,10 +106,8 @@ const Credits = () => {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("today");
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
+  const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: string }>({});
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -143,7 +141,7 @@ const Credits = () => {
 
   useEffect(() => {
     filterCredits();
-  }, [credits, searchTerm, dateFilter, customStartDate, customEndDate]);
+  }, [credits, searchTerm]);
 
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("name");
@@ -200,37 +198,6 @@ const Credits = () => {
     }
   };
 
-  const getDateRange = () => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    switch (dateFilter) {
-      case "today":
-        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "yesterday":
-        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        return { start: yesterday, end: today };
-      case "1week":
-        return { start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "1month":
-        return { start: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "1year":
-        return { start: new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "all":
-        return { start: new Date(0), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      case "custom":
-        if (customStartDate && customEndDate) {
-          return { 
-            start: new Date(customStartDate), 
-            end: new Date(new Date(customEndDate).getTime() + 24 * 60 * 60 * 1000) 
-          };
-        }
-        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-      default:
-        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
-    }
-  };
-
   const filterCredits = () => {
     let filtered = [...credits];
 
@@ -241,14 +208,28 @@ const Credits = () => {
       );
     }
 
-    // Apply date filter
-    const { start, end } = getDateRange();
-    filtered = filtered.filter(credit => {
-      const creditDate = new Date(credit.created_at);
-      return creditDate >= start && creditDate < end;
-    });
-
     setFilteredCredits(filtered);
+  };
+
+  const getFilteredCustomerPayments = (customerName: string, customerPhone: string | null, customerKey: string) => {
+    const allPayments = getCustomerPayments(customerName, customerPhone);
+    const dateFilter = customerPaymentDateFilters[customerKey];
+    
+    if (!dateFilter) {
+      return allPayments;
+    }
+    
+    return allPayments.filter(payment => {
+      const paymentDate = payment.payment_date.split('T')[0];
+      return paymentDate === dateFilter;
+    });
+  };
+
+  const handleCustomerPaymentDateChange = (customerKey: string, date: string) => {
+    setCustomerPaymentDateFilters(prev => ({
+      ...prev,
+      [customerKey]: date
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -849,7 +830,7 @@ const Credits = () => {
       </div>
 
       <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-4 mb-4">
+        <div className="grid gap-4 md:grid-cols-2 mb-4">
           <div>
             <Label>Search by Name or Phone</Label>
             <div className="relative">
@@ -862,46 +843,9 @@ const Credits = () => {
               />
             </div>
           </div>
-          <div>
-            <Label>Date Filter</Label>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select period" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="1week">1 Week</SelectItem>
-                <SelectItem value="1month">1 Month</SelectItem>
-                <SelectItem value="1year">1 Year</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {dateFilter === "custom" && (
-            <>
-              <div>
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                />
-              </div>
-            </>
-          )}
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setDateFilter("today"); setCustomStartDate(""); setCustomEndDate(""); }} 
+              onClick={() => { setSearchTerm(""); setCustomerPaymentDateFilters({}); }} 
               variant="outline"
               className="w-full"
               disabled={isLoading}
@@ -980,56 +924,84 @@ const Credits = () => {
 
                     {/* Payment History from Receive Payment */}
                     {(() => {
-                      const customerPayments = getCustomerPayments(firstCredit.customer_name, firstCredit.customer_phone);
-                      if (customerPayments.length === 0) return null;
+                      const allCustomerPayments = getCustomerPayments(firstCredit.customer_name, firstCredit.customer_phone);
+                      if (allCustomerPayments.length === 0) return null;
+                      
+                      const filteredPayments = getFilteredCustomerPayments(firstCredit.customer_name, firstCredit.customer_phone, key);
+                      const currentDateFilter = customerPaymentDateFilters[key] || "";
                       
                       return (
                         <div className="mt-4 border-t pt-4">
-                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
-                            Payment History
-                          </h4>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="text-center">Image</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {customerPayments.map((payment) => (
-                                <TableRow key={payment.id}>
-                                  <TableCell className="whitespace-nowrap">
-                                    {formatDatePKT(payment.payment_date)}
-                                  </TableCell>
-                                  <TableCell className="text-right font-medium text-success whitespace-nowrap">
-                                    Rs. {payment.payment_amount.toFixed(2)}
-                                  </TableCell>
-                                  <TableCell className="max-w-[200px]">
-                                    {payment.description || payment.notes || "-"}
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    {payment.image_url ? (
-                                      <button
-                                        onClick={() => setSelectedImage(payment.image_url)}
-                                        className="inline-block"
-                                      >
-                                        <img 
-                                          src={payment.image_url} 
-                                          alt="Payment proof" 
-                                          className="h-10 w-10 object-cover rounded border hover:opacity-80 transition-opacity cursor-pointer mx-auto"
-                                        />
-                                      </button>
-                                    ) : (
-                                      <span className="text-muted-foreground">-</span>
-                                    )}
-                                  </TableCell>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-sm flex items-center gap-2">
+                              <DollarSign className="h-4 w-4" />
+                              Payment History
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="date"
+                                value={currentDateFilter}
+                                onChange={(e) => handleCustomerPaymentDateChange(key, e.target.value)}
+                                className="w-40 h-8 text-sm"
+                                placeholder="Filter by date"
+                              />
+                              {currentDateFilter && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCustomerPaymentDateChange(key, "")}
+                                  className="h-8 px-2"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          {filteredPayments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">No payments found for selected date</p>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead className="text-right">Amount</TableHead>
+                                  <TableHead>Description</TableHead>
+                                  <TableHead className="text-center">Image</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {filteredPayments.map((payment) => (
+                                  <TableRow key={payment.id}>
+                                    <TableCell className="whitespace-nowrap">
+                                      {formatDatePKT(payment.payment_date)}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium text-success whitespace-nowrap">
+                                      Rs. {payment.payment_amount.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell className="max-w-[200px]">
+                                      {payment.description || payment.notes || "-"}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {payment.image_url ? (
+                                        <button
+                                          onClick={() => setSelectedImage(payment.image_url)}
+                                          className="inline-block"
+                                        >
+                                          <img 
+                                            src={payment.image_url} 
+                                            alt="Payment proof" 
+                                            className="h-10 w-10 object-cover rounded border hover:opacity-80 transition-opacity cursor-pointer mx-auto"
+                                          />
+                                        </button>
+                                      ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
                         </div>
                       );
                     })()}
