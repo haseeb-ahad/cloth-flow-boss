@@ -107,7 +107,7 @@ const Credits = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
-  const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: string }>({});
+  const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: { start: string; end: string } }>({});
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -214,22 +214,34 @@ const Credits = () => {
   const getFilteredCustomerPayments = (customerName: string, customerPhone: string | null, customerKey: string) => {
     const allPayments = getCustomerPayments(customerName, customerPhone);
     const dateFilter = customerPaymentDateFilters[customerKey];
+    const today = new Date().toISOString().split('T')[0];
     
-    if (!dateFilter) {
-      return allPayments;
-    }
+    // Default to today if no filter set
+    const startDate = dateFilter?.start || today;
+    const endDate = dateFilter?.end || today;
     
     return allPayments.filter(payment => {
       const paymentDate = payment.payment_date.split('T')[0];
-      return paymentDate === dateFilter;
+      return paymentDate >= startDate && paymentDate <= endDate;
     });
   };
 
-  const handleCustomerPaymentDateChange = (customerKey: string, date: string) => {
+  const handleCustomerPaymentDateChange = (customerKey: string, field: 'start' | 'end', date: string) => {
     setCustomerPaymentDateFilters(prev => ({
       ...prev,
-      [customerKey]: date
+      [customerKey]: {
+        start: field === 'start' ? date : (prev[customerKey]?.start || new Date().toISOString().split('T')[0]),
+        end: field === 'end' ? date : (prev[customerKey]?.end || new Date().toISOString().split('T')[0])
+      }
     }));
+  };
+
+  const clearCustomerPaymentDateFilter = (customerKey: string) => {
+    setCustomerPaymentDateFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[customerKey];
+      return newFilters;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -928,37 +940,48 @@ const Credits = () => {
                       if (allCustomerPayments.length === 0) return null;
                       
                       const filteredPayments = getFilteredCustomerPayments(firstCredit.customer_name, firstCredit.customer_phone, key);
-                      const currentDateFilter = customerPaymentDateFilters[key] || "";
+                      const today = new Date().toISOString().split('T')[0];
+                      const currentStartDate = customerPaymentDateFilters[key]?.start || today;
+                      const currentEndDate = customerPaymentDateFilters[key]?.end || today;
                       
                       return (
                         <div className="mt-4 border-t pt-4">
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
                             <h4 className="font-semibold text-sm flex items-center gap-2">
                               <DollarSign className="h-4 w-4" />
                               Payment History
                             </h4>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="date"
-                                value={currentDateFilter}
-                                onChange={(e) => handleCustomerPaymentDateChange(key, e.target.value)}
-                                className="w-40 h-8 text-sm"
-                                placeholder="Filter by date"
-                              />
-                              {currentDateFilter && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleCustomerPaymentDateChange(key, "")}
-                                  className="h-8 px-2"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <Label className="text-xs">From:</Label>
+                                <Input
+                                  type="date"
+                                  value={currentStartDate}
+                                  onChange={(e) => handleCustomerPaymentDateChange(key, 'start', e.target.value)}
+                                  className="w-36 h-8 text-sm"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Label className="text-xs">To:</Label>
+                                <Input
+                                  type="date"
+                                  value={currentEndDate}
+                                  onChange={(e) => handleCustomerPaymentDateChange(key, 'end', e.target.value)}
+                                  className="w-36 h-8 text-sm"
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => clearCustomerPaymentDateFilter(key)}
+                                className="h-8 px-2"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                           {filteredPayments.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">No payments found for selected date</p>
+                            <p className="text-sm text-muted-foreground text-center py-4">No payments found for selected date range</p>
                           ) : (
                             <Table>
                               <TableHeader>
