@@ -9,9 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Banknote, RefreshCw, Calendar, User, Download, ImagePlus, X } from "lucide-react";
+import { Banknote, RefreshCw, Calendar, User, Download, Upload, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
-import { exportPaymentsToCSV } from "@/lib/csvExport";
+import { exportPaymentsToCSV, parsePaymentsCSV } from "@/lib/csvExport";
 import { formatDatePKT, formatDateInputPKT } from "@/lib/utils";
 
 interface Customer {
@@ -59,9 +59,45 @@ const ReceivePayment = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [unpaidInvoices, setUnpaidInvoices] = useState<UnpaidInvoice[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const [recentPayments, setRecentPayments] = useState<LedgerEntry[]>([]);
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const parsedPayments = parsePaymentsCSV(text);
+      
+      if (parsedPayments.length === 0) {
+        toast.error("No valid payments found in CSV");
+        return;
+      }
+
+      let imported = 0;
+      for (const payment of parsedPayments) {
+        const { error } = await supabase.from("payment_ledger").insert({
+          ...payment,
+          details: [],
+          owner_id: ownerId,
+        });
+        if (!error) imported++;
+      }
+
+      toast.success(`Successfully imported ${imported} payments`);
+      fetchRecentPayments();
+    } catch (error) {
+      toast.error("Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchCustomers();
@@ -371,6 +407,23 @@ const ReceivePayment = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            ref={csvInputRef}
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
+          {canCreate && (
+            <Button 
+              onClick={() => csvInputRef.current?.click()} 
+              variant="outline"
+              disabled={isLoading || isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import CSV"}
+            </Button>
+          )}
           <Button 
             onClick={() => exportPaymentsToCSV(recentPayments)} 
             variant="outline"

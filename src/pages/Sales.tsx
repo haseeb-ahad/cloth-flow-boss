@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDatePKT } from "@/lib/utils";
-import { Edit, Trash2, Search, RefreshCw, Download } from "lucide-react";
-import { exportSalesToCSV } from "@/lib/csvExport";
+import { Edit, Trash2, Search, RefreshCw, Download, Upload } from "lucide-react";
+import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
 
 interface Sale {
@@ -35,9 +35,10 @@ interface SaleWithDetails extends Sale {
 
 const Sales = () => {
   const navigate = useNavigate();
-  const { hasPermission, userRole } = useAuth();
+  const { ownerId, hasPermission, userRole } = useAuth();
   
   // Permission checks
+  const canCreate = userRole === "admin" || hasPermission("sales", "create");
   const canEdit = userRole === "admin" || hasPermission("sales", "edit");
   const canDelete = userRole === "admin" || hasPermission("sales", "delete");
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
@@ -45,6 +46,41 @@ const Sales = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const parsedSales = parseSalesCSV(text);
+      
+      if (parsedSales.length === 0) {
+        toast.error("No valid sales found in CSV");
+        return;
+      }
+
+      let imported = 0;
+      for (const sale of parsedSales) {
+        const { error } = await supabase.from("sales").insert({
+          ...sale,
+          owner_id: ownerId,
+        });
+        if (!error) imported++;
+      }
+
+      toast.success(`Successfully imported ${imported} sales`);
+      fetchSales();
+    } catch (error) {
+      toast.error("Failed to import CSV");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchSales();
@@ -212,6 +248,23 @@ const Sales = () => {
           </span>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
+          {canCreate && (
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline"
+              disabled={isLoading || isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import CSV"}
+            </Button>
+          )}
           <Button 
             onClick={() => exportSalesToCSV(filteredSales)} 
             variant="outline"
