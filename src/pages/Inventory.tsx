@@ -298,7 +298,7 @@ const Inventory = () => {
       // Soft delete - set deleted_at timestamp
       const { error } = await supabase
         .from("products")
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", editingProduct.id);
       
       if (error) {

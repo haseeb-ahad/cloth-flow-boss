@@ -453,7 +453,7 @@ export default function Expenses() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("expenses")
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
