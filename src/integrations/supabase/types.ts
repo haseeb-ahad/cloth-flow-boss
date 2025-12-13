@@ -47,7 +47,6 @@ export type Database = {
           customer_phone: string | null
           deleted_at: string | null
           id: string
-          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           transaction_date: string
@@ -60,7 +59,6 @@ export type Database = {
           customer_phone?: string | null
           deleted_at?: string | null
           id?: string
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           transaction_date?: string
@@ -73,7 +71,6 @@ export type Database = {
           customer_phone?: string | null
           deleted_at?: string | null
           id?: string
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           transaction_date?: string
@@ -97,7 +94,6 @@ export type Database = {
           deleted_at: string | null
           due_date: string | null
           id: string
-          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           paid_amount: number | null
@@ -114,7 +110,6 @@ export type Database = {
           deleted_at?: string | null
           due_date?: string | null
           id?: string
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           paid_amount?: number | null
@@ -131,7 +126,6 @@ export type Database = {
           deleted_at?: string | null
           due_date?: string | null
           id?: string
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           paid_amount?: number | null
@@ -159,7 +153,6 @@ export type Database = {
           expense_date: string
           expense_type: string
           id: string
-          is_deleted: boolean | null
           owner_id: string
           updated_at: string
         }
@@ -171,7 +164,6 @@ export type Database = {
           expense_date?: string
           expense_type: string
           id?: string
-          is_deleted?: boolean | null
           owner_id: string
           updated_at?: string
         }
@@ -183,7 +175,6 @@ export type Database = {
           expense_date?: string
           expense_type?: string
           id?: string
-          is_deleted?: boolean | null
           owner_id?: string
           updated_at?: string
         }
@@ -196,7 +187,6 @@ export type Database = {
           deleted_at: string | null
           id: string
           installment_id: string
-          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           payment_date: string
@@ -207,7 +197,6 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           installment_id: string
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_date?: string
@@ -218,7 +207,6 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           installment_id?: string
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_date?: string
@@ -242,7 +230,6 @@ export type Database = {
           frequency: string
           id: string
           installment_amount: number
-          is_deleted: boolean | null
           next_due_date: string | null
           notes: string | null
           owner_id: string | null
@@ -260,7 +247,6 @@ export type Database = {
           frequency?: string
           id?: string
           installment_amount: number
-          is_deleted?: boolean | null
           next_due_date?: string | null
           notes?: string | null
           owner_id?: string | null
@@ -278,7 +264,6 @@ export type Database = {
           frequency?: string
           id?: string
           installment_amount?: number
-          is_deleted?: boolean | null
           next_due_date?: string | null
           notes?: string | null
           owner_id?: string | null
@@ -300,7 +285,6 @@ export type Database = {
           details: Json
           id: string
           image_url: string | null
-          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           payment_amount: number
@@ -315,7 +299,6 @@ export type Database = {
           details?: Json
           id?: string
           image_url?: string | null
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_amount: number
@@ -330,7 +313,6 @@ export type Database = {
           details?: Json
           id?: string
           image_url?: string | null
-          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_amount?: number
@@ -345,7 +327,6 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           id: string
-          is_deleted: boolean | null
           name: string
           owner_id: string | null
           purchase_price: number
@@ -360,7 +341,6 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           id?: string
-          is_deleted?: boolean | null
           name: string
           owner_id?: string | null
           purchase_price: number
@@ -375,7 +355,6 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           id?: string
-          is_deleted?: boolean | null
           name?: string
           owner_id?: string | null
           purchase_price?: number
@@ -424,7 +403,6 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           id: string
-          is_deleted: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -438,7 +416,6 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           id?: string
-          is_deleted?: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -452,7 +429,6 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           id?: string
-          is_deleted?: boolean | null
           product_id?: string
           product_name?: string
           profit?: number
@@ -489,7 +465,6 @@ export type Database = {
           final_amount: number
           id: string
           invoice_number: string
-          is_deleted: boolean | null
           owner_id: string | null
           paid_amount: number | null
           payment_method: string | null
@@ -506,7 +481,6 @@ export type Database = {
           final_amount: number
           id?: string
           invoice_number: string
-          is_deleted?: boolean | null
           owner_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
@@ -523,7 +497,6 @@ export type Database = {
           final_amount?: number
           id?: string
           invoice_number?: string
-          is_deleted?: boolean | null
           owner_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null

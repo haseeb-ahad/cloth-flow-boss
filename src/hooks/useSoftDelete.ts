@@ -35,10 +35,7 @@ export const useSoftDelete = () => {
     try {
       const { error } = await (supabase
         .from(table) as any)
-        .update({ 
-          is_deleted: true,
-          deleted_at: new Date().toISOString() 
-        })
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
@@ -69,10 +66,7 @@ export const useSoftDelete = () => {
     try {
       const { error } = await (supabase
         .from(table) as any)
-        .update({ 
-          is_deleted: true,
-          deleted_at: new Date().toISOString() 
-        })
+        .update({ deleted_at: new Date().toISOString() })
         .in("id", ids);
 
       if (error) throw error;
@@ -104,10 +98,7 @@ export const useSoftDelete = () => {
     try {
       const { error } = await (supabase
         .from(table) as any)
-        .update({ 
-          is_deleted: true,
-          deleted_at: new Date().toISOString() 
-        })
+        .update({ deleted_at: new Date().toISOString() })
         .eq(field, value);
 
       if (error) throw error;
