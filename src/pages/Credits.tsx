@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, FileText, ImageIcon } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, FileText, ImageIcon, Calendar } from "lucide-react";
 import { exportCreditsToCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { formatDatePKT } from "@/lib/utils";
@@ -106,7 +106,9 @@ const Credits = () => {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("today");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -141,7 +143,7 @@ const Credits = () => {
 
   useEffect(() => {
     filterCredits();
-  }, [credits, searchTerm, dateFilter]);
+  }, [credits, searchTerm, dateFilter, customStartDate, customEndDate]);
 
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("name");
@@ -198,6 +200,37 @@ const Credits = () => {
     }
   };
 
+  const getDateRange = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (dateFilter) {
+      case "today":
+        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case "yesterday":
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        return { start: yesterday, end: today };
+      case "1week":
+        return { start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case "1month":
+        return { start: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case "1year":
+        return { start: new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case "all":
+        return { start: new Date(0), end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case "custom":
+        if (customStartDate && customEndDate) {
+          return { 
+            start: new Date(customStartDate), 
+            end: new Date(new Date(customEndDate).getTime() + 24 * 60 * 60 * 1000) 
+          };
+        }
+        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      default:
+        return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+    }
+  };
+
   const filterCredits = () => {
     let filtered = [...credits];
 
@@ -208,12 +241,12 @@ const Credits = () => {
       );
     }
 
-    if (dateFilter) {
-      filtered = filtered.filter(credit => 
-        credit.created_at?.startsWith(dateFilter) ||
-        credit.due_date?.startsWith(dateFilter)
-      );
-    }
+    // Apply date filter
+    const { start, end } = getDateRange();
+    filtered = filtered.filter(credit => {
+      const creditDate = new Date(credit.created_at);
+      return creditDate >= start && creditDate < end;
+    });
 
     setFilteredCredits(filtered);
   };
@@ -816,7 +849,7 @@ const Credits = () => {
       </div>
 
       <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-3 mb-4">
+        <div className="grid gap-4 md:grid-cols-4 mb-4">
           <div>
             <Label>Search by Name or Phone</Label>
             <div className="relative">
@@ -830,21 +863,50 @@ const Credits = () => {
             </div>
           </div>
           <div>
-            <Label>Filter by Date</Label>
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
+            <Label>Date Filter</Label>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="1week">1 Week</SelectItem>
+                <SelectItem value="1month">1 Month</SelectItem>
+                <SelectItem value="1year">1 Year</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          {dateFilter === "custom" && (
+            <>
+              <div>
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                />
+              </div>
+            </>
+          )}
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
+              onClick={() => { setSearchTerm(""); setDateFilter("today"); setCustomStartDate(""); setCustomEndDate(""); }} 
               variant="outline"
               className="w-full"
               disabled={isLoading}
             >
-              Clear Filters
+              Reset
             </Button>
           </div>
         </div>
@@ -927,41 +989,47 @@ const Credits = () => {
                             <DollarSign className="h-4 w-4" />
                             Payment History
                           </h4>
-                          <div className="space-y-3">
-                            {customerPayments.map((payment) => (
-                              <div key={payment.id} className="bg-background/50 rounded-lg p-3 border">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-1">
-                                      <span className="font-medium text-success">Rs. {payment.payment_amount.toFixed(2)}</span>
-                                      <span className="text-sm text-muted-foreground">{formatDatePKT(payment.payment_date)}</span>
-                                    </div>
-                                    {payment.description && (
-                                      <div className="flex items-start gap-2 text-sm text-muted-foreground mt-1">
-                                        <FileText className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                                        <span>{payment.description}</span>
-                                      </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="text-center">Image</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {customerPayments.map((payment) => (
+                                <TableRow key={payment.id}>
+                                  <TableCell className="whitespace-nowrap">
+                                    {formatDatePKT(payment.payment_date)}
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium text-success whitespace-nowrap">
+                                    Rs. {payment.payment_amount.toFixed(2)}
+                                  </TableCell>
+                                  <TableCell className="max-w-[200px]">
+                                    {payment.description || payment.notes || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {payment.image_url ? (
+                                      <button
+                                        onClick={() => setSelectedImage(payment.image_url)}
+                                        className="inline-block"
+                                      >
+                                        <img 
+                                          src={payment.image_url} 
+                                          alt="Payment proof" 
+                                          className="h-10 w-10 object-cover rounded border hover:opacity-80 transition-opacity cursor-pointer mx-auto"
+                                        />
+                                      </button>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
                                     )}
-                                    {payment.notes && !payment.description && (
-                                      <p className="text-sm text-muted-foreground mt-1">{payment.notes}</p>
-                                    )}
-                                  </div>
-                                  {payment.image_url && (
-                                    <button
-                                      onClick={() => setSelectedImage(payment.image_url)}
-                                      className="ml-3 flex-shrink-0"
-                                    >
-                                      <img 
-                                        src={payment.image_url} 
-                                        alt="Payment proof" 
-                                        className="h-12 w-12 object-cover rounded border hover:opacity-80 transition-opacity cursor-pointer"
-                                      />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       );
                     })()}
