@@ -17,18 +17,6 @@ import { formatDatePKT, formatDateInputPKT, toPKT, cn } from "@/lib/utils";
 import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
 import { format } from "date-fns";
 
-const EXPENSE_TYPES = [
-  "Utilities",
-  "Rent",
-  "Salary",
-  "Transportation",
-  "Supplies",
-  "Maintenance",
-  "Marketing",
-  "Food",
-  "Other"
-];
-
 const DATE_FILTERS = [
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
@@ -69,6 +57,7 @@ export default function Expenses() {
           queryClient.invalidateQueries({ queryKey: ["expenses"] });
           queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
           queryClient.invalidateQueries({ queryKey: ["yesterdayExpenses"] });
+          queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
         }
       )
       .subscribe();
@@ -274,6 +263,25 @@ export default function Expenses() {
       default: return "";
     }
   };
+
+  // Fetch all unique expense types for filter dropdown
+  const { data: allExpenseTypes = [] } = useQuery({
+    queryKey: ["allExpenseTypes", ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("expense_type")
+        .order("expense_type");
+      
+      if (error) throw error;
+      const types = new Set<string>();
+      data?.forEach(exp => {
+        if (exp.expense_type) types.add(exp.expense_type);
+      });
+      return Array.from(types).sort();
+    },
+    enabled: !!ownerId
+  });
 
   // Fetch expenses
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
@@ -534,28 +542,12 @@ export default function Expenses() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="expense_type">Expense Type *</Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={EXPENSE_TYPES.includes(formData.expense_type) ? formData.expense_type : ""}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, expense_type: value }))}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPENSE_TYPES.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="flex items-center text-muted-foreground text-sm">or</span>
-                    <Input
-                      className="flex-1"
-                      value={EXPENSE_TYPES.includes(formData.expense_type) ? "" : formData.expense_type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expense_type: e.target.value }))}
-                      placeholder="Type custom"
-                    />
-                  </div>
+                  <Input
+                    id="expense_type"
+                    value={formData.expense_type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, expense_type: e.target.value }))}
+                    placeholder="Enter expense type"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount *</Label>
@@ -750,7 +742,7 @@ export default function Expenses() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    {EXPENSE_TYPES.map(type => (
+                    {allExpenseTypes.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
                   </SelectContent>
