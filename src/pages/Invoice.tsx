@@ -932,7 +932,7 @@ const Invoice = () => {
         // Soft delete sale items
         await supabase
           .from("sale_items")
-          .update({ deleted_at: new Date().toISOString() })
+          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
           .eq("sale_id", editSaleId);
       }
 
@@ -947,14 +947,14 @@ const Invoice = () => {
       if (associatedCredit) {
         await supabase
           .from("credits")
-          .update({ deleted_at: new Date().toISOString() })
+          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
           .eq("id", associatedCredit.id);
       }
 
       // Soft delete sale
       await supabase
         .from("sales")
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
         .eq("id", editSaleId);
         
       toast.success("Sale deleted successfully! Inventory updated.");

@@ -722,7 +722,7 @@ const Credits = () => {
       // Soft delete - set deleted_at timestamp
       await supabase
         .from("credits")
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
         .eq("id", id);
       toast.success("Credit deleted successfully!");
       fetchCredits();
