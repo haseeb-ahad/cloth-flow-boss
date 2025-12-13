@@ -433,6 +433,7 @@ export default function Expenses() {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
       queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
       toast.success("Expense added successfully");
       setIsDialogOpen(false);
       setFormData({
