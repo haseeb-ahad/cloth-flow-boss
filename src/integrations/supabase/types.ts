@@ -265,8 +265,10 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_phone: string | null
+          description: string | null
           details: Json
           id: string
+          image_url: string | null
           notes: string | null
           owner_id: string | null
           payment_amount: number
@@ -276,8 +278,10 @@ export type Database = {
           created_at?: string
           customer_name: string
           customer_phone?: string | null
+          description?: string | null
           details?: Json
           id?: string
+          image_url?: string | null
           notes?: string | null
           owner_id?: string | null
           payment_amount: number
@@ -287,8 +291,10 @@ export type Database = {
           created_at?: string
           customer_name?: string
           customer_phone?: string | null
+          description?: string | null
           details?: Json
           id?: string
+          image_url?: string | null
           notes?: string | null
           owner_id?: string | null
           payment_amount?: number
