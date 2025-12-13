@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Banknote, RefreshCw, Calendar, User, Download } from "lucide-react";
+import { Banknote, RefreshCw, Calendar, User, Download, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { exportPaymentsToCSV } from "@/lib/csvExport";
 import { formatDatePKT, formatDateInputPKT } from "@/lib/utils";
@@ -40,6 +41,8 @@ interface LedgerEntry {
   payment_date: string;
   details: PaymentDetail[];
   created_at: string;
+  description?: string;
+  image_url?: string;
 }
 
 const ReceivePayment = () => {
@@ -51,9 +54,13 @@ const ReceivePayment = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>(formatDateInputPKT(new Date()));
+  const [description, setDescription] = useState<string>("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [unpaidInvoices, setUnpaidInvoices] = useState<UnpaidInvoice[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [recentPayments, setRecentPayments] = useState<LedgerEntry[]>([]);
 
   useEffect(() => {
@@ -138,12 +145,58 @@ const ReceivePayment = () => {
           payment_date: entry.payment_date,
           details: (entry.details as PaymentDetail[]) || [],
           created_at: entry.created_at,
+          description: entry.description,
+          image_url: entry.image_url,
         }));
         setRecentPayments(payments);
       }
     } catch (error) {
       console.error("Failed to fetch recent payments:", error);
     }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${ownerId}/${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from("payment-images")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from("payment-images")
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
   };
 
   const handleSubmitPayment = async () => {
@@ -258,6 +311,12 @@ const ReceivePayment = () => {
         remainingPayment -= adjustedAmount;
       }
 
+      // Upload image if selected
+      let imageUrl: string | null = null;
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+      }
+
       // Save payment ledger entry
       const customer = customers.find((c) => c.name === selectedCustomer);
       // Using any cast because payment_ledger table types are not yet generated
@@ -268,6 +327,8 @@ const ReceivePayment = () => {
         payment_date: paymentDate,
         details: paymentDetails,
         owner_id: ownerId,
+        description: description || null,
+        image_url: imageUrl,
       });
 
       if (ledgerError) throw ledgerError;
@@ -277,6 +338,12 @@ const ReceivePayment = () => {
       // Reset form
       setPaymentAmount("");
       setSelectedCustomer("");
+      setDescription("");
+      setSelectedImage(null);
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setUnpaidInvoices([]);
       fetchRecentPayments();
     } catch (error) {
@@ -390,6 +457,61 @@ const ReceivePayment = () => {
                 </div>
               </div>
 
+              {/* Description */}
+              <div>
+                <Label>Description (Optional)</Label>
+                <Textarea
+                  placeholder="Enter reason or notes for this payment..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isSubmitting}
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <Label>Attachment (Optional)</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  disabled={isSubmitting}
+                />
+                {imagePreview ? (
+                  <div className="relative mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Payment attachment"
+                      className="w-full max-h-40 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={removeImage}
+                      disabled={isSubmitting}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSubmitting}
+                  >
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    Upload Image
+                  </Button>
+                )}
+              </div>
+
               <Button
                 onClick={handleSubmitPayment}
                 className="w-full"
@@ -476,6 +598,21 @@ const ReceivePayment = () => {
                         Rs. {payment.payment_amount.toFixed(2)}
                       </Badge>
                     </div>
+                    {payment.description && (
+                      <p className="text-sm text-muted-foreground mt-2 italic">
+                        "{payment.description}"
+                      </p>
+                    )}
+                    {payment.image_url && (
+                      <div className="mt-2">
+                        <img
+                          src={payment.image_url}
+                          alt="Payment attachment"
+                          className="w-full max-h-32 object-cover rounded-lg border cursor-pointer"
+                          onClick={() => window.open(payment.image_url, "_blank")}
+                        />
+                      </div>
+                    )}
                     {payment.details && payment.details.length > 0 && (
                       <div className="text-xs text-muted-foreground space-y-1 mt-2 pt-2 border-t">
                         {payment.details.map((detail, idx) => (
