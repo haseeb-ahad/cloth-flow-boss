@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, FileText, ImageIcon } from "lucide-react";
 import { exportCreditsToCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { formatDatePKT } from "@/lib/utils";
@@ -69,6 +69,17 @@ interface Sale {
   payment_status?: string;
 }
 
+interface PaymentRecord {
+  id: string;
+  customer_name: string;
+  customer_phone: string | null;
+  payment_amount: number;
+  payment_date: string;
+  description: string | null;
+  image_url: string | null;
+  notes: string | null;
+}
+
 const Credits = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   
@@ -97,6 +108,8 @@ const Credits = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
+  const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -108,7 +121,23 @@ const Credits = () => {
   useEffect(() => {
     fetchCredits();
     fetchProducts();
+    fetchPaymentRecords();
   }, []);
+
+  const fetchPaymentRecords = async () => {
+    const { data } = await supabase
+      .from("payment_ledger")
+      .select("id, customer_name, customer_phone, payment_amount, payment_date, description, image_url, notes")
+      .order("payment_date", { ascending: false });
+    if (data) setPaymentRecords(data);
+  };
+
+  const getCustomerPayments = (customerName: string, customerPhone: string | null) => {
+    return paymentRecords.filter(p => 
+      p.customer_name === customerName && 
+      (p.customer_phone === customerPhone || (!p.customer_phone && !customerPhone))
+    );
+  };
 
   useEffect(() => {
     filterCredits();
@@ -855,7 +884,7 @@ const Credits = () => {
                       </div>
                     </div>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-4">
+                  <CollapsibleContent className="mt-4 space-y-4">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -886,6 +915,56 @@ const Credits = () => {
                         ))}
                       </TableBody>
                     </Table>
+
+                    {/* Payment History from Receive Payment */}
+                    {(() => {
+                      const customerPayments = getCustomerPayments(firstCredit.customer_name, firstCredit.customer_phone);
+                      if (customerPayments.length === 0) return null;
+                      
+                      return (
+                        <div className="mt-4 border-t pt-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Payment History
+                          </h4>
+                          <div className="space-y-3">
+                            {customerPayments.map((payment) => (
+                              <div key={payment.id} className="bg-background/50 rounded-lg p-3 border">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <span className="font-medium text-success">Rs. {payment.payment_amount.toFixed(2)}</span>
+                                      <span className="text-sm text-muted-foreground">{formatDatePKT(payment.payment_date)}</span>
+                                    </div>
+                                    {payment.description && (
+                                      <div className="flex items-start gap-2 text-sm text-muted-foreground mt-1">
+                                        <FileText className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                                        <span>{payment.description}</span>
+                                      </div>
+                                    )}
+                                    {payment.notes && !payment.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{payment.notes}</p>
+                                    )}
+                                  </div>
+                                  {payment.image_url && (
+                                    <button
+                                      onClick={() => setSelectedImage(payment.image_url)}
+                                      className="ml-3 flex-shrink-0"
+                                    >
+                                      <img 
+                                        src={payment.image_url} 
+                                        alt="Payment proof" 
+                                        className="h-12 w-12 object-cover rounded border hover:opacity-80 transition-opacity cursor-pointer"
+                                      />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </CollapsibleContent>
                 </Card>
               </Collapsible>
@@ -1140,6 +1219,22 @@ const Credits = () => {
                 Save invoice & update credit
               </Button>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Payment Proof</DialogTitle>
+          </DialogHeader>
+          {selectedImage && (
+            <img 
+              src={selectedImage} 
+              alt="Payment proof" 
+              className="w-full h-auto rounded-lg"
+            />
           )}
         </DialogContent>
       </Dialog>
