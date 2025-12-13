@@ -112,43 +112,134 @@ export const parseInventoryCSV = (text: string) => {
   })).filter(p => p.name);
 };
 
-// Sales Export
-export const exportSalesToCSV = (sales: any[]) => {
+// Sales Export with items
+export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: string) => Promise<any[]>) => {
+  // Flatten sales with their items - each row is one item
+  const rows: any[] = [];
+  
+  for (const sale of sales) {
+    const items = await fetchSaleItems(sale.id);
+    
+    if (items.length === 0) {
+      // Sale with no items - export header only
+      rows.push({
+        invoice_number: sale.invoice_number,
+        created_at: sale.created_at,
+        customer_name: sale.customer_name || "",
+        customer_phone: sale.customer_phone || "",
+        total_amount: sale.total_amount,
+        discount: sale.discount || 0,
+        final_amount: sale.final_amount,
+        paid_amount: sale.paid_amount || 0,
+        payment_method: sale.payment_method || "cash",
+        payment_status: sale.payment_status || "pending",
+        // Item fields empty
+        product_name: "",
+        product_id: "",
+        quantity: "",
+        unit_price: "",
+        purchase_price: "",
+        total_price: "",
+        profit: "",
+      });
+    } else {
+      // Export each item as a separate row
+      for (const item of items) {
+        rows.push({
+          invoice_number: sale.invoice_number,
+          created_at: sale.created_at,
+          customer_name: sale.customer_name || "",
+          customer_phone: sale.customer_phone || "",
+          total_amount: sale.total_amount,
+          discount: sale.discount || 0,
+          final_amount: sale.final_amount,
+          paid_amount: sale.paid_amount || 0,
+          payment_method: sale.payment_method || "cash",
+          payment_status: sale.payment_status || "pending",
+          // Item fields
+          product_name: item.product_name,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          purchase_price: item.purchase_price,
+          total_price: item.total_price,
+          profit: item.profit,
+        });
+      }
+    }
+  }
+  
   exportToCSV({
     filename: `sales_${formatDatePKT(new Date()).replace(/\//g, "-")}`,
     columns: [
       { header: "Invoice Number", key: "invoice_number" },
       { header: "Date", key: "created_at", format: (v) => formatDatePKT(v, "datetime") },
-      { header: "Customer Name", key: "customer_name", format: (v) => v || "Walk-in" },
-      { header: "Customer Phone", key: "customer_phone", format: (v) => v || "" },
+      { header: "Customer Name", key: "customer_name" },
+      { header: "Customer Phone", key: "customer_phone" },
       { header: "Total Amount", key: "total_amount" },
-      { header: "Discount", key: "discount", format: (v) => v || "0" },
+      { header: "Discount", key: "discount" },
       { header: "Final Amount", key: "final_amount" },
-      { header: "Paid Amount", key: "paid_amount", format: (v) => v || "0" },
-      { header: "Payment Method", key: "payment_method", format: (v) => v || "cash" },
-      { header: "Payment Status", key: "payment_status", format: (v) => v || "pending" },
+      { header: "Paid Amount", key: "paid_amount" },
+      { header: "Payment Method", key: "payment_method" },
+      { header: "Payment Status", key: "payment_status" },
+      { header: "Product Name", key: "product_name" },
+      { header: "Product ID", key: "product_id" },
+      { header: "Quantity", key: "quantity" },
+      { header: "Unit Price", key: "unit_price" },
+      { header: "Purchase Price", key: "purchase_price" },
+      { header: "Total Price", key: "total_price" },
+      { header: "Profit", key: "profit" },
     ],
-    data: sales,
+    data: rows,
   });
 };
 
-// Parse Sales CSV
+// Parse Sales CSV with items
 export const parseSalesCSV = (text: string) => {
   const { headers, rows } = parseCSV(text);
   const headerMap: Record<string, number> = {};
   headers.forEach((h, i) => headerMap[h.toLowerCase().trim()] = i);
 
-  return rows.map(row => ({
-    invoice_number: row[headerMap["invoice number"]] || row[headerMap["invoice_number"]] || `INV-${Date.now()}`,
-    customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || null,
-    customer_phone: row[headerMap["customer phone"]] || row[headerMap["customer_phone"]] || null,
-    total_amount: parseFloat(row[headerMap["total amount"]] || row[headerMap["total_amount"]] || "0") || 0,
-    discount: parseFloat(row[headerMap["discount"]] || "0") || 0,
-    final_amount: parseFloat(row[headerMap["final amount"]] || row[headerMap["final_amount"]] || "0") || 0,
-    paid_amount: parseFloat(row[headerMap["paid amount"]] || row[headerMap["paid_amount"]] || "0") || 0,
-    payment_method: row[headerMap["payment method"]] || row[headerMap["payment_method"]] || "cash",
-    payment_status: row[headerMap["payment status"]] || row[headerMap["payment_status"]] || "pending",
-  })).filter(s => s.final_amount > 0);
+  // Group by invoice_number
+  const salesMap = new Map<string, { sale: any; items: any[] }>();
+
+  for (const row of rows) {
+    const invoiceNumber = row[headerMap["invoice number"]] || row[headerMap["invoice_number"]] || "";
+    if (!invoiceNumber) continue;
+
+    if (!salesMap.has(invoiceNumber)) {
+      salesMap.set(invoiceNumber, {
+        sale: {
+          invoice_number: invoiceNumber,
+          customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || null,
+          customer_phone: row[headerMap["customer phone"]] || row[headerMap["customer_phone"]] || null,
+          total_amount: parseFloat(row[headerMap["total amount"]] || row[headerMap["total_amount"]] || "0") || 0,
+          discount: parseFloat(row[headerMap["discount"]] || "0") || 0,
+          final_amount: parseFloat(row[headerMap["final amount"]] || row[headerMap["final_amount"]] || "0") || 0,
+          paid_amount: parseFloat(row[headerMap["paid amount"]] || row[headerMap["paid_amount"]] || "0") || 0,
+          payment_method: row[headerMap["payment method"]] || row[headerMap["payment_method"]] || "cash",
+          payment_status: row[headerMap["payment status"]] || row[headerMap["payment_status"]] || "pending",
+        },
+        items: [],
+      });
+    }
+
+    // Add item if product_name exists
+    const productName = row[headerMap["product name"]] || row[headerMap["product_name"]] || "";
+    if (productName) {
+      salesMap.get(invoiceNumber)!.items.push({
+        product_name: productName,
+        product_id: row[headerMap["product id"]] || row[headerMap["product_id"]] || "",
+        quantity: parseFloat(row[headerMap["quantity"]] || "1") || 1,
+        unit_price: parseFloat(row[headerMap["unit price"]] || row[headerMap["unit_price"]] || "0") || 0,
+        purchase_price: parseFloat(row[headerMap["purchase price"]] || row[headerMap["purchase_price"]] || "0") || 0,
+        total_price: parseFloat(row[headerMap["total price"]] || row[headerMap["total_price"]] || "0") || 0,
+        profit: parseFloat(row[headerMap["profit"]] || "0") || 0,
+      });
+    }
+  }
+
+  return Array.from(salesMap.values()).filter(s => s.sale.final_amount > 0);
 };
 
 // Credits Export
