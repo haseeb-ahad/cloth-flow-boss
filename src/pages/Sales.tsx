@@ -49,6 +49,26 @@ const Sales = () => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchSaleItems = async (saleId: string) => {
+    const { data } = await supabase
+      .from("sale_items")
+      .select("*")
+      .eq("sale_id", saleId);
+    return data || [];
+  };
+
+  const handleExportCSV = async () => {
+    setIsLoading(true);
+    try {
+      await exportSalesToCSV(filteredSales, fetchSaleItems);
+      toast.success("CSV exported successfully");
+    } catch (error) {
+      toast.error("Failed to export CSV");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -64,15 +84,38 @@ const Sales = () => {
       }
 
       let imported = 0;
-      for (const sale of parsedSales) {
-        const { error } = await supabase.from("sales").insert({
-          ...sale,
-          owner_id: ownerId,
-        });
-        if (!error) imported++;
+      for (const { sale, items } of parsedSales) {
+        // Insert sale
+        const { data: newSale, error: saleError } = await supabase
+          .from("sales")
+          .insert({
+            ...sale,
+            owner_id: ownerId,
+          })
+          .select()
+          .single();
+        
+        if (saleError || !newSale) continue;
+
+        // Insert items
+        if (items.length > 0) {
+          for (const item of items) {
+            await supabase.from("sale_items").insert({
+              sale_id: newSale.id,
+              product_id: item.product_id,
+              product_name: item.product_name,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              purchase_price: item.purchase_price,
+              total_price: item.total_price,
+              profit: item.profit,
+            });
+          }
+        }
+        imported++;
       }
 
-      toast.success(`Successfully imported ${imported} sales`);
+      toast.success(`Successfully imported ${imported} sales with items`);
       fetchSales();
     } catch (error) {
       toast.error("Failed to import CSV");
@@ -266,7 +309,7 @@ const Sales = () => {
             </Button>
           )}
           <Button 
-            onClick={() => exportSalesToCSV(filteredSales)} 
+            onClick={handleExportCSV} 
             variant="outline"
             disabled={isLoading || filteredSales.length === 0}
           >
