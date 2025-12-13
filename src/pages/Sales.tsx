@@ -229,26 +229,12 @@ const Sales = () => {
               .eq("id", item.product_id);
           }
         }
-        // Soft delete sale items
-        await supabase
-          .from("sale_items")
-          .update({ deleted_at: new Date().toISOString() })
-          .eq("sale_id", id);
+        await supabase.from("sale_items").delete().eq("sale_id", id);
       }
 
-      // Soft delete credits associated with this sale
-      await supabase
-        .from("credits")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("sale_id", id);
-
-      // Soft delete sale
-      await supabase
-        .from("sales")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
-        
-      toast.success("Sale deleted successfully! Inventory updated.");
+      // Delete sale (credits will be automatically deleted due to CASCADE)
+      await supabase.from("sales").delete().eq("id", id);
+      toast.success("Sale deleted successfully! Inventory and credits updated.");
       fetchSales();
     } catch (error) {
       toast.error("Failed to delete sale");

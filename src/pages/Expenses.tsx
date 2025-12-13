@@ -448,13 +448,10 @@ export default function Expenses() {
     }
   });
 
-  // Delete expense mutation - soft delete
+  // Delete expense mutation
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("expenses")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
