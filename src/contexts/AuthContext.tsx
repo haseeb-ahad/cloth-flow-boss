@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: "admin" | "worker" | null;
   permissions: WorkerPermission[];
+  adminFeatureOverrides: AdminFeatureOverride[];
   loading: boolean;
   ownerId: string | null; // The admin_id for workers, or user_id for admins
   signOut: () => Promise<void>;
@@ -23,6 +24,14 @@ interface WorkerPermission {
   can_delete: boolean;
 }
 
+interface AdminFeatureOverride {
+  feature: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -30,6 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<"admin" | "worker" | null>(null);
   const [permissions, setPermissions] = useState<WorkerPermission[]>([]);
+  const [adminFeatureOverrides, setAdminFeatureOverrides] = useState<AdminFeatureOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -49,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setUserRole(null);
           setPermissions([]);
+          setAdminFeatureOverrides([]);
         }
         setLoading(false);
       }
@@ -84,6 +95,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Set owner_id: for admins it's their own id, for workers it's their admin_id
       if (roleData?.role === "admin") {
         setOwnerId(userId);
+        
+        // Fetch admin feature overrides set by super admin
+        const { data: overridesData, error: overridesError } = await supabase
+          .from("admin_feature_overrides")
+          .select("*")
+          .eq("admin_id", userId);
+        
+        if (!overridesError && overridesData) {
+          setAdminFeatureOverrides(overridesData.map(o => ({
+            feature: o.feature,
+            can_view: o.can_view || false,
+            can_create: o.can_create || false,
+            can_edit: o.can_edit || false,
+            can_delete: o.can_delete || false,
+          })));
+        }
       } else if (roleData?.role === "worker") {
         setOwnerId(roleData.admin_id || userId);
       }
@@ -118,8 +145,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasPermission = (feature: string, action: "view" | "create" | "edit" | "delete"): boolean => {
-    // Admins have all permissions
-    if (userRole === "admin") return true;
+    // For admins, check if super admin has set feature overrides
+    if (userRole === "admin") {
+      // If there are feature overrides from super admin, use them
+      if (adminFeatureOverrides.length > 0) {
+        const override = adminFeatureOverrides.find(o => o.feature === feature);
+        if (override) {
+          switch (action) {
+            case "view": return override.can_view;
+            case "create": return override.can_create;
+            case "edit": return override.can_edit;
+            case "delete": return override.can_delete;
+            default: return false;
+          }
+        }
+        // If feature not in overrides, default to false
+        return false;
+      }
+      // No overrides set, admin has full access
+      return true;
+    }
 
     // Check worker permissions
     const perm = permissions.find(p => p.feature === feature);
@@ -165,6 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         userRole,
         permissions,
+        adminFeatureOverrides,
         loading,
         ownerId,
         signOut,
