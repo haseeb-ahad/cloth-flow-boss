@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,6 @@ import { toast } from "sonner";
 import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar } from "lucide-react";
 import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
-import { formatDatePKT } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -86,6 +86,7 @@ interface PaymentRecord {
 
 const Credits = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
+  const { formatDate, formatDateInput } = useTimezone();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("credits", "create");
@@ -952,7 +953,7 @@ const Credits = () => {
                         {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell className="font-medium">{credit.invoice_number}</TableCell>
-                            <TableCell>{formatDatePKT(credit.created_at)}</TableCell>
+                            <TableCell>{formatDate(credit.created_at)}</TableCell>
                             <TableCell className="text-right">
                               Rs. {credit.amount.toFixed(2)}
                             </TableCell>
@@ -1068,7 +1069,7 @@ const Credits = () => {
                                 {filteredPayments.map((payment) => (
                                   <TableRow key={payment.id}>
                                     <TableCell className="whitespace-nowrap">
-                                      {formatDatePKT(payment.payment_date)}
+                                      {formatDate(payment.payment_date)}
                                     </TableCell>
                                     <TableCell className="text-right font-medium text-success whitespace-nowrap">
                                       Rs. {payment.payment_amount.toFixed(2)}

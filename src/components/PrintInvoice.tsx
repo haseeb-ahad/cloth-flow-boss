@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { formatDateInTimezone } from "@/contexts/TimezoneContext";
 
 interface InvoiceItem {
   product_id: string;
@@ -32,29 +33,18 @@ interface PrintInvoiceProps {
   finalAmount: number;
   paidAmount: number;
   settings?: ReceiptSettings;
+  timezone?: string;
 }
 
 const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
-  ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, paidAmount, settings }, ref) => {
+  ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, paidAmount, settings, timezone = "Asia/Karachi" }, ref) => {
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
     const dueAmount = finalAmount - (paidAmount || 0);
 
-    // Format date and time for display
+    // Format date and time for display using timezone
     const formatDateTime = (dateStr: string) => {
-      const date = new Date(dateStr);
-      const dateFormatted = date.toLocaleDateString('en-GB', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
-      });
-      const timeFormatted = date.toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      });
-      return `${dateFormatted}, ${timeFormatted}`;
+      return formatDateInTimezone(dateStr, timezone, "datetime");
     };
 
     const shopName = settings?.shop_name || "Your Shop Name";

@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatDatePKT } from "@/lib/utils";
 import { Edit, Trash2, Search, RefreshCw, Download, Upload, FileText, ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
@@ -39,6 +39,7 @@ interface SaleWithDetails extends Sale {
 const Sales = () => {
   const navigate = useNavigate();
   const { ownerId, hasPermission, userRole } = useAuth();
+  const { formatDate } = useTimezone();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("sales", "create");
@@ -393,8 +394,8 @@ const Sales = () => {
               return (
                 <TableRow key={sale.id}>
                   <TableCell className="font-medium">{sale.invoice_number}</TableCell>
-                  <TableCell>
-                    {formatDatePKT(sale.created_at, 'datetime')}
+                <TableCell>
+                    {formatDate(sale.created_at, 'datetime')}
                   </TableCell>
                   <TableCell>{sale.customer_name || "Walk-in Customer"}</TableCell>
                   <TableCell className="text-center">

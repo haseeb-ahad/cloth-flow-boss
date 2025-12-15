@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ const Invoice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { ownerId, hasPermission, userRole } = useAuth();
+  const { timezone } = useTimezone();
   const editSaleId = searchParams.get("edit");
   
   // Permission checks
@@ -1602,6 +1604,7 @@ const Invoice = () => {
         finalAmount={calculateFinalAmount()}
         paidAmount={Number(paidAmount) || 0}
         settings={receiptSettings}
+        timezone={timezone}
       />
     </div>
   );

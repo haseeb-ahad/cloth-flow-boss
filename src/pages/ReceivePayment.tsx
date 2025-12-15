@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Banknote, RefreshCw, Calendar, User, Download, Upload, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { exportPaymentsToCSV, parsePaymentsCSV } from "@/lib/csvExport";
-import { formatDatePKT, formatDateInputPKT } from "@/lib/utils";
 
 interface Customer {
   name: string;
@@ -47,13 +47,14 @@ interface LedgerEntry {
 
 const ReceivePayment = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
+  const { formatDate, formatDateInput } = useTimezone();
   
   // Permission checks - receive payment has its own permission
   const canCreate = userRole === "admin" || hasPermission("receive_payment", "create");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [paymentAmount, setPaymentAmount] = useState<string>("");
-  const [paymentDate, setPaymentDate] = useState<string>(formatDateInputPKT(new Date()));
+  const [paymentDate, setPaymentDate] = useState<string>(formatDateInput(new Date()));
   const [description, setDescription] = useState<string>("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -597,7 +598,7 @@ const ReceivePayment = () => {
                       <div>
                         <span className="font-medium">#{inv.invoice_number}</span>
                         <span className="text-muted-foreground ml-2">
-                          {formatDatePKT(inv.created_at)}
+                          {formatDate(inv.created_at)}
                         </span>
                         {index === 0 && (
                           <Badge variant="outline" className="ml-2 text-xs">
@@ -644,7 +645,7 @@ const ReceivePayment = () => {
                       <div>
                         <p className="font-medium">{payment.customer_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDatePKT(payment.payment_date)}
+                          {formatDate(payment.payment_date)}
                         </p>
                       </div>
                       <Badge variant="outline" className="bg-primary/10 text-primary">
