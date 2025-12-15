@@ -26,6 +26,7 @@ export type Database = {
           shop_address: string | null
           shop_name: string | null
           thank_you_message: string | null
+          timezone: string | null
           updated_at: string | null
           worker_name: string | null
           worker_phone: string | null
@@ -41,6 +42,7 @@ export type Database = {
           shop_address?: string | null
           shop_name?: string | null
           thank_you_message?: string | null
+          timezone?: string | null
           updated_at?: string | null
           worker_name?: string | null
           worker_phone?: string | null
@@ -56,6 +58,7 @@ export type Database = {
           shop_address?: string | null
           shop_name?: string | null
           thank_you_message?: string | null
+          timezone?: string | null
           updated_at?: string | null
           worker_name?: string | null
           worker_phone?: string | null

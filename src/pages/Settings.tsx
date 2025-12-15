@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X, Receipt, Plus, Trash2 } from "lucide-react";
+import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
+import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X, Receipt, Plus, Trash2, Clock } from "lucide-react";
 
 export default function Settings() {
   const { user, userRole } = useAuth();
+  const { timezone, setTimezone } = useTimezone();
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -489,7 +491,7 @@ export default function Settings() {
 
         <TabsContent value="language" className="space-y-4">
           <Card className="p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Language Settings</h2>
+            <h2 className="text-xl font-semibold text-foreground">Language & Timezone Settings</h2>
 
             <div className="space-y-2">
               <Label htmlFor="language">Select Language</Label>
@@ -509,6 +511,35 @@ export default function Settings() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="timezone" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Select Timezone
+              </Label>
+              <Select
+                value={timezone}
+                onValueChange={(value) => {
+                  setTimezone(value);
+                  toast.success(`Timezone changed to ${TIMEZONES.find(tz => tz.value === value)?.label || value}`);
+                }}
+                disabled={loading || userRole !== "admin"}
+              >
+                <SelectTrigger id="timezone">
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                All dates and times in the application will be displayed in this timezone
+              </p>
+            </div>
+
             <Button
               onClick={handleSaveGeneralSettings}
               disabled={loading || userRole !== "admin"}
@@ -519,7 +550,7 @@ export default function Settings() {
                   Saving...
                 </>
               ) : (
-                "Save Language Settings"
+                "Save Settings"
               )}
             </Button>
           </Card>

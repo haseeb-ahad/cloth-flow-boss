@@ -2,6 +2,7 @@ import { ReactNode, useMemo, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
@@ -16,7 +17,8 @@ import {
   LogOut,
   UserCog,
   Banknote,
-  Receipt
+  Receipt,
+  Clock
 } from "lucide-react";
 
 interface LayoutProps {
@@ -31,6 +33,7 @@ interface AppSettings {
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { userRole, signOut, user, hasPermission } = useAuth();
+  const { timezone } = useTimezone();
   const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null });
 
   useEffect(() => {
@@ -104,6 +107,10 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                <Clock className="h-3 w-3" />
+                {TIMEZONES.find(tz => tz.value === timezone)?.label.split(')')[0]}){" "}
+              </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-foreground">{user?.email}</p>
                 <p className="text-xs text-muted-foreground capitalize">{userRole} Account</p>

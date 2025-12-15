@@ -13,8 +13,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download, Upload, CalendarIcon } from "lucide-react";
-import { formatDatePKT, formatDateInputPKT, toPKT, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { format } from "date-fns";
 
 const DATE_FILTERS = [
@@ -30,6 +31,7 @@ const DATE_FILTERS = [
 
 export default function Expenses() {
   const { user, ownerId, hasPermission, userRole } = useAuth();
+  const { formatDate, formatDateInput } = useTimezone();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +46,7 @@ export default function Expenses() {
     expense_type: "",
     amount: "",
     description: "",
-    expense_date: formatDateInputPKT(new Date())
+    expense_date: new Date().toISOString().split('T')[0]
   });
 
   // Real-time subscription for expenses and sales
@@ -531,7 +533,7 @@ export default function Expenses() {
         expense_type: "",
         amount: "",
         description: "",
-        expense_date: formatDateInputPKT(new Date())
+        expense_date: new Date().toISOString().split('T')[0]
       });
     },
     onError: (error) => {
@@ -879,7 +881,7 @@ export default function Expenses() {
                 <TableBody>
                   {expenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell>{formatDatePKT(expense.expense_date)}</TableCell>
+                      <TableCell>{formatDate(expense.expense_date)}</TableCell>
                       <TableCell>
                         <span className="px-2 py-1 bg-secondary rounded-md text-sm">
                           {expense.expense_type}
