@@ -10,7 +10,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -75,6 +76,11 @@ const Invoice = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: number]: {product: boolean, quantity: boolean, price: boolean}}>({});
+  const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   
   // Refs for auto-focus
   const quantityInputRefs = useRef<{[key: number]: HTMLInputElement | null}>({});
@@ -170,6 +176,10 @@ const Invoice = () => {
         setPaymentMethod(sale.payment_method || "cash");
         setPaidAmount(sale.paid_amount?.toString() || "");
         setIsFullPayment(sale.payment_status === "paid");
+        setDescription(sale.description || "");
+        if (sale.image_url) {
+          setImagePreview(sale.image_url);
+        }
         
         // Extract date from created_at timestamp and format as YYYY-MM-DD
         if (sale.created_at) {
@@ -447,6 +457,52 @@ const Invoice = () => {
     return paid > final ? paid - final : 0;
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return imagePreview; // Return existing image URL if no new file
+    
+    setIsUploadingImage(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `invoice_${Date.now()}.${fileExt}`;
+      const filePath = `${ownerId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("payment-images")
+        .upload(filePath, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("payment-images").getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const saveInvoice = async () => {
     debugLog("💾 SAVE INITIATED");
     
@@ -566,6 +622,9 @@ const Invoice = () => {
     // Convert date to ISO string with time set to noon to avoid timezone issues
     const invoiceDateISO = new Date(invoiceDate + 'T12:00:00').toISOString();
 
+    // Upload image if provided
+    const uploadedImageUrl = await uploadImage();
+
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
@@ -580,6 +639,8 @@ const Invoice = () => {
         payment_status: isFullPayment ? "paid" : "pending",
         created_at: invoiceDateISO,
         owner_id: ownerId,
+        description: description || null,
+        image_url: uploadedImageUrl || null,
       })
       .select()
       .single();
@@ -749,6 +810,9 @@ const Invoice = () => {
       // Convert date to ISO string with time set to noon to avoid timezone issues
       const invoiceDateISO = new Date(invoiceDate + 'T12:00:00').toISOString();
       
+      // Upload image if provided
+      const uploadedImageUrl = await uploadImage();
+
       const { error: saleError } = await supabase.from("sales").update({
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
@@ -760,6 +824,8 @@ const Invoice = () => {
         status: paid >= finalAmount ? "completed" : "pending",
         payment_status: isFullPayment ? "paid" : "pending",
         created_at: invoiceDateISO,
+        description: description || null,
+        image_url: uploadedImageUrl || null,
       }).eq("id", editSaleId);
 
       if (saleError) {
@@ -965,6 +1031,9 @@ const Invoice = () => {
     setPaidAmount("");
     setInvoiceDate(new Date().toISOString().split('T')[0]);
     setIsFullPayment(false);
+    setDescription("");
+    setImageFile(null);
+    setImagePreview(null);
     fetchProducts();
   };
 
@@ -1046,6 +1115,62 @@ const Invoice = () => {
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="Enter phone number"
             />
+          </div>
+        </div>
+
+        {/* Description and Image Upload */}
+        <div className="grid gap-4 md:grid-cols-2 mb-6">
+          <div>
+            <Label htmlFor="description">Description (Optional)</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add notes or description for this invoice..."
+              rows={3}
+            />
+          </div>
+          <div>
+            <Label>Upload image (Optional)</Label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                ref={imageInputRef}
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              {imagePreview ? (
+                <div className="relative inline-block">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="h-24 w-auto rounded-lg border border-border object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={clearImage}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="w-full h-24 border-dashed"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Click to upload image</span>
+                  </div>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

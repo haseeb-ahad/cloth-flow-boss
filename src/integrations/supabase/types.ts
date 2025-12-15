@@ -485,9 +485,11 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           deleted_at: string | null
+          description: string | null
           discount: number | null
           final_amount: number
           id: string
+          image_url: string | null
           invoice_number: string
           is_deleted: boolean | null
           owner_id: string | null
@@ -502,9 +504,11 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           deleted_at?: string | null
+          description?: string | null
           discount?: number | null
           final_amount: number
           id?: string
+          image_url?: string | null
           invoice_number: string
           is_deleted?: boolean | null
           owner_id?: string | null
@@ -519,9 +523,11 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           deleted_at?: string | null
+          description?: string | null
           discount?: number | null
           final_amount?: number
           id?: string
+          image_url?: string | null
           invoice_number?: string
           is_deleted?: boolean | null
           owner_id?: string | null

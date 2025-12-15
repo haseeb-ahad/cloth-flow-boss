@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDatePKT } from "@/lib/utils";
-import { Edit, Trash2, Search, RefreshCw, Download, Upload } from "lucide-react";
+import { Edit, Trash2, Search, RefreshCw, Download, Upload, FileText, ImageIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
 
@@ -25,6 +26,8 @@ interface Sale {
   payment_method: string;
   created_at: string;
   status: string;
+  description: string | null;
+  image_url: string | null;
 }
 
 interface SaleWithDetails extends Sale {
@@ -380,6 +383,7 @@ const Sales = () => {
               <TableHead className="text-right">Remaining</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Payment</TableHead>
+              <TableHead className="text-center">Notes</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -428,6 +432,32 @@ const Sales = () => {
                   </TableCell>
                   <TableCell className="text-center">
                     {getPaymentMethodBadge(sale.payment_method)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      {sale.description && (
+                        <span title={sale.description} className="cursor-help">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                        </span>
+                      )}
+                      {sale.image_url && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="cursor-pointer hover:opacity-80">
+                              <ImageIcon className="h-4 w-4 text-primary" />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <img 
+                              src={sale.image_url} 
+                              alt="Invoice attachment" 
+                              className="w-full h-auto rounded-lg"
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {!sale.description && !sale.image_url && "-"}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     {canEdit && (
