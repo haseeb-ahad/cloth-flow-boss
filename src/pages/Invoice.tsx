@@ -1598,7 +1598,7 @@ const Invoice = () => {
         invoiceNumber={invoiceNumber || `INV-${Date.now()}`}
         customerName={customerName}
         customerPhone={customerPhone}
-        invoiceDate={invoiceDate}
+        invoiceDate={new Date().toISOString()}
         items={items}
         discount={discount}
         finalAmount={calculateFinalAmount()}
