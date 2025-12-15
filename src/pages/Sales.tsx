@@ -41,10 +41,10 @@ const Sales = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate } = useTimezone();
   
-  // Permission checks - use hasPermission for both admins and workers
-  const canCreate = hasPermission("sales", "create");
-  const canEdit = hasPermission("sales", "edit");
-  const canDelete = hasPermission("sales", "delete");
+  // Permission checks
+  const canCreate = userRole === "admin" || hasPermission("sales", "create");
+  const canEdit = userRole === "admin" || hasPermission("sales", "edit");
+  const canDelete = userRole === "admin" || hasPermission("sales", "delete");
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");

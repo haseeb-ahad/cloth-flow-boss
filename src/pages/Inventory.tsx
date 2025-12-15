@@ -42,10 +42,10 @@ interface StockStats {
 const Inventory = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   
-  // Permission checks - use hasPermission for both admins and workers
-  const canCreate = hasPermission("inventory", "create");
-  const canEdit = hasPermission("inventory", "edit");
-  const canDelete = hasPermission("inventory", "delete");
+  // Permission checks
+  const canCreate = userRole === "admin" || hasPermission("inventory", "create");
+  const canEdit = userRole === "admin" || hasPermission("inventory", "edit");
+  const canDelete = userRole === "admin" || hasPermission("inventory", "delete");
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);

@@ -25,10 +25,10 @@ const Customers = () => {
   const { hasPermission, userRole } = useAuth();
   const { formatDate } = useTimezone();
   
-  // Permission checks - use hasPermission for both admins and workers
-  const canCreate = hasPermission("customers", "create");
-  const canEdit = hasPermission("customers", "edit");
-  const canDelete = hasPermission("customers", "delete");
+  // Permission checks - customers is primarily view-only, but we still track permissions
+  const canCreate = userRole === "admin" || hasPermission("customers", "create");
+  const canEdit = userRole === "admin" || hasPermission("customers", "edit");
+  const canDelete = userRole === "admin" || hasPermission("customers", "delete");
   
   const [customers, setCustomers] = useState<CustomerWithTotals[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithTotals[]>([]);
