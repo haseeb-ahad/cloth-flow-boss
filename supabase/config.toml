@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-worker]
 verify_jwt = false
+
+[functions.super-admin]
+verify_jwt = false
