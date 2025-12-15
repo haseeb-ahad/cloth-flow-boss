@@ -245,9 +245,6 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
           {ownerNames.map((name, index) => (
             <div key={`name-${index}`} className="shop-phone" style={{ fontWeight: 500 }}>{name}</div>
           ))}
-          {phoneNumbers.map((phone, index) => (
-            <div key={`phone-${index}`} className="shop-phone">Ph: {phone}</div>
-          ))}
         </div>
 
         <div className="divider" />
