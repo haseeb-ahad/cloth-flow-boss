@@ -76,8 +76,18 @@ interface Plan {
   is_lifetime: boolean;
 }
 
-const FEATURES = ["invoice", "inventory", "customers", "sales", "credits", "reports", "staff"];
+const FEATURES = ["invoice", "inventory", "sales", "credits", "customers", "expenses", "receive_payment"];
 const PERMISSIONS = ["view", "create", "edit", "delete"];
+
+const FEATURE_LABELS: Record<string, string> = {
+  invoice: "Invoice",
+  inventory: "Inventory",
+  sales: "Sales",
+  credits: "Credits",
+  customers: "Customers",
+  expenses: "Expenses",
+  receive_payment: "Receive Payment",
+};
 
 const SuperAdminAdmins = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -479,7 +489,7 @@ const SuperAdminAdmins = () => {
                 <TableBody>
                   {FEATURES.map((feature) => (
                     <TableRow key={feature}>
-                      <TableCell className="font-medium capitalize">{feature}</TableCell>
+                      <TableCell className="font-medium">{FEATURE_LABELS[feature] || feature}</TableCell>
                       {PERMISSIONS.map((perm) => (
                         <TableCell key={perm} className="text-center">
                           <Switch
