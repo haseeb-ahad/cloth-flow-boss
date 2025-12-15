@@ -18,6 +18,7 @@ import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
 import { format } from "date-fns";
 
 const DATE_FILTERS = [
+  { label: "All", value: "all" },
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
   { label: "1 Week", value: "1week" },
@@ -33,7 +34,7 @@ export default function Expenses() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [dateFilter, setDateFilter] = useState("today");
+  const [dateFilter, setDateFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -54,9 +55,10 @@ export default function Expenses() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'expenses' },
         () => {
+          // Invalidate all expense-related queries for real-time updates
           queryClient.invalidateQueries({ queryKey: ["expenses"] });
           queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
-          queryClient.invalidateQueries({ queryKey: ["yesterdayExpenses"] });
+          queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
           queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
         }
       )
@@ -68,8 +70,9 @@ export default function Expenses() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sales' },
         () => {
+          // Invalidate all profit-related queries for real-time updates
           queryClient.invalidateQueries({ queryKey: ["filteredProfit"] });
-          queryClient.invalidateQueries({ queryKey: ["yesterdayProfit"] });
+          queryClient.invalidateQueries({ queryKey: ["previousProfit"] });
         }
       )
       .subscribe();
@@ -80,8 +83,9 @@ export default function Expenses() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sale_items' },
         () => {
+          // Invalidate all profit-related queries for real-time updates
           queryClient.invalidateQueries({ queryKey: ["filteredProfit"] });
-          queryClient.invalidateQueries({ queryKey: ["yesterdayProfit"] });
+          queryClient.invalidateQueries({ queryKey: ["previousProfit"] });
         }
       )
       .subscribe();
@@ -135,6 +139,11 @@ export default function Expenses() {
     let end: Date;
 
     switch (dateFilter) {
+      case "all":
+        start = new Date(0);
+        const allEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(Date.UTC(allEndUTC.getFullYear(), allEndUTC.getMonth(), allEndUTC.getDate(), 23, 59, 59, 999));
+        break;
       case "today":
         const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         start = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 0, 0, 0, 0));
@@ -242,6 +251,7 @@ export default function Expenses() {
 
   const getDateRangeLabel = () => {
     switch (dateFilter) {
+      case "all": return "All";
       case "today": return "Today's";
       case "yesterday": return "Yesterday's";
       case "1week": return "Weekly";
@@ -249,7 +259,7 @@ export default function Expenses() {
       case "1year": return "Yearly";
       case "grand": return "All Time";
       case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom";
-      default: return "Today's";
+      default: return "All";
     }
   };
 
@@ -336,7 +346,7 @@ export default function Expenses() {
   const { data: previousProfit = 0 } = useQuery({
     queryKey: ["previousProfit", dateFilter, ownerId],
     queryFn: async () => {
-      if (dateFilter === "grand" || dateFilter === "custom") return 0;
+      if (dateFilter === "all" || dateFilter === "grand" || dateFilter === "custom") return 0;
       
       const { start, end } = getPreviousPeriodRange();
       
@@ -358,7 +368,7 @@ export default function Expenses() {
       if (error) throw error;
       return data?.reduce((sum, item) => sum + (Number(item.profit) || 0), 0) || 0;
     },
-    enabled: !!ownerId && dateFilter !== "grand" && dateFilter !== "custom"
+    enabled: !!ownerId && dateFilter !== "all" && dateFilter !== "grand" && dateFilter !== "custom"
   });
 
   // Fetch expenses total based on filter
@@ -383,7 +393,7 @@ export default function Expenses() {
   const { data: previousExpenses = 0 } = useQuery({
     queryKey: ["previousExpenses", dateFilter, ownerId],
     queryFn: async () => {
-      if (dateFilter === "grand" || dateFilter === "custom") return 0;
+      if (dateFilter === "all" || dateFilter === "grand" || dateFilter === "custom") return 0;
       
       const { start, end } = getPreviousPeriodRange();
       
@@ -396,7 +406,7 @@ export default function Expenses() {
       if (error) throw error;
       return data?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
     },
-    enabled: !!ownerId && dateFilter !== "grand" && dateFilter !== "custom"
+    enabled: !!ownerId && dateFilter !== "all" && dateFilter !== "grand" && dateFilter !== "custom"
   });
 
   // Calculate filtered totals
