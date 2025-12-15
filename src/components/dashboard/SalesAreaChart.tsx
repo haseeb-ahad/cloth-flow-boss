@@ -75,12 +75,12 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
             >
               <defs>
                 <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="100%" stopColor="#10b981" stopOpacity={0.02}/>
+                  <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
+                  <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.02}/>
                 </linearGradient>
                 <linearGradient id="profitAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6ee7b7" stopOpacity={0.2}/>
-                  <stop offset="100%" stopColor="#6ee7b7" stopOpacity={0.02}/>
+                  <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.18}/>
+                  <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.02}/>
                 </linearGradient>
               </defs>
               <XAxis 
@@ -98,16 +98,17 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
                 axisLine={false}
                 tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
               />
-              {!isLoading && isHovering && (
-                <Tooltip 
+              {!isLoading && (
+                <Tooltip
                   content={<CustomTooltip valuesHidden={valuesHidden} />}
-                  cursor={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+                  cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
+                  wrapperStyle={{ visibility: isHovering ? "visible" : "hidden" }}
                 />
               )}
-              <Area 
-                type="monotone" 
-                dataKey="profit" 
-                stroke="#6ee7b7" 
+              <Area
+                type="monotone"
+                dataKey="profit"
+                stroke="hsl(var(--success))"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 fill="url(#profitAreaGradient)"
@@ -115,10 +116,10 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
                 animationBegin={300}
                 dot={false}
               />
-              <Area 
-                type="monotone" 
-                dataKey="sales" 
-                stroke="#10b981" 
+              <Area
+                type="monotone"
+                dataKey="sales"
+                stroke="hsl(var(--success))"
                 strokeWidth={2.5}
                 fill="url(#salesAreaGradient)"
                 animationDuration={1500}
