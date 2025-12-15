@@ -90,6 +90,8 @@ const Invoice = () => {
     owner_names?: string[];
     thank_you_message?: string;
     footer_message?: string;
+    worker_name?: string;
+    worker_phone?: string;
   }>({});
   
   // Refs for auto-focus
@@ -101,13 +103,30 @@ const Invoice = () => {
   const itemsBeforeSaveRef = useRef<InvoiceItem[]>([]);
   const hasLoadedRef = useRef(false);
 
-  // Fetch receipt settings from app_settings
+  // Fetch receipt settings from app_settings and current user profile
   const fetchReceiptSettings = async () => {
     try {
       const { data } = await supabase
         .from("app_settings")
         .select("logo_url, shop_name, shop_address, phone_numbers, owner_names, thank_you_message, footer_message")
         .single();
+      
+      // Fetch current user's profile for worker name/phone
+      let workerName = "";
+      let workerPhone = "";
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, phone_number")
+          .eq("user_id", user.id)
+          .single();
+        if (profile) {
+          workerName = profile.full_name || "";
+          workerPhone = profile.phone_number || "";
+        }
+      }
+      
       if (data) {
         setReceiptSettings({
           logo_url: data.logo_url,
@@ -117,6 +136,8 @@ const Invoice = () => {
           owner_names: (data as any).owner_names,
           thank_you_message: data.thank_you_message,
           footer_message: data.footer_message,
+          worker_name: workerName,
+          worker_phone: workerPhone,
         });
       }
     } catch (error) {
