@@ -279,32 +279,107 @@ export const parseCreditsCSV = (text: string) => {
   })).filter(c => c.customer_name && c.amount > 0);
 };
 
-// Expenses Export
+// Expenses Export - includes ID for duplicate prevention
 export const exportExpensesToCSV = (expenses: any[]) => {
   exportToCSV({
     filename: `expenses_${formatDatePKT(new Date()).replace(/\//g, "-")}`,
     columns: [
-      { header: "Date", key: "expense_date", format: (v) => formatDatePKT(v) },
+      { header: "ID", key: "id" },
+      { header: "Date", key: "expense_date" }, // Keep as YYYY-MM-DD for import compatibility
       { header: "Type", key: "expense_type" },
       { header: "Description", key: "description", format: (v) => v || "" },
       { header: "Amount", key: "amount" },
+      { header: "Created At", key: "created_at", format: (v) => v ? formatDatePKT(v, "datetime") : "" },
     ],
     data: expenses,
   });
 };
 
-// Parse Expenses CSV
-export const parseExpensesCSV = (text: string) => {
+// Parse Expenses CSV with validation and duplicate detection
+export const parseExpensesCSV = (text: string): { 
+  expenses: any[]; 
+  errors: string[]; 
+  duplicateIds: string[];
+} => {
   const { headers, rows } = parseCSV(text);
   const headerMap: Record<string, number> = {};
   headers.forEach((h, i) => headerMap[h.toLowerCase().trim()] = i);
 
-  return rows.map(row => ({
-    expense_date: row[headerMap["date"]] || row[headerMap["expense_date"]] || new Date().toISOString().split("T")[0],
-    expense_type: row[headerMap["type"]] || row[headerMap["expense_type"]] || "Other",
-    description: row[headerMap["description"]] || null,
-    amount: parseFloat(row[headerMap["amount"]] || "0") || 0,
-  })).filter(e => e.amount > 0);
+  const expenses: any[] = [];
+  const errors: string[] = [];
+  const duplicateIds: string[] = [];
+
+  rows.forEach((row, index) => {
+    const rowNum = index + 2; // +2 because row 1 is header, and index is 0-based
+    const rowErrors: string[] = [];
+
+    // Get values with flexible column name matching
+    const id = row[headerMap["id"]] || "";
+    let dateValue = row[headerMap["date"]] || row[headerMap["expense_date"]] || "";
+    const expenseType = row[headerMap["type"]] || row[headerMap["expense_type"]] || "";
+    const description = row[headerMap["description"]] || "";
+    const amountStr = row[headerMap["amount"]] || "0";
+
+    // Parse and validate date - handle multiple formats
+    let parsedDate = "";
+    if (dateValue) {
+      // Try YYYY-MM-DD format first (our export format)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        parsedDate = dateValue;
+      } 
+      // Try DD/MM/YYYY format (PKT display format)
+      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+        const parts = dateValue.split("/");
+        parsedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      // Try MM/DD/YYYY format
+      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
+        const parts = dateValue.split("/");
+        parsedDate = `${parts[2]}-${parts[0]}-${parts[1]}`;
+      }
+      // Try parsing as Date object
+      else {
+        const dateObj = new Date(dateValue);
+        if (!isNaN(dateObj.getTime())) {
+          parsedDate = dateObj.toISOString().split("T")[0];
+        }
+      }
+    }
+
+    // Validate mandatory fields
+    if (!parsedDate) {
+      rowErrors.push(`Row ${rowNum}: Invalid or missing date "${dateValue}"`);
+    }
+
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      rowErrors.push(`Row ${rowNum}: Invalid or missing amount "${amountStr}"`);
+    }
+
+    if (!expenseType.trim()) {
+      rowErrors.push(`Row ${rowNum}: Missing expense type`);
+    }
+
+    // Track duplicate IDs for prevention
+    if (id) {
+      duplicateIds.push(id);
+    }
+
+    // Only add valid rows
+    if (rowErrors.length === 0) {
+      expenses.push({
+        original_id: id || null, // Store original ID for duplicate checking
+        expense_date: parsedDate || new Date().toISOString().split("T")[0],
+        expense_type: expenseType || "Other",
+        description: description || null,
+        amount: amount,
+      });
+    } else {
+      errors.push(...rowErrors);
+    }
+  });
+
+  return { expenses, errors, duplicateIds: duplicateIds.filter(Boolean) };
 };
 
 // Customers Export

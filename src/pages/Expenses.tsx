@@ -107,14 +107,46 @@ export default function Expenses() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file
+    if (!file.name.endsWith('.csv')) {
+      toast.error("Please upload a valid CSV file");
+      return;
+    }
+
     setIsImporting(true);
     try {
       const text = await file.text();
-      const parsedExpenses = parseExpensesCSV(text);
       
-      if (parsedExpenses.length === 0) {
-        toast.error("No valid expenses found in CSV");
+      if (!text.trim()) {
+        toast.error("The CSV file is empty");
         return;
+      }
+
+      const { expenses: parsedExpenses, errors, duplicateIds } = parseExpensesCSV(text);
+      
+      // Show validation errors if any
+      if (errors.length > 0) {
+        const errorSummary = errors.length <= 5 
+          ? errors.join("\n") 
+          : `${errors.slice(0, 5).join("\n")}\n...and ${errors.length - 5} more errors`;
+        console.error("Import validation errors:", errors);
+        toast.error(`Validation errors found:\n${errorSummary}`);
+      }
+
+      if (parsedExpenses.length === 0) {
+        toast.error("No valid expenses found in CSV. Check that all rows have Date, Amount, and Type.");
+        return;
+      }
+
+      // Check for duplicates in database if we have original IDs
+      let existingIds: string[] = [];
+      if (duplicateIds.length > 0) {
+        const { data: existingExpenses } = await supabase
+          .from("expenses")
+          .select("id")
+          .in("id", duplicateIds);
+        
+        existingIds = existingExpenses?.map(e => e.id) || [];
       }
 
       // Apply type filter to imported expenses if active
@@ -128,21 +160,53 @@ export default function Expenses() {
       }
 
       let imported = 0;
+      let skipped = 0;
+      const importErrors: string[] = [];
+
       for (const expense of filteredParsedExpenses) {
+        // Skip if this is a duplicate (original_id exists in database)
+        if (expense.original_id && existingIds.includes(expense.original_id)) {
+          skipped++;
+          continue;
+        }
+
+        // Remove original_id before inserting (it's not a database column)
+        const { original_id, ...expenseData } = expense;
+        
         const { error } = await supabase.from("expenses").insert({
-          ...expense,
+          ...expenseData,
           owner_id: ownerId,
         });
-        if (!error) imported++;
+        
+        if (error) {
+          importErrors.push(`Failed to import expense: ${error.message}`);
+        } else {
+          imported++;
+        }
       }
 
-      toast.success(`Successfully imported ${imported} expenses`);
+      // Log errors for admin review
+      if (importErrors.length > 0) {
+        console.error("Import errors:", importErrors);
+      }
+
+      // Show result summary
+      let message = `Successfully imported ${imported} expenses`;
+      if (skipped > 0) {
+        message += ` (${skipped} duplicates skipped)`;
+      }
+      if (errors.length > 0) {
+        message += ` (${errors.length} rows had validation errors)`;
+      }
+      
+      toast.success(message);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
       queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
       queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
-    } catch (error) {
-      toast.error("Failed to import CSV");
+    } catch (error: any) {
+      console.error("Import error:", error);
+      toast.error(error.message || "Failed to import CSV. The file may be corrupted.");
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
