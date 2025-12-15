@@ -45,7 +45,9 @@ export type Database = {
           credit_id: string
           customer_name: string
           customer_phone: string | null
+          deleted_at: string | null
           id: string
+          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           transaction_date: string
@@ -56,7 +58,9 @@ export type Database = {
           credit_id: string
           customer_name: string
           customer_phone?: string | null
+          deleted_at?: string | null
           id?: string
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           transaction_date?: string
@@ -67,7 +71,9 @@ export type Database = {
           credit_id?: string
           customer_name?: string
           customer_phone?: string | null
+          deleted_at?: string | null
           id?: string
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           transaction_date?: string
@@ -88,8 +94,10 @@ export type Database = {
           created_at: string | null
           customer_name: string
           customer_phone: string | null
+          deleted_at: string | null
           due_date: string | null
           id: string
+          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           paid_amount: number | null
@@ -103,8 +111,10 @@ export type Database = {
           created_at?: string | null
           customer_name: string
           customer_phone?: string | null
+          deleted_at?: string | null
           due_date?: string | null
           id?: string
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           paid_amount?: number | null
@@ -118,8 +128,10 @@ export type Database = {
           created_at?: string | null
           customer_name?: string
           customer_phone?: string | null
+          deleted_at?: string | null
           due_date?: string | null
           id?: string
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           paid_amount?: number | null
@@ -142,30 +154,36 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          deleted_at: string | null
           description: string | null
           expense_date: string
           expense_type: string
           id: string
+          is_deleted: boolean | null
           owner_id: string
           updated_at: string
         }
         Insert: {
           amount: number
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           expense_date?: string
           expense_type: string
           id?: string
+          is_deleted?: boolean | null
           owner_id: string
           updated_at?: string
         }
         Update: {
           amount?: number
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           expense_date?: string
           expense_type?: string
           id?: string
+          is_deleted?: boolean | null
           owner_id?: string
           updated_at?: string
         }
@@ -175,8 +193,10 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          deleted_at: string | null
           id: string
           installment_id: string
+          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           payment_date: string
@@ -184,8 +204,10 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          deleted_at?: string | null
           id?: string
           installment_id: string
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_date?: string
@@ -193,8 +215,10 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          deleted_at?: string | null
           id?: string
           installment_id?: string
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_date?: string
@@ -214,9 +238,11 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_phone: string | null
+          deleted_at: string | null
           frequency: string
           id: string
           installment_amount: number
+          is_deleted: boolean | null
           next_due_date: string | null
           notes: string | null
           owner_id: string | null
@@ -230,9 +256,11 @@ export type Database = {
           created_at?: string
           customer_name: string
           customer_phone?: string | null
+          deleted_at?: string | null
           frequency?: string
           id?: string
           installment_amount: number
+          is_deleted?: boolean | null
           next_due_date?: string | null
           notes?: string | null
           owner_id?: string | null
@@ -246,9 +274,11 @@ export type Database = {
           created_at?: string
           customer_name?: string
           customer_phone?: string | null
+          deleted_at?: string | null
           frequency?: string
           id?: string
           installment_amount?: number
+          is_deleted?: boolean | null
           next_due_date?: string | null
           notes?: string | null
           owner_id?: string | null
@@ -265,10 +295,12 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_phone: string | null
+          deleted_at: string | null
           description: string | null
           details: Json
           id: string
           image_url: string | null
+          is_deleted: boolean | null
           notes: string | null
           owner_id: string | null
           payment_amount: number
@@ -278,10 +310,12 @@ export type Database = {
           created_at?: string
           customer_name: string
           customer_phone?: string | null
+          deleted_at?: string | null
           description?: string | null
           details?: Json
           id?: string
           image_url?: string | null
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_amount: number
@@ -291,10 +325,12 @@ export type Database = {
           created_at?: string
           customer_name?: string
           customer_phone?: string | null
+          deleted_at?: string | null
           description?: string | null
           details?: Json
           id?: string
           image_url?: string | null
+          is_deleted?: boolean | null
           notes?: string | null
           owner_id?: string | null
           payment_amount?: number
@@ -306,8 +342,10 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           id: string
+          is_deleted: boolean | null
           name: string
           owner_id: string | null
           purchase_price: number
@@ -319,8 +357,10 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
+          is_deleted?: boolean | null
           name: string
           owner_id?: string | null
           purchase_price: number
@@ -332,8 +372,10 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
+          is_deleted?: boolean | null
           name?: string
           owner_id?: string | null
           purchase_price?: number
@@ -380,7 +422,9 @@ export type Database = {
       sale_items: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           id: string
+          is_deleted: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -392,7 +436,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
+          is_deleted?: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -404,7 +450,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
+          is_deleted?: boolean | null
           product_id?: string
           product_name?: string
           profit?: number
@@ -436,10 +484,12 @@ export type Database = {
           created_at: string | null
           customer_name: string | null
           customer_phone: string | null
+          deleted_at: string | null
           discount: number | null
           final_amount: number
           id: string
           invoice_number: string
+          is_deleted: boolean | null
           owner_id: string | null
           paid_amount: number | null
           payment_method: string | null
@@ -451,10 +501,12 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          deleted_at?: string | null
           discount?: number | null
           final_amount: number
           id?: string
           invoice_number: string
+          is_deleted?: boolean | null
           owner_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
@@ -466,10 +518,12 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          deleted_at?: string | null
           discount?: number | null
           final_amount?: number
           id?: string
           invoice_number?: string
+          is_deleted?: boolean | null
           owner_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
