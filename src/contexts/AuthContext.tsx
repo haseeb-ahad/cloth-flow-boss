@@ -145,9 +145,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasPermission = (feature: string, action: "view" | "create" | "edit" | "delete"): boolean => {
-    // For admins, check if super admin has set feature overrides
+    // For admins, check if super admin has set feature overrides via subscription plan
     if (userRole === "admin") {
-      // If there are feature overrides from super admin, use them
+      // If there are feature overrides from super admin (via plan), use them strictly
       if (adminFeatureOverrides.length > 0) {
         const override = adminFeatureOverrides.find(o => o.feature === feature);
         if (override) {
@@ -159,10 +159,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             default: return false;
           }
         }
-        // If feature not in overrides, default to false
+        // If feature not in overrides, default to false (feature not included in plan)
         return false;
       }
-      // No overrides set, admin has full access
+      // No overrides set means no plan assigned yet - admin has full access
       return true;
     }
 
