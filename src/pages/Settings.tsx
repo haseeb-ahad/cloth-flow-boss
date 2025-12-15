@@ -23,6 +23,7 @@ export default function Settings() {
     shop_name: "Your Shop Name",
     shop_address: "Your Shop Address Here",
     phone_numbers: ["+92-XXX-XXXXXXX"] as string[],
+    owner_names: ["Owner Name"] as string[],
     thank_you_message: "Thank You!",
     footer_message: "Get Well Soon",
   });
@@ -53,6 +54,7 @@ export default function Settings() {
           shop_name: data.shop_name || "Your Shop Name",
           shop_address: data.shop_address || "Your Shop Address Here",
           phone_numbers: data.phone_numbers || ["+92-XXX-XXXXXXX"],
+          owner_names: (data as any).owner_names || ["Owner Name"],
           thank_you_message: data.thank_you_message || "Thank You!",
           footer_message: data.footer_message || "Get Well Soon",
         });
@@ -100,9 +102,10 @@ export default function Settings() {
           shop_name: appSettings.shop_name,
           shop_address: appSettings.shop_address,
           phone_numbers: appSettings.phone_numbers,
+          owner_names: appSettings.owner_names,
           thank_you_message: appSettings.thank_you_message,
           footer_message: appSettings.footer_message,
-        })
+        } as any)
         .eq("id", (await supabase.from("app_settings").select("id").single()).data?.id);
 
       if (error) throw error;
@@ -414,6 +417,50 @@ export default function Settings() {
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Phone Number
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Owner Names</Label>
+              <div className="space-y-2">
+                {appSettings.owner_names.map((name, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={name}
+                      onChange={(e) => {
+                        const newNames = [...appSettings.owner_names];
+                        newNames[index] = e.target.value;
+                        setAppSettings({ ...appSettings, owner_names: newNames });
+                      }}
+                      disabled={loading || userRole !== "admin"}
+                      placeholder="e.g., Ameer Hamza Sadiq"
+                    />
+                    {appSettings.owner_names.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => {
+                          const newNames = appSettings.owner_names.filter((_, i) => i !== index);
+                          setAppSettings({ ...appSettings, owner_names: newNames });
+                        }}
+                        disabled={loading || userRole !== "admin"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAppSettings({ ...appSettings, owner_names: [...appSettings.owner_names, ""] })}
+                  disabled={loading || userRole !== "admin"}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Owner Name
                 </Button>
               </div>
             </div>

@@ -21,6 +21,7 @@ export type Database = {
           id: string
           language: string | null
           logo_url: string | null
+          owner_names: string[] | null
           phone_numbers: string[] | null
           shop_address: string | null
           shop_name: string | null
@@ -33,6 +34,7 @@ export type Database = {
           id?: string
           language?: string | null
           logo_url?: string | null
+          owner_names?: string[] | null
           phone_numbers?: string[] | null
           shop_address?: string | null
           shop_name?: string | null
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           language?: string | null
           logo_url?: string | null
+          owner_names?: string[] | null
           phone_numbers?: string[] | null
           shop_address?: string | null
           shop_name?: string | null

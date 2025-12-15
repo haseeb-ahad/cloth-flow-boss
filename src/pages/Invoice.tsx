@@ -87,6 +87,7 @@ const Invoice = () => {
     shop_name?: string;
     shop_address?: string;
     phone_numbers?: string[];
+    owner_names?: string[];
     thank_you_message?: string;
     footer_message?: string;
   }>({});
@@ -105,7 +106,7 @@ const Invoice = () => {
     try {
       const { data } = await supabase
         .from("app_settings")
-        .select("logo_url, shop_name, shop_address, phone_numbers, thank_you_message, footer_message")
+        .select("logo_url, shop_name, shop_address, phone_numbers, owner_names, thank_you_message, footer_message")
         .single();
       if (data) {
         setReceiptSettings({
@@ -113,6 +114,7 @@ const Invoice = () => {
           shop_name: data.shop_name,
           shop_address: data.shop_address,
           phone_numbers: data.phone_numbers,
+          owner_names: (data as any).owner_names,
           thank_you_message: data.thank_you_message,
           footer_message: data.footer_message,
         });

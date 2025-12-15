@@ -15,6 +15,7 @@ interface ReceiptSettings {
   shop_name?: string;
   shop_address?: string;
   phone_numbers?: string[];
+  owner_names?: string[];
   thank_you_message?: string;
   footer_message?: string;
 }
@@ -57,6 +58,7 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
     const shopName = settings?.shop_name || "Your Shop Name";
     const shopAddress = settings?.shop_address || "Your Shop Address Here";
     const phoneNumbers = settings?.phone_numbers || ["+92-XXX-XXXXXXX"];
+    const ownerNames = settings?.owner_names || ["Owner Name"];
     const thankYouMessage = settings?.thank_you_message || "Thank You!";
     const footerMessage = settings?.footer_message || "Get Well Soon";
     const logoUrl = settings?.logo_url;
@@ -236,8 +238,11 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
           )}
           <div className="shop-name">{shopName}</div>
           <div className="shop-address">{shopAddress}</div>
+          {ownerNames.map((name, index) => (
+            <div key={`name-${index}`} className="shop-phone" style={{ fontWeight: 500 }}>{name}</div>
+          ))}
           {phoneNumbers.map((phone, index) => (
-            <div key={index} className="shop-phone">Ph: {phone}</div>
+            <div key={`phone-${index}`} className="shop-phone">Ph: {phone}</div>
           ))}
         </div>
 
