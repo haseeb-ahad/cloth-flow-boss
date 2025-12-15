@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, RefreshCw, Users, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { exportCustomersToCSV, parseCustomersCSV } from "@/lib/csvExport";
-import { format } from "date-fns";
 
 interface CustomerWithTotals {
   name: string;
@@ -23,6 +23,7 @@ interface CustomerWithTotals {
 
 const Customers = () => {
   const { hasPermission, userRole } = useAuth();
+  const { formatDate } = useTimezone();
   
   // Permission checks - customers is primarily view-only, but we still track permissions
   const canCreate = userRole === "admin" || hasPermission("customers", "create");
@@ -275,7 +276,7 @@ const Customers = () => {
                       <TableCell>
                         {customer.oldest_unpaid_date ? (
                           <Badge variant="outline" className="text-destructive border-destructive">
-                            {format(new Date(customer.oldest_unpaid_date), "dd MMM yyyy")}
+                            {formatDate(customer.oldest_unpaid_date)}
                           </Badge>
                         ) : (
                           "-"
