@@ -88,10 +88,10 @@ const Credits = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate, formatDateInput } = useTimezone();
   
-  // Permission checks
-  const canCreate = userRole === "admin" || hasPermission("credits", "create");
-  const canEdit = userRole === "admin" || hasPermission("credits", "edit");
-  const canDelete = userRole === "admin" || hasPermission("credits", "delete");
+  // Permission checks - use hasPermission for both admins and workers
+  const canCreate = hasPermission("credits", "create");
+  const canEdit = hasPermission("credits", "edit");
+  const canDelete = hasPermission("credits", "delete");
   const [credits, setCredits] = useState<Credit[]>([]);
   const [filteredCredits, setFilteredCredits] = useState<Credit[]>([]);
   const [groupedCredits, setGroupedCredits] = useState<{ [key: string]: Credit[] }>({});

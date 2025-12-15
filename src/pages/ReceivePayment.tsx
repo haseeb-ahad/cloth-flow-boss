@@ -49,8 +49,8 @@ const ReceivePayment = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate, formatDateInput } = useTimezone();
   
-  // Permission checks - receive payment has its own permission
-  const canCreate = userRole === "admin" || hasPermission("receive_payment", "create");
+  // Permission checks - use hasPermission for both admins and workers
+  const canCreate = hasPermission("receive_payment", "create");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [paymentAmount, setPaymentAmount] = useState<string>("");

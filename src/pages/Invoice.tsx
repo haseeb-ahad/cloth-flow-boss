@@ -54,10 +54,10 @@ const Invoice = () => {
   const { timezone } = useTimezone();
   const editSaleId = searchParams.get("edit");
   
-  // Permission checks
-  const canCreate = userRole === "admin" || hasPermission("invoice", "create");
-  const canEdit = userRole === "admin" || hasPermission("invoice", "edit");
-  const canDelete = userRole === "admin" || hasPermission("invoice", "delete");
+  // Permission checks - use hasPermission for both admins and workers
+  const canCreate = hasPermission("invoice", "create");
+  const canEdit = hasPermission("invoice", "edit");
+  const canDelete = hasPermission("invoice", "delete");
   
   const [products, setProducts] = useState<Product[]>([]);
   const [items, setItems] = useState<InvoiceItem[]>([]);
