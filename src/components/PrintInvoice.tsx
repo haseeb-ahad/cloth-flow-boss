@@ -18,6 +18,8 @@ interface ReceiptSettings {
   owner_names?: string[];
   thank_you_message?: string;
   footer_message?: string;
+  worker_name?: string;
+  worker_phone?: string;
 }
 
 interface PrintInvoiceProps {
@@ -62,6 +64,8 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
     const thankYouMessage = settings?.thank_you_message || "Thank You!";
     const footerMessage = settings?.footer_message || "Get Well Soon";
     const logoUrl = settings?.logo_url;
+    const workerName = settings?.worker_name;
+    const workerPhone = settings?.worker_phone;
 
     return (
       <div ref={ref} className="print-invoice-container">
@@ -253,6 +257,9 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
           <div>Bill No: {invoiceNumber}</div>
           <div>Date: {formatDateTime(invoiceDate)}</div>
           {customerName && <div>Customer: {customerName}</div>}
+          {workerName && (
+            <div>Served By: {workerName}{workerPhone ? ` (${workerPhone})` : ""}</div>
+          )}
         </div>
 
         <div className="divider" />
