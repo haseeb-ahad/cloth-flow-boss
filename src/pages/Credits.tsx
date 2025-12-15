@@ -31,6 +31,8 @@ interface Credit {
   notes: string | null;
   created_at: string;
   invoice_number: string;
+  description?: string | null;
+  image_url?: string | null;
 }
 
 interface Product {
@@ -67,6 +69,8 @@ interface Sale {
   created_at: string;
   status: string;
   payment_status?: string;
+  description?: string | null;
+  image_url?: string | null;
 }
 
 interface PaymentRecord {
@@ -220,6 +224,8 @@ const Credits = () => {
           notes: null,
           created_at: sale.created_at || "",
           invoice_number: sale.invoice_number,
+          description: sale.description || null,
+          image_url: sale.image_url || null,
         }));
 
         setCredits(creditsFromSales);
@@ -964,6 +970,7 @@ const Credits = () => {
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right font-semibold">Remaining</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="text-center">Notes</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -981,6 +988,27 @@ const Credits = () => {
                               Rs. {credit.remaining_amount.toFixed(2)}
                             </TableCell>
                             <TableCell>{getStatusBadge(credit)}</TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                {credit.description && (
+                                  <span title={credit.description} className="cursor-help">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                  </span>
+                                )}
+                                {credit.image_url && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedImage(credit.image_url!);
+                                    }}
+                                    className="cursor-pointer hover:opacity-80"
+                                  >
+                                    <ImageIcon className="h-4 w-4 text-primary" />
+                                  </button>
+                                )}
+                                {!credit.description && !credit.image_url && "-"}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
