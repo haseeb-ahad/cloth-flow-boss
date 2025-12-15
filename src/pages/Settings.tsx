@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Upload, Settings as SettingsIcon, Globe, User } from "lucide-react";
+import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X } from "lucide-react";
 
 export default function Settings() {
   const { user, userRole } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [appSettings, setAppSettings] = useState({
     app_name: "Business Manager",
     language: "en",
@@ -106,16 +108,90 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setLoading(true);
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo size must be less than 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
     try {
-      // Upload to Supabase storage would go here
-      // For now, we'll just show a placeholder
-      toast.info("Logo upload feature will be implemented with storage bucket");
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("payment-images")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("payment-images")
+        .getPublicUrl(filePath);
+
+      const logoUrl = urlData.publicUrl;
+
+      // Update app_settings with logo URL
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("id")
+        .single();
+
+      if (settingsData) {
+        const { error: updateError } = await supabase
+          .from("app_settings")
+          .update({ logo_url: logoUrl })
+          .eq("id", settingsData.id);
+
+        if (updateError) throw updateError;
+      }
+
+      setAppSettings(prev => ({ ...prev, logo_url: logoUrl }));
+      toast.success("Logo uploaded successfully!");
     } catch (error: any) {
       console.error("Error uploading logo:", error);
       toast.error(error.message || "Failed to upload logo");
     } finally {
-      setLoading(false);
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (userRole !== "admin") {
+      toast.error("Only admins can remove logo");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("id")
+        .single();
+
+      if (settingsData) {
+        const { error: updateError } = await supabase
+          .from("app_settings")
+          .update({ logo_url: null })
+          .eq("id", settingsData.id);
+
+        if (updateError) throw updateError;
+      }
+
+      setAppSettings(prev => ({ ...prev, logo_url: "" }));
+      if (logoInputRef.current) {
+        logoInputRef.current.value = "";
+      }
+      toast.success("Logo removed successfully!");
+    } catch (error: any) {
+      console.error("Error removing logo:", error);
+      toast.error(error.message || "Failed to remove logo");
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -181,19 +257,57 @@ export default function Settings() {
 
             <div className="space-y-2">
               <Label htmlFor="logo">Upload Logo</Label>
-              <div className="flex items-center gap-4">
-                <Input
-                  id="logo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  disabled={loading || userRole !== "admin"}
-                  className="max-w-xs"
-                />
-                <Upload className="h-5 w-5 text-muted-foreground" />
+              <div className="flex flex-col gap-4">
+                {appSettings.logo_url ? (
+                  <div className="relative inline-block w-fit">
+                    <img 
+                      src={appSettings.logo_url} 
+                      alt="Business Logo" 
+                      className="h-24 w-24 rounded-lg border border-border object-contain bg-white"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={handleRemoveLogo}
+                      disabled={uploadingLogo || userRole !== "admin"}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <input
+                      id="logo"
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      disabled={uploadingLogo || userRole !== "admin"}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo || userRole !== "admin"}
+                      className="h-24 w-24 border-dashed"
+                    >
+                      {uploadingLogo ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Upload</span>
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
-                Recommended size: 200x200px (PNG or JPG)
+                Recommended size: 200x200px (PNG or JPG). This logo will appear on printed invoices.
               </p>
             </div>
 
