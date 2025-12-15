@@ -989,25 +989,42 @@ const Credits = () => {
                             </TableCell>
                             <TableCell>{getStatusBadge(credit)}</TableCell>
                             <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                {credit.description && (
-                                  <span title={credit.description} className="cursor-help">
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                  </span>
-                                )}
-                                {credit.image_url && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedImage(credit.image_url!);
-                                    }}
-                                    className="cursor-pointer hover:opacity-80"
-                                  >
-                                    <ImageIcon className="h-4 w-4 text-primary" />
-                                  </button>
-                                )}
-                                {!credit.description && !credit.image_url && "-"}
-                              </div>
+                              {(credit.description || credit.image_url) ? (
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <button className="cursor-pointer hover:opacity-80 p-1 rounded hover:bg-muted">
+                                      <FileText className="h-4 w-4 text-primary" />
+                                    </button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-md">
+                                    <DialogHeader>
+                                      <DialogTitle>Invoice notes</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      {credit.description && (
+                                        <div>
+                                          <Label className="text-sm font-medium">Description</Label>
+                                          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">
+                                            {credit.description}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {credit.image_url && (
+                                        <div>
+                                          <Label className="text-sm font-medium">Attached image</Label>
+                                          <img 
+                                            src={credit.image_url} 
+                                            alt="Invoice attachment" 
+                                            className="mt-2 w-full h-auto rounded-lg border"
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
