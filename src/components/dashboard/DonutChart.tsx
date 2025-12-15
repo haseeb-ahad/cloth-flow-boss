@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -12,6 +13,7 @@ interface DonutChartProps {
   title: string;
   subtitle: string;
   valuesHidden: boolean;
+  isLoading?: boolean;
 }
 
 const COLORS = ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#d1fae5"];
@@ -39,7 +41,8 @@ const CustomTooltip = ({ active, payload, valuesHidden }: any) => {
   return null;
 };
 
-const DonutChart = ({ data, title, subtitle, valuesHidden }: DonutChartProps) => {
+const DonutChart = ({ data, title, subtitle, valuesHidden, isLoading = false }: DonutChartProps) => {
+  const [isHovering, setIsHovering] = useState(false);
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const chartData = data.slice(0, 5).map((item, index) => ({
     ...item,
@@ -49,7 +52,7 @@ const DonutChart = ({ data, title, subtitle, valuesHidden }: DonutChartProps) =>
 
   if (!data || data.length === 0) {
     return (
-      <Card className="hover:shadow-lg transition-all duration-300 border-border/50">
+      <Card className="hover:shadow-lg transition-all duration-300 border-border/50 h-full">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
@@ -62,22 +65,26 @@ const DonutChart = ({ data, title, subtitle, valuesHidden }: DonutChartProps) =>
   }
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 border-border/50">
+    <Card className="hover:shadow-lg transition-all duration-300 border-border/50 h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </CardHeader>
       <CardContent className="pt-0 pb-4">
-        <div className="flex items-center gap-4">
-          <div className="h-[180px] w-[180px] flex-shrink-0">
+        <div 
+          className="flex flex-col items-center"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          <div className="h-[160px] w-[160px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
+                  innerRadius={45}
+                  outerRadius={70}
                   dataKey="value"
                   animationDuration={1000}
                   animationBegin={0}
@@ -92,11 +99,13 @@ const DonutChart = ({ data, title, subtitle, valuesHidden }: DonutChartProps) =>
                     />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} />} />
+                {!isLoading && isHovering && (
+                  <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} />} />
+                )}
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex-1 space-y-3">
+          <div className="w-full space-y-2 mt-4">
             {chartData.map((item, index) => {
               const percentage = ((item.value / total) * 100).toFixed(0);
               return (

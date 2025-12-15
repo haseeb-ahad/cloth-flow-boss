@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp } from "lucide-react";
 
 interface ChartData {
   date: string;
@@ -13,6 +13,7 @@ interface SalesAreaChartProps {
   title: string;
   subtitle: string;
   valuesHidden: boolean;
+  isLoading?: boolean;
 }
 
 const CustomTooltip = ({ active, payload, label, valuesHidden }: any) => {
@@ -38,7 +39,9 @@ const CustomTooltip = ({ active, payload, label, valuesHidden }: any) => {
   return null;
 };
 
-const SalesAreaChart = ({ data, title, subtitle, valuesHidden }: SalesAreaChartProps) => {
+const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false }: SalesAreaChartProps) => {
+  const [isHovering, setIsHovering] = useState(false);
+
   return (
     <Card className="hover:shadow-lg transition-all duration-300 border-border/50">
       <CardHeader className="pb-2">
@@ -60,7 +63,11 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden }: SalesAreaChartP
         </div>
       </CardHeader>
       <CardContent className="pt-2 pb-4">
-        <div className="h-[280px] w-full">
+        <div 
+          className="h-[280px] w-full"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart 
               data={data}
@@ -91,7 +98,12 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden }: SalesAreaChartP
                 axisLine={false}
                 tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
               />
-              <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} />} />
+              {!isLoading && isHovering && (
+                <Tooltip 
+                  content={<CustomTooltip valuesHidden={valuesHidden} />}
+                  cursor={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+                />
+              )}
               <Area 
                 type="monotone" 
                 dataKey="profit" 

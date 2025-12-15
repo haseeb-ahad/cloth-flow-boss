@@ -595,28 +595,32 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Charts Row 1 */}
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 w-full">
-          <SalesAreaChart
-            data={salesChartData}
-            title="Monthly Growth"
-            subtitle="Sales performance over time"
-            valuesHidden={valuesHidden}
-          />
-          <WeeklyBarChart
-            data={weeklyData}
-            title="Weekly Analytics"
-            subtitle="Sales performance by day"
-            valuesHidden={valuesHidden}
-          />
-        </div>
-
-        {/* Charts Row 2 */}
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 w-full">
+        {/* Charts Row 1 - Monthly Growth (2/3) + Category Pie (1/3) */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 w-full">
+          <div className="lg:col-span-2">
+            <SalesAreaChart
+              data={salesChartData}
+              title="Monthly Growth"
+              subtitle="Sales performance over time"
+              valuesHidden={valuesHidden}
+              isLoading={isLoading}
+            />
+          </div>
           <DonutChart
             data={categoryData}
             title="Sales by Category"
             subtitle="Distribution across categories"
+            valuesHidden={valuesHidden}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Charts Row 2 - Weekly + Products + Customers */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 w-full">
+          <WeeklyBarChart
+            data={weeklyData}
+            title="Weekly Analytics"
+            subtitle="Sales performance by day"
             valuesHidden={valuesHidden}
           />
           <TopProductsList
