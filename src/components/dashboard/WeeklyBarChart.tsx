@@ -64,7 +64,11 @@ const WeeklyBarChart = ({ data, title, subtitle, valuesHidden }: WeeklyBarChartP
                 axisLine={false}
                 tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
               />
-              <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} />} cursor={{ fill: 'transparent' }} />
+              <Tooltip
+                content={<CustomTooltip valuesHidden={valuesHidden} />}
+                cursor={{ fill: "transparent" }}
+                wrapperStyle={{ visibility: "hidden" }}
+              />
               <Bar 
                 dataKey="value" 
                 radius={[6, 6, 0, 0]}
