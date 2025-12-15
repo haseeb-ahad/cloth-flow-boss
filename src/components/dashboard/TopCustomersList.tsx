@@ -5,6 +5,7 @@ interface CustomerData {
   name: string;
   totalSpent: number;
   orders: number;
+  profit: number;
 }
 
 interface TopCustomersListProps {
@@ -20,6 +21,15 @@ const getInitials = (name: string) => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
   return name.slice(0, 2).toUpperCase();
+};
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("en-PK", {
+    style: "currency",
+    currency: "PKR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 };
 
 const AVATAR_COLORS = [
@@ -88,9 +98,11 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold text-foreground">
-                {valuesHidden ? "••••" : customer.orders}
+                {valuesHidden ? "••••••" : formatCurrency(customer.totalSpent)}
               </p>
-              <p className="text-xs text-muted-foreground">sales</p>
+              <p className="text-xs text-emerald-500 font-medium">
+                {valuesHidden ? "••••" : formatCurrency(customer.profit)} profit
+              </p>
             </div>
           </div>
         ))}

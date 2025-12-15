@@ -40,6 +40,7 @@ interface CustomerData {
   name: string;
   totalSpent: number;
   orders: number;
+  profit: number;
 }
 
 interface CategoryData {
@@ -370,7 +371,7 @@ const Dashboard = () => {
 
     const { data: sales } = await supabase
       .from("sales")
-      .select("customer_name, final_amount")
+      .select("id, customer_name, final_amount")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .not("customer_name", "is", null);
@@ -380,15 +381,32 @@ const Dashboard = () => {
       return;
     }
 
-    const customerMap: { [key: string]: { totalSpent: number; orders: number } } = {};
+    // Fetch sale items for profit calculation
+    const saleIds = sales.map(s => s.id);
+    const { data: saleItems } = await supabase
+      .from("sale_items")
+      .select("sale_id, profit")
+      .in("sale_id", saleIds);
+
+    // Map sale_id to profit
+    const saleProfitMap: { [key: string]: number } = {};
+    saleItems?.forEach((item) => {
+      if (!saleProfitMap[item.sale_id]) {
+        saleProfitMap[item.sale_id] = 0;
+      }
+      saleProfitMap[item.sale_id] += Number(item.profit);
+    });
+
+    const customerMap: { [key: string]: { totalSpent: number; orders: number; profit: number } } = {};
     
     sales.forEach((sale) => {
       const name = sale.customer_name || "Anonymous";
       if (!customerMap[name]) {
-        customerMap[name] = { totalSpent: 0, orders: 0 };
+        customerMap[name] = { totalSpent: 0, orders: 0, profit: 0 };
       }
       customerMap[name].totalSpent += Number(sale.final_amount);
       customerMap[name].orders += 1;
+      customerMap[name].profit += saleProfitMap[sale.id] || 0;
     });
 
     const topCustomersData = Object.entries(customerMap)
@@ -396,6 +414,7 @@ const Dashboard = () => {
         name,
         totalSpent: data.totalSpent,
         orders: data.orders,
+        profit: data.profit,
       }))
       .sort((a, b) => b.totalSpent - a.totalSpent);
 
