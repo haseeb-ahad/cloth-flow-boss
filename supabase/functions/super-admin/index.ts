@@ -126,6 +126,13 @@ serve(async (req) => {
       case "assign_subscription": {
         const { admin_id, plan_id, billing_cycle, amount_paid } = data;
         
+        // Get the plan features
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("features")
+          .eq("id", plan_id)
+          .single();
+
         // Check if admin already has a subscription
         const { data: existing } = await supabase
           .from("subscriptions")
@@ -140,8 +147,9 @@ serve(async (req) => {
           end_date = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
         }
 
+        let subscription;
         if (existing) {
-          const { data: subscription, error } = await supabase
+          const { data: subData, error } = await supabase
             .from("subscriptions")
             .update({
               plan_id,
@@ -156,11 +164,9 @@ serve(async (req) => {
             .single();
 
           if (error) throw error;
-          return new Response(JSON.stringify({ subscription }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          subscription = subData;
         } else {
-          const { data: subscription, error } = await supabase
+          const { data: subData, error } = await supabase
             .from("subscriptions")
             .insert({
               admin_id,
@@ -174,10 +180,38 @@ serve(async (req) => {
             .single();
 
           if (error) throw error;
-          return new Response(JSON.stringify({ subscription }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          subscription = subData;
         }
+
+        // Sync plan features to admin_feature_overrides
+        if (plan?.features) {
+          // Delete existing overrides
+          await supabase
+            .from("admin_feature_overrides")
+            .delete()
+            .eq("admin_id", admin_id);
+
+          // Insert new overrides based on plan features
+          const features = plan.features as Record<string, any>;
+          const overrideRecords = Object.entries(features).map(([feature, perms]: [string, any]) => ({
+            admin_id,
+            feature,
+            can_view: perms.view || false,
+            can_create: perms.create || false,
+            can_edit: perms.edit || false,
+            can_delete: perms.delete || false,
+          }));
+
+          if (overrideRecords.length > 0) {
+            await supabase
+              .from("admin_feature_overrides")
+              .insert(overrideRecords);
+          }
+        }
+
+        return new Response(JSON.stringify({ subscription }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       case "get_feature_overrides": {
