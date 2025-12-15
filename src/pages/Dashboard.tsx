@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PackageSearch, TrendingUp, CreditCard, DollarSign, ShoppingCart, CalendarIcon, RefreshCw, Eye, EyeOff } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Line, LineChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import KPICard from "@/components/dashboard/KPICard";
+import InteractiveAreaChart from "@/components/dashboard/InteractiveAreaChart";
+import TopProductsChart from "@/components/dashboard/TopProductsChart";
+import TopCustomersChart from "@/components/dashboard/TopCustomersChart";
+import CategoryPieChart from "@/components/dashboard/CategoryPieChart";
 
 interface DashboardStats {
   totalSales: number;
@@ -33,6 +34,29 @@ interface ProductSalesData {
   revenue: number;
 }
 
+interface CustomerData {
+  name: string;
+  totalSpent: number;
+  orders: number;
+}
+
+interface CategoryData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+const CATEGORY_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--info))",
+  "hsl(210, 70%, 60%)",
+  "hsl(280, 70%, 60%)",
+  "hsl(340, 70%, 60%)",
+];
+
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalSales: 0,
@@ -44,6 +68,13 @@ const Dashboard = () => {
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
+  const [topCustomers, setTopCustomers] = useState<CustomerData[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
+  const [sparklineData, setSparklineData] = useState<{
+    sales: { value: number }[];
+    profit: { value: number }[];
+    credit: { value: number }[];
+  }>({ sales: [], profit: [], credit: [] });
   const [dateRange, setDateRange] = useState("today");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -59,7 +90,13 @@ const Dashboard = () => {
 
   const handleRefresh = async () => {
     setIsLoading(true);
-    await Promise.all([fetchDashboardStats(), fetchChartData(), fetchTopProducts()]);
+    await Promise.all([
+      fetchDashboardStats(), 
+      fetchChartData(), 
+      fetchTopProducts(),
+      fetchTopCustomers(),
+      fetchCategoryData(),
+    ]);
     setIsLoading(false);
   };
 
@@ -70,7 +107,6 @@ const Dashboard = () => {
 
     switch (dateRange) {
       case "today":
-        // Get today's date at midnight UTC
         const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         start = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 0, 0, 0, 0));
         end = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 23, 59, 59, 999));
@@ -99,7 +135,7 @@ const Dashboard = () => {
         end = new Date(Date.UTC(yearEndUTC.getFullYear(), yearEndUTC.getMonth(), yearEndUTC.getDate(), 23, 59, 59, 999));
         break;
       case "grand":
-        start = new Date(0); // Beginning of time
+        start = new Date(0);
         const grandEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         end = new Date(Date.UTC(grandEndUTC.getFullYear(), grandEndUTC.getMonth(), grandEndUTC.getDate(), 23, 59, 59, 999));
         break;
@@ -128,7 +164,6 @@ const Dashboard = () => {
   const fetchDashboardStats = async () => {
     const { start, end } = getDateRangeFilter();
 
-    // Fetch sales data with date filter
     const { data: sales } = await supabase
       .from("sales")
       .select("id, final_amount")
@@ -136,10 +171,8 @@ const Dashboard = () => {
       .lte("created_at", end.toISOString());
     const totalSales = sales?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
     
-    // Get sale IDs from filtered sales
     const saleIds = sales?.map(sale => sale.id) || [];
 
-    // Fetch today's sales
     const today = new Date().toISOString().split('T')[0];
     const { data: todaySalesData } = await supabase
       .from("sales")
@@ -147,7 +180,6 @@ const Dashboard = () => {
       .gte("created_at", today);
     const todaySales = todaySalesData?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
 
-    // Fetch profit data using sale IDs from filtered sales
     let totalProfit = 0;
     let totalCost = 0;
     let totalPrice = 0;
@@ -163,7 +195,6 @@ const Dashboard = () => {
       totalPrice = saleItems?.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0) || 0;
     }
 
-    // Fetch credit data with date filter
     const { data: credits } = await supabase
       .from("credits")
       .select("remaining_amount, created_at")
@@ -191,14 +222,12 @@ const Dashboard = () => {
       .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
 
-    // Get sale IDs and create a map of sale_id to date
     const saleIds = sales?.map(sale => sale.id) || [];
     const saleDateMap: { [key: string]: string } = {};
     sales?.forEach(sale => {
       saleDateMap[sale.id] = new Date(sale.created_at!).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
     });
 
-    // Fetch sale items using sale IDs
     let saleItems: any[] = [];
     if (saleIds.length > 0) {
       const { data } = await supabase
@@ -208,7 +237,6 @@ const Dashboard = () => {
       saleItems = data || [];
     }
 
-    // Group by date
     const dataByDate: { [key: string]: { sales: number; profit: number } } = {};
     
     sales?.forEach((sale) => {
@@ -233,12 +261,36 @@ const Dashboard = () => {
     }));
 
     setSalesChartData(chartData);
+
+    // Generate sparkline data from chart data
+    const salesSparkline = chartData.map(d => ({ value: d.sales }));
+    const profitSparkline = chartData.map(d => ({ value: d.profit }));
+    
+    // Fetch credit data for sparkline
+    const { data: credits } = await supabase
+      .from("credits")
+      .select("remaining_amount, created_at")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
+      .order("created_at", { ascending: true });
+
+    const creditByDate: { [key: string]: number } = {};
+    credits?.forEach(credit => {
+      const date = new Date(credit.created_at!).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
+      creditByDate[date] = (creditByDate[date] || 0) + Number(credit.remaining_amount);
+    });
+    const creditSparkline = Object.values(creditByDate).map(v => ({ value: v }));
+
+    setSparklineData({
+      sales: salesSparkline,
+      profit: profitSparkline,
+      credit: creditSparkline,
+    });
   };
 
   const fetchTopProducts = async () => {
     const { start, end } = getDateRangeFilter();
 
-    // First get sales in the date range
     const { data: sales } = await supabase
       .from("sales")
       .select("id")
@@ -247,7 +299,6 @@ const Dashboard = () => {
 
     const saleIds = sales?.map(sale => sale.id) || [];
 
-    // Then get sale items for those sales
     let saleItems: any[] = [];
     if (saleIds.length > 0) {
       const { data } = await supabase
@@ -262,7 +313,6 @@ const Dashboard = () => {
       return;
     }
 
-    // Aggregate by product name
     const productMap: { [key: string]: { quantity: number; revenue: number } } = {};
     
     saleItems.forEach((item) => {
@@ -284,6 +334,72 @@ const Dashboard = () => {
     setTopProducts(topProductsData);
   };
 
+  const fetchTopCustomers = async () => {
+    const { start, end } = getDateRangeFilter();
+
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("customer_name, final_amount")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
+      .not("customer_name", "is", null);
+
+    if (!sales || sales.length === 0) {
+      setTopCustomers([]);
+      return;
+    }
+
+    const customerMap: { [key: string]: { totalSpent: number; orders: number } } = {};
+    
+    sales.forEach((sale) => {
+      const name = sale.customer_name || "Anonymous";
+      if (!customerMap[name]) {
+        customerMap[name] = { totalSpent: 0, orders: 0 };
+      }
+      customerMap[name].totalSpent += Number(sale.final_amount);
+      customerMap[name].orders += 1;
+    });
+
+    const topCustomersData = Object.entries(customerMap)
+      .map(([name, data]) => ({
+        name,
+        totalSpent: data.totalSpent,
+        orders: data.orders,
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent);
+
+    setTopCustomers(topCustomersData);
+  };
+
+  const fetchCategoryData = async () => {
+    const { data: products } = await supabase
+      .from("products")
+      .select("category")
+      .is("deleted_at", null);
+
+    if (!products || products.length === 0) {
+      setCategoryData([]);
+      return;
+    }
+
+    const categoryMap: { [key: string]: number } = {};
+    
+    products.forEach((product) => {
+      const category = product.category || "Uncategorized";
+      categoryMap[category] = (categoryMap[category] || 0) + 1;
+    });
+
+    const categoryChartData = Object.entries(categoryMap)
+      .map(([name, value], index) => ({
+        name,
+        value,
+        color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    setCategoryData(categoryChartData);
+  };
+
   const formatCurrency = (amount: number) => {
     if (valuesHidden) return "••••••";
     return new Intl.NumberFormat('en-PK', {
@@ -291,11 +407,6 @@ const Dashboard = () => {
       currency: 'PKR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
-
-  const formatNumber = (num: number) => {
-    if (valuesHidden) return "••••";
-    return num.toString();
   };
 
   const toggleValuesVisibility = () => {
@@ -328,6 +439,7 @@ const Dashboard = () => {
         </div>
       )}
       <div id="dashboard-content" className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Dashboard</h1>
@@ -366,258 +478,110 @@ const Dashboard = () => {
                 <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
-          {dateRange === "custom" && (
-            <>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !startDate && "text-muted-foreground")} disabled={isLoading}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    <span className="truncate">{startDate ? format(startDate, "PP") : "Start Date"}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full sm:w-[140px]", !endDate && "text-muted-foreground")} disabled={isLoading}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    <span className="truncate">{endDate ? format(endDate, "PP") : "End Date"}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </>
-          )}
-        </div>
+            {dateRange === "custom" && (
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full sm:w-[140px]", !startDate && "text-muted-foreground")} disabled={isLoading}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <span className="truncate">{startDate ? format(startDate, "PP") : "Start Date"}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full sm:w-[140px]", !endDate && "text-muted-foreground")} disabled={isLoading}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <span className="truncate">{endDate ? format(endDate, "PP") : "End Date"}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
+          </div>
         </div>
 
+        {/* KPI Cards with Sparklines */}
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Sale</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
-                <ShoppingCart className="h-5 w-5 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">{getDateRangeLabel()}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '150ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Profit</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stats.totalProfit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">{getDateRangeLabel()}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in" style={{ animationDelay: '200ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold tracking-wide">Credit</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center ring-4 ring-warning/5">
-                <CreditCard className="h-5 w-5 text-warning" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-bold text-warning tracking-tight">{formatCurrency(stats.totalCredit)}</div>
-              <p className="text-xs text-muted-foreground mt-1 font-medium">{getDateRangeLabel()}</p>
-            </CardContent>
-          </Card>
+          <KPICard
+            title="Sale"
+            value={formatCurrency(stats.totalSales)}
+            icon={ShoppingCart}
+            iconColor="text-primary"
+            iconBgColor="bg-primary/10"
+            sparklineData={sparklineData.sales}
+            sparklineColor="hsl(var(--primary))"
+            dateRangeLabel={getDateRangeLabel()}
+            animationDelay="100ms"
+            gradientId="salesSparkline"
+          />
+          <KPICard
+            title="Profit"
+            value={formatCurrency(stats.totalProfit)}
+            icon={TrendingUp}
+            iconColor="text-success"
+            iconBgColor="bg-success/10"
+            sparklineData={sparklineData.profit}
+            sparklineColor="hsl(var(--success))"
+            dateRangeLabel={getDateRangeLabel()}
+            animationDelay="150ms"
+            gradientId="profitSparkline"
+          />
+          <KPICard
+            title="Credit"
+            value={formatCurrency(stats.totalCredit)}
+            icon={CreditCard}
+            iconColor="text-warning"
+            iconBgColor="bg-warning/10"
+            sparklineData={sparklineData.credit}
+            sparklineColor="hsl(var(--warning))"
+            dateRangeLabel={getDateRangeLabel()}
+            animationDelay="200ms"
+            gradientId="creditSparkline"
+          />
         </div>
 
+        {/* Interactive Charts Row */}
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 w-full">
+          <InteractiveAreaChart
+            data={salesChartData}
+            title="Sales & Profit Trends"
+            dateRangeLabel={getDateRangeLabel()}
+            valuesHidden={valuesHidden}
+          />
+          <TopProductsChart
+            data={topProducts}
+            title="Top Products"
+            valuesHidden={valuesHidden}
+          />
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 w-full">
-        <Card className="hover:shadow-xl transition-all duration-300 border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Sales & Profit Trends
-            </CardTitle>
-            <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
-          </CardHeader>
-          <CardContent className="pb-6">
-            <ChartContainer
-              config={{
-                sales: {
-                  label: "Sales",
-                  color: "hsl(var(--primary))",
-                },
-                profit: {
-                  label: "Profit",
-                  color: "hsl(var(--success))",
-                },
-              }}
-              className="h-[350px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart 
-                  data={salesChartData}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-                >
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke="hsl(var(--border))" 
-                    strokeOpacity={0.5}
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    dy={5}
-                  />
-                   <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    dx={-5}
-                    tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
-                  />
-                  <ChartTooltip 
-                    content={<ChartTooltipContent />}
-                    cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="sales" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={3}
-                    dot={{ 
-                      fill: "hsl(var(--primary))", 
-                      strokeWidth: 2, 
-                      r: 4,
-                      stroke: "hsl(var(--card))"
-                    }}
-                    activeDot={{ 
-                      r: 6, 
-                      stroke: "hsl(var(--card))", 
-                      strokeWidth: 2,
-                      fill: "hsl(var(--primary))"
-                    }}
-                    fill="url(#colorSales)"
-                    animationDuration={1000}
-                    animationBegin={0}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="profit" 
-                    stroke="hsl(var(--success))" 
-                    strokeWidth={3}
-                    dot={{ 
-                      fill: "hsl(var(--success))", 
-                      strokeWidth: 2, 
-                      r: 4,
-                      stroke: "hsl(var(--card))"
-                    }}
-                    activeDot={{ 
-                      r: 6, 
-                      stroke: "hsl(var(--card))", 
-                      strokeWidth: 2,
-                      fill: "hsl(var(--success))"
-                    }}
-                    fill="url(#colorProfit)"
-                    animationDuration={1000}
-                    animationBegin={200}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-xl transition-all duration-300 border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <PackageSearch className="h-5 w-5 text-accent" />
-              All Products by Revenue ({topProducts.length})
-            </CardTitle>
-            <p className="text-sm text-muted-foreground font-medium">{getDateRangeLabel()}</p>
-          </CardHeader>
-          <CardContent className="pb-6">
-            <ChartContainer
-              config={{
-                revenue: {
-                  label: "Revenue",
-                  color: "hsl(var(--accent))",
-                },
-              }}
-              className="h-[350px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={topProducts}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 80 }}
-                >
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={1}/>
-                      <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.6}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke="hsl(var(--border))" 
-                    strokeOpacity={0.5}
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                   <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    dx={-5}
-                    tickFormatter={(value) => valuesHidden ? "•••" : `${(value / 1000).toFixed(0)}k`}
-                  />
-                  <ChartTooltip 
-                    content={<ChartTooltipContent />}
-                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
-                  />
-                  <Bar 
-                    dataKey="revenue" 
-                    fill="url(#colorRevenue)"
-                    radius={[8, 8, 0, 0]}
-                    animationDuration={800}
-                    animationBegin={0}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {/* Bottom Charts Row */}
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 w-full">
+          <TopCustomersChart
+            data={topCustomers}
+            title="Top Customers"
+            valuesHidden={valuesHidden}
+          />
+          <CategoryPieChart
+            data={categoryData}
+            title="Product Categories"
+            valuesHidden={valuesHidden}
+          />
+          <div className="lg:col-span-1">
+            {/* Revenue Bar Chart kept from original */}
+            <TopProductsChart
+              data={topProducts}
+              title="Revenue by Product"
+              valuesHidden={valuesHidden}
+            />
+          </div>
         </div>
       </div>
     </div>
