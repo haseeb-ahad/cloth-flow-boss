@@ -660,8 +660,8 @@ const Invoice = () => {
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
-    // Convert date to ISO string with time set to noon to avoid timezone issues
-    const invoiceDateISO = new Date(invoiceDate + 'T12:00:00').toISOString();
+    // Use actual current time for new invoices
+    const invoiceDateISO = new Date().toISOString();
 
     // Upload image if provided
     const uploadedImageUrl = await uploadImage();
