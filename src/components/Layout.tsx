@@ -65,18 +65,20 @@ const Layout = ({ children }: LayoutProps) => {
 
     // Filter items based on role and permissions
     return allItems.filter(item => {
-      // Admin sees everything
-      if (userRole === "admin") return true;
-      
       // Workers don't see admin-only items
-      if (item.adminOnly) return false;
+      if (userRole === "worker" && item.adminOnly) return false;
       
-      // Workers see items they have view permission for
+      // Check feature permissions for both admins and workers
       if (item.feature) {
         return hasPermission(item.feature, "view");
       }
       
-      // Non-feature items (settings) are visible to all
+      // Non-feature items (dashboard, settings, manage workers) follow admin-only rule
+      if (item.adminOnly) {
+        return userRole === "admin";
+      }
+      
+      // Settings is visible to all
       return true;
     });
   }, [userRole, hasPermission]);
