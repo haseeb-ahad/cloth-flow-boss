@@ -1,7 +1,8 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
@@ -22,9 +23,28 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+interface AppSettings {
+  app_name: string | null;
+  logo_url: string | null;
+}
+
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { userRole, signOut, user, hasPermission } = useAuth();
+  const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null });
+
+  useEffect(() => {
+    const fetchAppSettings = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("app_name, logo_url")
+        .single();
+      if (data) {
+        setAppSettings({ app_name: data.app_name, logo_url: data.logo_url });
+      }
+    };
+    fetchAppSettings();
+  }, []);
 
   const navItems = useMemo(() => {
     const allItems = [
@@ -65,11 +85,21 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="px-5">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-glow">
-                <Store className="h-5 w-5 text-primary-foreground" />
-              </div>
+              {appSettings.logo_url ? (
+                <img 
+                  src={appSettings.logo_url} 
+                  alt="Logo" 
+                  className="h-10 w-10 rounded-xl object-contain bg-white"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-glow">
+                  <Store className="h-5 w-5 text-primary-foreground" />
+                </div>
+              )}
               <div className="flex flex-col">
-                <span className="text-lg font-bold text-foreground">Cloth Shop Manager</span>
+                <span className="text-lg font-bold text-foreground">
+                  {appSettings.app_name || "Business Manager"}
+                </span>
                 <span className="text-xs text-muted-foreground">Business Management Suite</span>
               </div>
             </div>

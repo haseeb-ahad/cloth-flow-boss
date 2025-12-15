@@ -26,6 +26,8 @@ export default function Settings() {
     owner_names: ["Owner Name"] as string[],
     thank_you_message: "Thank You!",
     footer_message: "Get Well Soon",
+    worker_name: "",
+    worker_phone: "",
   });
   const [profile, setProfile] = useState({
     full_name: "",
@@ -57,6 +59,8 @@ export default function Settings() {
           owner_names: (data as any).owner_names || ["Owner Name"],
           thank_you_message: data.thank_you_message || "Thank You!",
           footer_message: data.footer_message || "Get Well Soon",
+          worker_name: (data as any).worker_name || "",
+          worker_phone: (data as any).worker_phone || "",
         });
       }
     } catch (error) {
@@ -105,6 +109,8 @@ export default function Settings() {
           owner_names: appSettings.owner_names,
           thank_you_message: appSettings.thank_you_message,
           footer_message: appSettings.footer_message,
+          worker_name: appSettings.worker_name,
+          worker_phone: appSettings.worker_phone,
         } as any)
         .eq("id", (await supabase.from("app_settings").select("id").single()).data?.id);
 
@@ -473,6 +479,28 @@ export default function Settings() {
                 onChange={(e) => setAppSettings({ ...appSettings, thank_you_message: e.target.value })}
                 disabled={loading || userRole !== "admin"}
                 placeholder="e.g., Thank You!"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="workerName">Worker Name (Shown on Receipt)</Label>
+              <Input
+                id="workerName"
+                value={appSettings.worker_name}
+                onChange={(e) => setAppSettings({ ...appSettings, worker_name: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., Muhammad Ali"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="workerPhone">Worker Phone (Shown on Receipt)</Label>
+              <Input
+                id="workerPhone"
+                value={appSettings.worker_phone}
+                onChange={(e) => setAppSettings({ ...appSettings, worker_phone: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., 0300-1234567"
               />
             </div>
 

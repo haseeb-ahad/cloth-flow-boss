@@ -103,29 +103,13 @@ const Invoice = () => {
   const itemsBeforeSaveRef = useRef<InvoiceItem[]>([]);
   const hasLoadedRef = useRef(false);
 
-  // Fetch receipt settings from app_settings and current user profile
+  // Fetch receipt settings from app_settings
   const fetchReceiptSettings = async () => {
     try {
       const { data } = await supabase
         .from("app_settings")
-        .select("logo_url, shop_name, shop_address, phone_numbers, owner_names, thank_you_message, footer_message")
+        .select("logo_url, shop_name, shop_address, phone_numbers, owner_names, thank_you_message, footer_message, worker_name, worker_phone")
         .single();
-      
-      // Fetch current user's profile for worker name/phone
-      let workerName = "";
-      let workerPhone = "";
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, phone_number")
-          .eq("user_id", user.id)
-          .single();
-        if (profile) {
-          workerName = profile.full_name || "";
-          workerPhone = profile.phone_number || "";
-        }
-      }
       
       if (data) {
         setReceiptSettings({
@@ -136,8 +120,8 @@ const Invoice = () => {
           owner_names: (data as any).owner_names,
           thank_you_message: data.thank_you_message,
           footer_message: data.footer_message,
-          worker_name: workerName,
-          worker_phone: workerPhone,
+          worker_name: (data as any).worker_name || "",
+          worker_phone: (data as any).worker_phone || "",
         });
       }
     } catch (error) {

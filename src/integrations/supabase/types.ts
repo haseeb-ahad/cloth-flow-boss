@@ -27,6 +27,8 @@ export type Database = {
           shop_name: string | null
           thank_you_message: string | null
           updated_at: string | null
+          worker_name: string | null
+          worker_phone: string | null
         }
         Insert: {
           app_name?: string | null
@@ -40,6 +42,8 @@ export type Database = {
           shop_name?: string | null
           thank_you_message?: string | null
           updated_at?: string | null
+          worker_name?: string | null
+          worker_phone?: string | null
         }
         Update: {
           app_name?: string | null
@@ -53,6 +57,8 @@ export type Database = {
           shop_name?: string | null
           thank_you_message?: string | null
           updated_at?: string | null
+          worker_name?: string | null
+          worker_phone?: string | null
         }
         Relationships: []
       }
