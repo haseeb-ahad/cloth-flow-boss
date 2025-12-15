@@ -243,6 +243,7 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
         <div className="bill-info">
           <div>Bill No: {invoiceNumber}</div>
           <div>Date: {formatDateTime(invoiceDate)}</div>
+          <div style={{ fontSize: '9px', color: '#888' }}>Timezone: {timezone}</div>
           {customerName && <div>Customer: {customerName}</div>}
           {workerName && (
             <div>Served By: {workerName}{workerPhone ? ` (${workerPhone})` : ""}</div>
