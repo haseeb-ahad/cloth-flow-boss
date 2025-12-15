@@ -1,0 +1,575 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Users,
+  Crown,
+  Settings,
+  CreditCard,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Search,
+  Filter,
+  Eye,
+  Pencil,
+  ToggleLeft,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { format } from "date-fns";
+
+interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone_number: string | null;
+  created_at: string;
+  store_name: string | null;
+  subscription: {
+    id: string;
+    status: string;
+    start_date: string;
+    end_date: string | null;
+    amount_paid: number;
+    billing_cycle: string;
+  } | null;
+  plan: {
+    id: string;
+    name: string;
+    features: Record<string, any>;
+  } | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  monthly_price: number;
+  yearly_price: number;
+  is_lifetime: boolean;
+}
+
+const FEATURES = ["invoice", "inventory", "customers", "sales", "credits", "reports", "staff"];
+const PERMISSIONS = ["view", "create", "edit", "delete"];
+
+const SuperAdminAdmins = () => {
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Dialog states
+  const [assignPlanDialog, setAssignPlanDialog] = useState(false);
+  const [featureOverrideDialog, setFeatureOverrideDialog] = useState(false);
+  const [paymentHistoryDialog, setPaymentHistoryDialog] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState("");
+  const [billingCycle, setBillingCycle] = useState("lifetime");
+  const [featureOverrides, setFeatureOverrides] = useState<Record<string, Record<string, boolean>>>({});
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("super-admin", {
+        body: { action: "get_all_admins" },
+      });
+      if (error) throw error;
+      setAdmins(data.admins || []);
+
+      const { data: plansData } = await supabase.functions.invoke("super-admin", {
+        body: { action: "get_all_plans" },
+      });
+      setPlans(plansData?.plans || []);
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      toast.error("Failed to fetch admins");
+    }
+    setIsLoading(false);
+  };
+
+  const handleAssignPlan = async () => {
+    if (!selectedAdmin || !selectedPlan) return;
+    setIsSaving(true);
+    try {
+      const plan = plans.find((p) => p.id === selectedPlan);
+      const amount = billingCycle === "yearly" ? plan?.yearly_price : plan?.monthly_price;
+
+      await supabase.functions.invoke("super-admin", {
+        body: {
+          action: "assign_subscription",
+          data: {
+            admin_id: selectedAdmin.id,
+            plan_id: selectedPlan,
+            billing_cycle: billingCycle,
+            amount_paid: amount || 0,
+          },
+        },
+      });
+      toast.success("Plan assigned successfully!");
+      setAssignPlanDialog(false);
+      fetchData();
+    } catch (error) {
+      console.error("Error assigning plan:", error);
+      toast.error("Failed to assign plan");
+    }
+    setIsSaving(false);
+  };
+
+  const handleOpenFeatureOverrides = async (admin: AdminUser) => {
+    setSelectedAdmin(admin);
+    
+    // Initialize with plan features or empty
+    const initialFeatures: Record<string, Record<string, boolean>> = {};
+    FEATURES.forEach((feature) => {
+      const planFeature = admin.plan?.features?.[feature] || {};
+      initialFeatures[feature] = {
+        view: planFeature.view || false,
+        create: planFeature.create || false,
+        edit: planFeature.edit || false,
+        delete: planFeature.delete || false,
+      };
+    });
+
+    // Fetch existing overrides
+    try {
+      const { data } = await supabase.functions.invoke("super-admin", {
+        body: { action: "get_feature_overrides", data: { admin_id: admin.id } },
+      });
+      if (data?.overrides) {
+        data.overrides.forEach((override: any) => {
+          initialFeatures[override.feature] = {
+            view: override.can_view,
+            create: override.can_create,
+            edit: override.can_edit,
+            delete: override.can_delete,
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching overrides:", error);
+    }
+
+    setFeatureOverrides(initialFeatures);
+    setFeatureOverrideDialog(true);
+  };
+
+  const handleSaveFeatureOverrides = async () => {
+    if (!selectedAdmin) return;
+    setIsSaving(true);
+    try {
+      await supabase.functions.invoke("super-admin", {
+        body: {
+          action: "update_feature_overrides",
+          data: { admin_id: selectedAdmin.id, features: featureOverrides },
+        },
+      });
+      toast.success("Feature permissions updated!");
+      setFeatureOverrideDialog(false);
+    } catch (error) {
+      console.error("Error saving overrides:", error);
+      toast.error("Failed to save permissions");
+    }
+    setIsSaving(false);
+  };
+
+  const handleViewPayments = async (admin: AdminUser) => {
+    setSelectedAdmin(admin);
+    try {
+      const { data } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("admin_id", admin.id)
+        .order("created_at", { ascending: false });
+      setPayments(data || []);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+    }
+    setPaymentHistoryDialog(true);
+  };
+
+  const filteredAdmins = admins.filter((admin) => {
+    const matchesSearch =
+      admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.store_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const status = admin.subscription?.status || "free";
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (admin: AdminUser) => {
+    const status = admin.subscription?.status || "free";
+    const configs: Record<string, { className: string; icon: React.ElementType; label: string }> = {
+      active: { className: "bg-emerald-100 text-emerald-700", icon: CheckCircle2, label: "Active" },
+      expired: { className: "bg-red-100 text-red-700", icon: XCircle, label: "Expired" },
+      free: { className: "bg-blue-100 text-blue-700", icon: Crown, label: "Free" },
+      cancelled: { className: "bg-slate-100 text-slate-700", icon: Clock, label: "Cancelled" },
+    };
+    const config = configs[status] || configs.free;
+    const Icon = config.icon;
+    return (
+      <Badge className={config.className}>
+        <Icon className="w-3 h-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  return (
+    <Card className="border-0 shadow-sm bg-white">
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-500" />
+              Store Admins Management
+            </CardTitle>
+            <CardDescription>Manage all registered store administrators</CardDescription>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search admins..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-64 h-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32 h-9">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="free">Free</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          </div>
+        ) : filteredAdmins.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            <Users className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+            <p className="text-lg font-medium">No Store Admins Found</p>
+            <p className="text-sm">Store admins will appear here after they sign up</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Admin</TableHead>
+                  <TableHead>Store Name</TableHead>
+                  <TableHead>Current Plan</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Amount Paid</TableHead>
+                  <TableHead>Subscription</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAdmins.map((admin) => (
+                  <TableRow key={admin.id} className="group">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+                          {(admin.full_name || admin.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {admin.full_name || "Unnamed"}
+                          </p>
+                          <p className="text-sm text-slate-500">{admin.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600">
+                      {admin.store_name || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-slate-100">
+                        {admin.plan?.name || "No Plan"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(admin)}</TableCell>
+                    <TableCell className="text-slate-600">
+                      Rs {(admin.subscription?.amount_paid || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {admin.subscription?.start_date ? (
+                        <div>
+                          <span>{format(new Date(admin.subscription.start_date), "MMM d, yyyy")}</span>
+                          {admin.subscription.end_date && (
+                            <>
+                              <span className="mx-1">→</span>
+                              <span>{format(new Date(admin.subscription.end_date), "MMM d, yyyy")}</span>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setSelectedAdmin(admin);
+                            setAssignPlanDialog(true);
+                          }}
+                        >
+                          <Crown className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 hover:bg-purple-50 hover:text-purple-600"
+                          onClick={() => handleOpenFeatureOverrides(admin)}
+                        >
+                          <ToggleLeft className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 hover:bg-emerald-50 hover:text-emerald-600"
+                          onClick={() => handleViewPayments(admin)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+
+      {/* Assign Plan Dialog */}
+      <Dialog open={assignPlanDialog} onOpenChange={setAssignPlanDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-amber-500" />
+              Assign Plan
+            </DialogTitle>
+            <DialogDescription>
+              Assign a subscription plan to {selectedAdmin?.full_name || selectedAdmin?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Plan</Label>
+              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} {plan.is_lifetime ? "(Lifetime)" : `- Rs ${plan.monthly_price}/mo`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Billing Cycle</Label>
+              <Select value={billingCycle} onValueChange={setBillingCycle}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lifetime">Lifetime (Free)</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignPlanDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignPlan}
+              disabled={!selectedPlan || isSaving}
+              className="bg-gradient-to-r from-blue-500 to-purple-600"
+            >
+              {isSaving ? "Assigning..." : "Assign Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feature Override Dialog */}
+      <Dialog open={featureOverrideDialog} onOpenChange={setFeatureOverrideDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ToggleLeft className="w-5 h-5 text-purple-500" />
+              Feature Permissions
+            </DialogTitle>
+            <DialogDescription>
+              Override feature permissions for {selectedAdmin?.full_name || selectedAdmin?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="font-semibold">Feature</TableHead>
+                    {PERMISSIONS.map((perm) => (
+                      <TableHead key={perm} className="text-center capitalize font-semibold">
+                        {perm}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {FEATURES.map((feature) => (
+                    <TableRow key={feature}>
+                      <TableCell className="font-medium capitalize">{feature}</TableCell>
+                      {PERMISSIONS.map((perm) => (
+                        <TableCell key={perm} className="text-center">
+                          <Switch
+                            checked={featureOverrides[feature]?.[perm] || false}
+                            onCheckedChange={(checked) => {
+                              setFeatureOverrides((prev) => ({
+                                ...prev,
+                                [feature]: { ...prev[feature], [perm]: checked },
+                              }));
+                            }}
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFeatureOverrideDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveFeatureOverrides}
+              disabled={isSaving}
+              className="bg-gradient-to-r from-blue-500 to-purple-600"
+            >
+              {isSaving ? "Saving..." : "Save Permissions"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment History Dialog */}
+      <Dialog open={paymentHistoryDialog} onOpenChange={setPaymentHistoryDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-emerald-500" />
+              Payment History
+            </DialogTitle>
+            <DialogDescription>
+              Payment history for {selectedAdmin?.full_name || selectedAdmin?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {payments.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <CreditCard className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                <p>No payments found</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {payments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between p-4 rounded-xl bg-slate-50"
+                  >
+                    <div>
+                      <p className="font-medium">Rs {payment.amount.toLocaleString()}</p>
+                      <p className="text-sm text-slate-500">
+                        {format(new Date(payment.created_at), "MMM d, yyyy 'at' h:mm a")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="capitalize">
+                        {payment.payment_method}
+                      </Badge>
+                      <Badge
+                        className={
+                          payment.status === "success"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : payment.status === "failed"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-amber-100 text-amber-700"
+                        }
+                      >
+                        {payment.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
+export default SuperAdminAdmins;
