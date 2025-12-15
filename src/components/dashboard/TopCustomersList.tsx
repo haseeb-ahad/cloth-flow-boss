@@ -131,9 +131,9 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
         {topData.map((customer, index) => (
           <div 
             key={index} 
-            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors gap-3"
+            className="flex items-center p-3 rounded-lg hover:bg-muted/30 transition-colors gap-3"
           >
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
               <div className={`h-10 w-10 rounded-full ${AVATAR_COLORS[index % AVATAR_COLORS.length]} flex items-center justify-center text-white text-sm font-medium flex-shrink-0`}>
                 {getInitials(customer.name)}
               </div>
@@ -146,10 +146,12 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
                 </p>
               </div>
             </div>
-            <CustomerSparkline 
-              color={CHART_COLORS[index % CHART_COLORS.length]} 
-              seed={index + 1} 
-            />
+            <div className="flex-1 flex justify-center">
+              <CustomerSparkline 
+                color={CHART_COLORS[index % CHART_COLORS.length]} 
+                seed={index + 1} 
+              />
+            </div>
             <div className="text-right flex-shrink-0">
               <p className="text-sm font-semibold text-foreground">
                 {valuesHidden ? "••••••" : formatCurrency(customer.totalSpent)}
