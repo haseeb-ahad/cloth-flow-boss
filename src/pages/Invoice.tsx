@@ -1079,28 +1079,6 @@ const Invoice = () => {
 
   return (
     <div className="space-y-6">
-      {/* Invoice Header with Contact Info and Logo */}
-      <Card className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-3">
-            <div>
-              <p className="font-semibold text-foreground">Ameer Hamza Sadiq</p>
-              <p className="text-sm text-muted-foreground">0303 7370346</p>
-              <p className="text-sm text-muted-foreground">0310 6570056</p>
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">Ameer Abbas Sadiq</p>
-            </div>
-          </div>
-          <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-muted border border-border overflow-hidden">
-            {receiptSettings.logo_url ? (
-              <img src={receiptSettings.logo_url} alt="Business Logo" className="h-full w-full object-contain" />
-            ) : (
-              <Store className="h-10 w-10 text-muted-foreground" />
-            )}
-          </div>
-        </div>
-      </Card>
 
       <div className="flex items-center gap-4">
         {editSaleId && (
