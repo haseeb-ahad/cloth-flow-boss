@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -7,11 +8,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import KPICard from "@/components/dashboard/KPICard";
-import InteractiveAreaChart from "@/components/dashboard/InteractiveAreaChart";
-import TopProductsChart from "@/components/dashboard/TopProductsChart";
-import TopCustomersChart from "@/components/dashboard/TopCustomersChart";
-import CategoryPieChart from "@/components/dashboard/CategoryPieChart";
+import MiniSparkline from "@/components/dashboard/MiniSparkline";
+import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
+import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
+import DonutChart from "@/components/dashboard/DonutChart";
+import TopProductsList from "@/components/dashboard/TopProductsList";
+import TopCustomersList from "@/components/dashboard/TopCustomersList";
 
 interface DashboardStats {
   totalSales: number;
@@ -46,16 +48,10 @@ interface CategoryData {
   color: string;
 }
 
-const CATEGORY_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--accent))",
-  "hsl(var(--success))",
-  "hsl(var(--warning))",
-  "hsl(var(--info))",
-  "hsl(210, 70%, 60%)",
-  "hsl(280, 70%, 60%)",
-  "hsl(340, 70%, 60%)",
-];
+interface WeeklyData {
+  day: string;
+  value: number;
+}
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
@@ -67,6 +63,7 @@ const Dashboard = () => {
     totalPrice: 0,
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
+  const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSalesData[]>([]);
   const [topCustomers, setTopCustomers] = useState<CustomerData[]>([]);
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
@@ -96,6 +93,7 @@ const Dashboard = () => {
       fetchTopProducts(),
       fetchTopCustomers(),
       fetchCategoryData(),
+      fetchWeeklyData(),
     ]);
     setIsLoading(false);
   };
@@ -288,6 +286,39 @@ const Dashboard = () => {
     });
   };
 
+  const fetchWeeklyData = async () => {
+    const now = new Date();
+    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+    
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("created_at, final_amount")
+      .gte("created_at", weekAgo.toISOString())
+      .order("created_at", { ascending: true });
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dataByDay: { [key: string]: number } = {};
+    
+    // Initialize all days with 0
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekAgo);
+      d.setDate(weekAgo.getDate() + i);
+      dataByDay[days[d.getDay()]] = 0;
+    }
+
+    sales?.forEach((sale) => {
+      const day = days[new Date(sale.created_at!).getDay()];
+      dataByDay[day] = (dataByDay[day] || 0) + Number(sale.final_amount);
+    });
+
+    const weekly = Object.entries(dataByDay).map(([day, value]) => ({
+      day,
+      value,
+    }));
+
+    setWeeklyData(weekly);
+  };
+
   const fetchTopProducts = async () => {
     const { start, end } = getDateRangeFilter();
 
@@ -390,10 +421,10 @@ const Dashboard = () => {
     });
 
     const categoryChartData = Object.entries(categoryMap)
-      .map(([name, value], index) => ({
+      .map(([name, value]) => ({
         name,
         value,
-        color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+        color: "",
       }))
       .sort((a, b) => b.value - a.value);
 
@@ -419,10 +450,10 @@ const Dashboard = () => {
     switch (dateRange) {
       case "today": return "Today";
       case "yesterday": return "Yesterday";
-      case "1week": return "1 Week";
-      case "1month": return "1 Month";
-      case "1year": return "1 Year";
-      case "grand": return "All Time (Grand Report)";
+      case "1week": return "This Week";
+      case "1month": return "This Month";
+      case "1year": return "This Year";
+      case "grand": return "All Time";
       case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom Range";
       default: return "Today";
     }
@@ -433,7 +464,7 @@ const Dashboard = () => {
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto"></div>
             <p className="text-muted-foreground text-lg">Loading dashboard...</p>
           </div>
         </div>
@@ -451,7 +482,7 @@ const Dashboard = () => {
               variant="outline" 
               size="icon"
               title={valuesHidden ? "Show values" : "Hide values"}
-              className="hover:bg-primary hover:text-primary-foreground transition-colors shrink-0"
+              className="hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-colors shrink-0"
             >
               {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
@@ -460,7 +491,7 @@ const Dashboard = () => {
               variant="outline" 
               size="icon"
               disabled={isLoading}
-              className="hover:bg-primary hover:text-primary-foreground transition-colors shrink-0"
+              className="hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-colors shrink-0"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
@@ -507,81 +538,99 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* KPI Cards with Sparklines */}
+        {/* KPI Cards with Mini Sparklines */}
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
-          <KPICard
-            title="Sale"
-            value={formatCurrency(stats.totalSales)}
-            icon={ShoppingCart}
-            iconColor="text-primary"
-            iconBgColor="bg-primary/10"
-            sparklineData={sparklineData.sales}
-            sparklineColor="hsl(var(--primary))"
-            dateRangeLabel={getDateRangeLabel()}
-            animationDelay="100ms"
-            gradientId="salesSparkline"
-          />
-          <KPICard
-            title="Profit"
-            value={formatCurrency(stats.totalProfit)}
-            icon={TrendingUp}
-            iconColor="text-success"
-            iconBgColor="bg-success/10"
-            sparklineData={sparklineData.profit}
-            sparklineColor="hsl(var(--success))"
-            dateRangeLabel={getDateRangeLabel()}
-            animationDelay="150ms"
-            gradientId="profitSparkline"
-          />
-          <KPICard
-            title="Credit"
-            value={formatCurrency(stats.totalCredit)}
-            icon={CreditCard}
-            iconColor="text-warning"
-            iconBgColor="bg-warning/10"
-            sparklineData={sparklineData.credit}
-            sparklineColor="hsl(var(--warning))"
-            dateRangeLabel={getDateRangeLabel()}
-            animationDelay="200ms"
-            gradientId="creditSparkline"
-          />
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '100ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Sale</CardTitle>
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ShoppingCart className="h-5 w-5 text-emerald-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
+                </div>
+                <MiniSparkline data={sparklineData.sales} color="#10b981" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '150ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Profit</CardTitle>
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-5 w-5 text-emerald-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold text-emerald-500 tracking-tight">{formatCurrency(stats.totalProfit)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
+                </div>
+                <MiniSparkline data={sparklineData.profit} color="#34d399" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '200ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credit</CardTitle>
+              <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CreditCard className="h-5 w-5 text-orange-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold text-orange-500 tracking-tight">{formatCurrency(stats.totalCredit)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
+                </div>
+                <MiniSparkline data={sparklineData.credit} color="#f97316" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Interactive Charts Row */}
+        {/* Charts Row 1 */}
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 w-full">
-          <InteractiveAreaChart
+          <SalesAreaChart
             data={salesChartData}
-            title="Sales & Profit Trends"
-            dateRangeLabel={getDateRangeLabel()}
+            title="Monthly Growth"
+            subtitle="Sales performance over time"
             valuesHidden={valuesHidden}
           />
-          <TopProductsChart
-            data={topProducts}
-            title="Top Products"
+          <WeeklyBarChart
+            data={weeklyData}
+            title="Weekly Analytics"
+            subtitle="Sales performance by day"
             valuesHidden={valuesHidden}
           />
         </div>
 
-        {/* Bottom Charts Row */}
+        {/* Charts Row 2 */}
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 w-full">
-          <TopCustomersChart
+          <DonutChart
+            data={categoryData}
+            title="Sales by Category"
+            subtitle="Distribution across categories"
+            valuesHidden={valuesHidden}
+          />
+          <TopProductsList
+            data={topProducts}
+            title="Top Selling Products"
+            subtitle="Best performers this period"
+            valuesHidden={valuesHidden}
+          />
+          <TopCustomersList
             data={topCustomers}
             title="Top Customers"
+            subtitle="Customer activity this period"
             valuesHidden={valuesHidden}
           />
-          <CategoryPieChart
-            data={categoryData}
-            title="Product Categories"
-            valuesHidden={valuesHidden}
-          />
-          <div className="lg:col-span-1">
-            {/* Revenue Bar Chart kept from original */}
-            <TopProductsChart
-              data={topProducts}
-              title="Revenue by Product"
-              valuesHidden={valuesHidden}
-            />
-          </div>
         </div>
       </div>
     </div>
