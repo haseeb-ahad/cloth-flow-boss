@@ -74,7 +74,7 @@ export function formatDateInTimezone(
         options.hour = "2-digit";
         options.minute = "2-digit";
         options.second = "2-digit";
-        options.hour12 = false;
+        options.hour12 = true;
         break;
       case "time":
         options.hour = "2-digit";
