@@ -17,23 +17,38 @@ export type Database = {
       app_settings: {
         Row: {
           app_name: string | null
+          footer_message: string | null
           id: string
           language: string | null
           logo_url: string | null
+          phone_numbers: string[] | null
+          shop_address: string | null
+          shop_name: string | null
+          thank_you_message: string | null
           updated_at: string | null
         }
         Insert: {
           app_name?: string | null
+          footer_message?: string | null
           id?: string
           language?: string | null
           logo_url?: string | null
+          phone_numbers?: string[] | null
+          shop_address?: string | null
+          shop_name?: string | null
+          thank_you_message?: string | null
           updated_at?: string | null
         }
         Update: {
           app_name?: string | null
+          footer_message?: string | null
           id?: string
           language?: string | null
           logo_url?: string | null
+          phone_numbers?: string[] | null
+          shop_address?: string | null
+          shop_name?: string | null
+          thank_you_message?: string | null
           updated_at?: string | null
         }
         Relationships: []
