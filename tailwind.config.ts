@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -64,19 +67,33 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+          muted: "hsl(var(--sidebar-muted))",
+        },
+        pastel: {
+          blue: "hsl(var(--pastel-blue))",
+          purple: "hsl(var(--pastel-purple))",
+          pink: "hsl(var(--pastel-pink))",
+          yellow: "hsl(var(--pastel-yellow))",
+          green: "hsl(var(--pastel-green))",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "var(--radius-lg)",
+        "2xl": "var(--radius-xl)",
       },
       boxShadow: {
+        xs: "var(--shadow-xs)",
         sm: "var(--shadow-sm)",
         md: "var(--shadow-md)",
         lg: "var(--shadow-lg)",
         xl: "var(--shadow-xl)",
         glow: "var(--shadow-glow)",
+        "glow-accent": "var(--shadow-glow-accent)",
+        card: "var(--shadow-card)",
+        "card-hover": "var(--shadow-card-hover)",
       },
       keyframes: {
         "accordion-down": {
@@ -88,12 +105,12 @@ export default {
           to: { height: "0", opacity: "0" },
         },
         "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "fade-out": {
           "0%": { opacity: "1", transform: "translateY(0)" },
-          "100%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "0", transform: "translateY(8px)" },
         },
         "scale-in": {
           "0%": { transform: "scale(0.95)", opacity: "0" },
@@ -120,18 +137,26 @@ export default {
           "100%": { transform: "translateX(-100%)" },
         },
         shimmer: {
-          "0%": { backgroundPosition: "-1000px 0" },
-          "100%": { backgroundPosition: "1000px 0" },
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
         pulse: {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.5" },
         },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
+        glow: {
+          "0%, 100%": { opacity: "0.5" },
+          "50%": { opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
         "accordion-up": "accordion-up 0.3s ease-out",
-        "fade-in": "fade-in 0.3s ease-out",
+        "fade-in": "fade-in 0.4s ease-out",
         "fade-out": "fade-out 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "scale-out": "scale-out 0.2s ease-out",
@@ -141,9 +166,12 @@ export default {
         "slide-out-left": "slide-out-left 0.3s ease-out",
         shimmer: "shimmer 2s linear infinite",
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        float: "float 3s ease-in-out infinite",
+        glow: "glow 2s ease-in-out infinite",
       },
       transitionTimingFunction: {
         "bounce-in": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "smooth": "cubic-bezier(0.4, 0, 0.2, 1)",
       },
     },
   },
