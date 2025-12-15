@@ -553,7 +553,7 @@ const Dashboard = () => {
                   <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
                   <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
-                <MiniSparkline data={sparklineData.sales} color="#10b981" />
+                <MiniSparkline data={sparklineData.sales} color="#10b981" id="sales" />
               </div>
             </CardContent>
           </Card>
@@ -571,7 +571,7 @@ const Dashboard = () => {
                   <div className="text-2xl sm:text-3xl font-bold text-emerald-500 tracking-tight">{formatCurrency(stats.totalProfit)}</div>
                   <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
-                <MiniSparkline data={sparklineData.profit} color="#34d399" />
+                <MiniSparkline data={sparklineData.profit} color="#34d399" id="profit" />
               </div>
             </CardContent>
           </Card>
@@ -589,7 +589,7 @@ const Dashboard = () => {
                   <div className="text-2xl sm:text-3xl font-bold text-orange-500 tracking-tight">{formatCurrency(stats.totalCredit)}</div>
                   <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
-                <MiniSparkline data={sparklineData.credit} color="#f97316" />
+                <MiniSparkline data={sparklineData.credit} color="#f97316" id="credit" />
               </div>
             </CardContent>
           </Card>
