@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_feature_overrides: {
+        Row: {
+          admin_id: string
+          can_create: boolean | null
+          can_delete: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
+          created_at: string
+          feature: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string
+          feature: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string
+          feature?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           app_name: string | null
@@ -365,6 +401,98 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          admin_id: string
+          amount: number
+          card_last_four: string | null
+          created_at: string
+          id: string
+          invoice_url: string | null
+          notes: string | null
+          payment_method: string
+          status: string
+          subscription_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          admin_id: string
+          amount: number
+          card_last_four?: string | null
+          created_at?: string
+          id?: string
+          invoice_url?: string | null
+          notes?: string | null
+          payment_method: string
+          status?: string
+          subscription_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          admin_id?: string
+          amount?: number
+          card_last_four?: string | null
+          created_at?: string
+          id?: string
+          invoice_url?: string | null
+          notes?: string | null
+          payment_method?: string
+          status?: string
+          subscription_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_months: number
+          features: Json
+          id: string
+          is_active: boolean | null
+          is_lifetime: boolean | null
+          monthly_price: number
+          name: string
+          updated_at: string
+          yearly_price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_months?: number
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          is_lifetime?: boolean | null
+          monthly_price?: number
+          name: string
+          updated_at?: string
+          yearly_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_months?: number
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          is_lifetime?: boolean | null
+          monthly_price?: number
+          name?: string
+          updated_at?: string
+          yearly_price?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
@@ -565,6 +693,86 @@ export type Database = {
           total_amount?: number
         }
         Relationships: []
+      }
+      store_info: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          store_address: string | null
+          store_name: string | null
+          store_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          store_address?: string | null
+          store_name?: string | null
+          store_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          store_address?: string | null
+          store_name?: string | null
+          store_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          admin_id: string
+          amount_paid: number | null
+          auto_renew: boolean | null
+          billing_cycle: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          plan_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          amount_paid?: number | null
+          auto_renew?: boolean | null
+          billing_cycle?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          plan_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          amount_paid?: number | null
+          auto_renew?: boolean | null
+          billing_cycle?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          plan_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
