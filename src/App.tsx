@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TimezoneProvider } from "./contexts/TimezoneContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import SuperAdminRoute from "./components/SuperAdminRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -21,6 +22,8 @@ import ReceivePayment from "./pages/ReceivePayment";
 import Expenses from "./pages/Expenses";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
+import SuperAdminLogin from "./pages/SuperAdminLogin";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +36,10 @@ const App = () => (
         <AuthProvider>
           <TimezoneProvider>
             <Routes>
+              {/* Super Admin routes */}
+              <Route path="/super-admin-login" element={<SuperAdminLogin />} />
+              <Route path="/super-admin" element={<SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute>} />
+
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
