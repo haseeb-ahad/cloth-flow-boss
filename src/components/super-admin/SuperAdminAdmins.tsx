@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +30,6 @@ import {
 import {
   Users,
   Crown,
-  Settings,
   CreditCard,
   CheckCircle2,
   XCircle,
@@ -39,8 +37,6 @@ import {
   Search,
   Filter,
   Eye,
-  Pencil,
-  ToggleLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -76,19 +72,6 @@ interface Plan {
   is_lifetime: boolean;
 }
 
-const FEATURES = ["invoice", "inventory", "sales", "credits", "customers", "expenses", "receive_payment"];
-const PERMISSIONS = ["view", "create", "edit", "delete"];
-
-const FEATURE_LABELS: Record<string, string> = {
-  invoice: "Invoice",
-  inventory: "Inventory",
-  sales: "Sales",
-  credits: "Credits",
-  customers: "Customers",
-  expenses: "Expenses",
-  receive_payment: "Receive Payment",
-};
-
 const SuperAdminAdmins = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -98,12 +81,10 @@ const SuperAdminAdmins = () => {
 
   // Dialog states
   const [assignPlanDialog, setAssignPlanDialog] = useState(false);
-  const [featureOverrideDialog, setFeatureOverrideDialog] = useState(false);
   const [paymentHistoryDialog, setPaymentHistoryDialog] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
   const [selectedPlan, setSelectedPlan] = useState("");
   const [billingCycle, setBillingCycle] = useState("lifetime");
-  const [featureOverrides, setFeatureOverrides] = useState<Record<string, Record<string, boolean>>>({});
   const [payments, setPayments] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -155,63 +136,6 @@ const SuperAdminAdmins = () => {
     } catch (error) {
       console.error("Error assigning plan:", error);
       toast.error("Failed to assign plan");
-    }
-    setIsSaving(false);
-  };
-
-  const handleOpenFeatureOverrides = async (admin: AdminUser) => {
-    setSelectedAdmin(admin);
-    
-    // Initialize with plan features or empty
-    const initialFeatures: Record<string, Record<string, boolean>> = {};
-    FEATURES.forEach((feature) => {
-      const planFeature = admin.plan?.features?.[feature] || {};
-      initialFeatures[feature] = {
-        view: planFeature.view || false,
-        create: planFeature.create || false,
-        edit: planFeature.edit || false,
-        delete: planFeature.delete || false,
-      };
-    });
-
-    // Fetch existing overrides
-    try {
-      const { data } = await supabase.functions.invoke("super-admin", {
-        body: { action: "get_feature_overrides", data: { admin_id: admin.id } },
-      });
-      if (data?.overrides) {
-        data.overrides.forEach((override: any) => {
-          initialFeatures[override.feature] = {
-            view: override.can_view,
-            create: override.can_create,
-            edit: override.can_edit,
-            delete: override.can_delete,
-          };
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching overrides:", error);
-    }
-
-    setFeatureOverrides(initialFeatures);
-    setFeatureOverrideDialog(true);
-  };
-
-  const handleSaveFeatureOverrides = async () => {
-    if (!selectedAdmin) return;
-    setIsSaving(true);
-    try {
-      await supabase.functions.invoke("super-admin", {
-        body: {
-          action: "update_feature_overrides",
-          data: { admin_id: selectedAdmin.id, features: featureOverrides },
-        },
-      });
-      toast.success("Feature permissions updated!");
-      setFeatureOverrideDialog(false);
-    } catch (error) {
-      console.error("Error saving overrides:", error);
-      toast.error("Failed to save permissions");
     }
     setIsSaving(false);
   };
@@ -375,22 +299,16 @@ const SuperAdminAdmins = () => {
                             setSelectedAdmin(admin);
                             setAssignPlanDialog(true);
                           }}
+                          title="Assign Plan"
                         >
                           <Crown className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 px-2 hover:bg-purple-50 hover:text-purple-600"
-                          onClick={() => handleOpenFeatureOverrides(admin)}
-                        >
-                          <ToggleLeft className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
                           className="h-8 px-2 hover:bg-emerald-50 hover:text-emerald-600"
                           onClick={() => handleViewPayments(admin)}
+                          title="Payment History"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -456,69 +374,6 @@ const SuperAdminAdmins = () => {
               className="bg-gradient-to-r from-blue-500 to-purple-600"
             >
               {isSaving ? "Assigning..." : "Assign Plan"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Feature Override Dialog */}
-      <Dialog open={featureOverrideDialog} onOpenChange={setFeatureOverrideDialog}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ToggleLeft className="w-5 h-5 text-purple-500" />
-              Feature Permissions
-            </DialogTitle>
-            <DialogDescription>
-              Override feature permissions for {selectedAdmin?.full_name || selectedAdmin?.email}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">Feature</TableHead>
-                    {PERMISSIONS.map((perm) => (
-                      <TableHead key={perm} className="text-center capitalize font-semibold">
-                        {perm}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {FEATURES.map((feature) => (
-                    <TableRow key={feature}>
-                      <TableCell className="font-medium">{FEATURE_LABELS[feature] || feature}</TableCell>
-                      {PERMISSIONS.map((perm) => (
-                        <TableCell key={perm} className="text-center">
-                          <Switch
-                            checked={featureOverrides[feature]?.[perm] || false}
-                            onCheckedChange={(checked) => {
-                              setFeatureOverrides((prev) => ({
-                                ...prev,
-                                [feature]: { ...prev[feature], [perm]: checked },
-                              }));
-                            }}
-                          />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFeatureOverrideDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveFeatureOverrides}
-              disabled={isSaving}
-              className="bg-gradient-to-r from-blue-500 to-purple-600"
-            >
-              {isSaving ? "Saving..." : "Save Permissions"}
             </Button>
           </DialogFooter>
         </DialogContent>
