@@ -41,13 +41,14 @@ interface LayoutProps {
 interface AppSettings {
   app_name: string | null;
   logo_url: string | null;
+  description: string | null;
 }
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { userRole, signOut, user, hasPermission } = useAuth();
   const { timezone } = useTimezone();
-  const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null });
+  const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null, description: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -55,10 +56,10 @@ const Layout = ({ children }: LayoutProps) => {
     const fetchAppSettings = async () => {
       const { data } = await supabase
         .from("app_settings")
-        .select("app_name, logo_url")
+        .select("app_name, logo_url, description")
         .single();
       if (data) {
-        setAppSettings({ app_name: data.app_name, logo_url: data.logo_url });
+        setAppSettings({ app_name: data.app_name, logo_url: data.logo_url, description: (data as any).description });
       }
     };
     fetchAppSettings();
@@ -125,10 +126,12 @@ const Layout = ({ children }: LayoutProps) => {
                   <span className="text-sm font-semibold text-foreground truncate max-w-[140px]">
                     {appSettings.app_name || "Business Manager"}
                   </span>
-                  <div className="flex items-center gap-1">
-                    <Sparkles className="h-3 w-3 text-accent" />
-                    <span className="text-[10px] text-muted-foreground">Pro Suite</span>
-                  </div>
+                  {appSettings.description && (
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-accent" />
+                      <span className="text-[10px] text-muted-foreground">{appSettings.description}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
