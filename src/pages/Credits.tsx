@@ -790,31 +790,6 @@ const Credits = () => {
           <p className="text-muted-foreground mt-1 text-base">Track customer loans and payments</p>
         </div>
         <div className="flex gap-3">
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".csv"
-            onChange={handleImportCSV}
-            className="hidden"
-          />
-          {canCreate && (
-            <Button 
-              onClick={() => fileInputRef.current?.click()} 
-              variant="outline"
-              disabled={isLoading || isImporting}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? "Importing..." : "Import CSV"}
-            </Button>
-          )}
-          <Button 
-            onClick={() => exportCreditsToCSV(filteredCredits)} 
-            variant="outline"
-            disabled={isLoading || filteredCredits.length === 0}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
           <Button 
             onClick={fetchCredits} 
             variant="outline" 
