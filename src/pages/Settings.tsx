@@ -384,50 +384,6 @@ export default function Settings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Phone Numbers</Label>
-              <div className="space-y-2">
-                {appSettings.phone_numbers.map((phone, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={phone}
-                      onChange={(e) => {
-                        const newPhones = [...appSettings.phone_numbers];
-                        newPhones[index] = e.target.value;
-                        setAppSettings({ ...appSettings, phone_numbers: newPhones });
-                      }}
-                      disabled={loading || userRole !== "admin"}
-                      placeholder="e.g., +92-XXX-XXXXXXX"
-                    />
-                    {appSettings.phone_numbers.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => {
-                          const newPhones = appSettings.phone_numbers.filter((_, i) => i !== index);
-                          setAppSettings({ ...appSettings, phone_numbers: newPhones });
-                        }}
-                        disabled={loading || userRole !== "admin"}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAppSettings({ ...appSettings, phone_numbers: [...appSettings.phone_numbers, ""] })}
-                  disabled={loading || userRole !== "admin"}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Phone Number
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <Label>Owner Names</Label>
               <div className="space-y-2">
                 {appSettings.owner_names.map((name, index) => (
