@@ -1,0 +1,124 @@
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface CategoryData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface DonutChartProps {
+  data: CategoryData[];
+  title: string;
+  subtitle: string;
+  valuesHidden: boolean;
+}
+
+const COLORS = ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#d1fae5"];
+
+const CustomTooltip = ({ active, payload, valuesHidden }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const total = payload[0].payload.total || 100;
+    const percentage = ((data.value / total) * 100).toFixed(0);
+    return (
+      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: data.payload.fill }}
+          />
+          <span className="text-sm font-semibold text-foreground">{data.name}</span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          {valuesHidden ? "••••" : `${data.value} items (${percentage}%)`}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const DonutChart = ({ data, title, subtitle, valuesHidden }: DonutChartProps) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const chartData = data.slice(0, 5).map((item, index) => ({
+    ...item,
+    color: COLORS[index % COLORS.length],
+    total,
+  }));
+
+  if (!data || data.length === 0) {
+    return (
+      <Card className="hover:shadow-lg transition-all duration-300 border-border/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[280px]">
+          <p className="text-muted-foreground text-sm">No data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="hover:shadow-lg transition-all duration-300 border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
+      </CardHeader>
+      <CardContent className="pt-0 pb-4">
+        <div className="flex items-center gap-4">
+          <div className="h-[180px] w-[180px] flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  dataKey="value"
+                  animationDuration={1000}
+                  animationBegin={0}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.color}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex-1 space-y-3">
+            {chartData.map((item, index) => {
+              const percentage = ((item.value / total) * 100).toFixed(0);
+              return (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full" 
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-sm text-foreground">{item.name}</span>
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {valuesHidden ? "••" : `${percentage}%`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default DonutChart;
