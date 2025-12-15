@@ -595,15 +595,14 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Charts Row 1 - Monthly Growth (2/3) + Category Pie (1/3) */}
+        {/* Charts Row 1 - Weekly Analytics (2/3) + Category Pie (1/3) */}
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 w-full">
           <div className="lg:col-span-2">
-            <SalesAreaChart
-              data={salesChartData}
-              title="Monthly Growth"
-              subtitle="Sales performance over time"
+            <WeeklyBarChart
+              data={weeklyData}
+              title="Weekly Analytics"
+              subtitle="Sales performance by day"
               valuesHidden={valuesHidden}
-              isLoading={isLoading}
             />
           </div>
           <DonutChart
@@ -615,14 +614,8 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Charts Row 2 - Weekly + Products + Customers */}
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 w-full">
-          <WeeklyBarChart
-            data={weeklyData}
-            title="Weekly Analytics"
-            subtitle="Sales performance by day"
-            valuesHidden={valuesHidden}
-          />
+        {/* Charts Row 2 - Products + Customers */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 w-full">
           <TopProductsList
             data={topProducts}
             title="Top Selling Products"
