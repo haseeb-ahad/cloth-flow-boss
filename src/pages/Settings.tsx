@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X } from "lucide-react";
+import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X, Receipt, Plus, Trash2 } from "lucide-react";
 
 export default function Settings() {
   const { user, userRole } = useAuth();
@@ -19,6 +20,11 @@ export default function Settings() {
     app_name: "Business Manager",
     language: "en",
     logo_url: "",
+    shop_name: "Your Shop Name",
+    shop_address: "Your Shop Address Here",
+    phone_numbers: ["+92-XXX-XXXXXXX"] as string[],
+    thank_you_message: "Thank You!",
+    footer_message: "Get Well Soon",
   });
   const [profile, setProfile] = useState({
     full_name: "",
@@ -44,6 +50,11 @@ export default function Settings() {
           app_name: data.app_name || "Business Manager",
           language: data.language || "en",
           logo_url: data.logo_url || "",
+          shop_name: data.shop_name || "Your Shop Name",
+          shop_address: data.shop_address || "Your Shop Address Here",
+          phone_numbers: data.phone_numbers || ["+92-XXX-XXXXXXX"],
+          thank_you_message: data.thank_you_message || "Thank You!",
+          footer_message: data.footer_message || "Get Well Soon",
         });
       }
     } catch (error) {
@@ -86,6 +97,11 @@ export default function Settings() {
         .update({
           app_name: appSettings.app_name,
           language: appSettings.language,
+          shop_name: appSettings.shop_name,
+          shop_address: appSettings.shop_address,
+          phone_numbers: appSettings.phone_numbers,
+          thank_you_message: appSettings.thank_you_message,
+          footer_message: appSettings.footer_message,
         })
         .eq("id", (await supabase.from("app_settings").select("id").single()).data?.id);
 
@@ -226,10 +242,14 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">
             <SettingsIcon className="mr-2 h-4 w-4" />
             General
+          </TabsTrigger>
+          <TabsTrigger value="receipt">
+            <Receipt className="mr-2 h-4 w-4" />
+            Receipt
           </TabsTrigger>
           <TabsTrigger value="language">
             <Globe className="mr-2 h-4 w-4" />
@@ -322,6 +342,115 @@ export default function Settings() {
                 </>
               ) : (
                 "Save General Settings"
+              )}
+            </Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="receipt" className="space-y-4">
+          <Card className="p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Receipt Settings</h2>
+            <p className="text-sm text-muted-foreground">Configure how your printed receipts/invoices will appear</p>
+
+            <div className="space-y-2">
+              <Label htmlFor="shopName">Shop Name</Label>
+              <Input
+                id="shopName"
+                value={appSettings.shop_name}
+                onChange={(e) => setAppSettings({ ...appSettings, shop_name: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., MJY Medical Pharmacy"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="shopAddress">Shop Address</Label>
+              <Input
+                id="shopAddress"
+                value={appSettings.shop_address}
+                onChange={(e) => setAppSettings({ ...appSettings, shop_address: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., Your Shop Address Here"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Phone Numbers</Label>
+              <div className="space-y-2">
+                {appSettings.phone_numbers.map((phone, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={phone}
+                      onChange={(e) => {
+                        const newPhones = [...appSettings.phone_numbers];
+                        newPhones[index] = e.target.value;
+                        setAppSettings({ ...appSettings, phone_numbers: newPhones });
+                      }}
+                      disabled={loading || userRole !== "admin"}
+                      placeholder="e.g., +92-XXX-XXXXXXX"
+                    />
+                    {appSettings.phone_numbers.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => {
+                          const newPhones = appSettings.phone_numbers.filter((_, i) => i !== index);
+                          setAppSettings({ ...appSettings, phone_numbers: newPhones });
+                        }}
+                        disabled={loading || userRole !== "admin"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAppSettings({ ...appSettings, phone_numbers: [...appSettings.phone_numbers, ""] })}
+                  disabled={loading || userRole !== "admin"}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Phone Number
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="thankYouMessage">Thank You Message</Label>
+              <Input
+                id="thankYouMessage"
+                value={appSettings.thank_you_message}
+                onChange={(e) => setAppSettings({ ...appSettings, thank_you_message: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., Thank You!"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="footerMessage">Footer Message</Label>
+              <Input
+                id="footerMessage"
+                value={appSettings.footer_message}
+                onChange={(e) => setAppSettings({ ...appSettings, footer_message: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., Get Well Soon"
+              />
+            </div>
+
+            <Button
+              onClick={handleSaveGeneralSettings}
+              disabled={loading || userRole !== "admin"}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Receipt Settings"
               )}
             </Button>
           </Card>

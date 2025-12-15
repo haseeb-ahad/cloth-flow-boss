@@ -10,6 +10,15 @@ interface InvoiceItem {
   quantity_type: string;
 }
 
+interface ReceiptSettings {
+  logo_url?: string | null;
+  shop_name?: string;
+  shop_address?: string;
+  phone_numbers?: string[];
+  thank_you_message?: string;
+  footer_message?: string;
+}
+
 interface PrintInvoiceProps {
   invoiceNumber: string;
   customerName: string;
@@ -18,27 +27,39 @@ interface PrintInvoiceProps {
   items: InvoiceItem[];
   discount: number;
   finalAmount: number;
-  logoUrl?: string | null;
+  paidAmount: number;
+  settings?: ReceiptSettings;
 }
 
 const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
-  ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, logoUrl }, ref) => {
+  ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, paidAmount, settings }, ref) => {
     // Calculate totals
-    const total = items.reduce((sum, item) => sum + item.total_price, 0);
+    const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
+    const dueAmount = finalAmount - (paidAmount || 0);
 
-    // Format date for display
-    const formatDate = (dateStr: string) => {
+    // Format date and time for display
+    const formatDateTime = (dateStr: string) => {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('ur-PK', { 
+      const dateFormatted = date.toLocaleDateString('en-GB', { 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit' 
       });
+      const timeFormatted = date.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      return `${dateFormatted}, ${timeFormatted}`;
     };
 
-    // Generate empty rows to fill the table
-    const emptyRowsCount = Math.max(0, 15 - items.length);
-    const emptyRows = Array(emptyRowsCount).fill(null);
+    const shopName = settings?.shop_name || "Your Shop Name";
+    const shopAddress = settings?.shop_address || "Your Shop Address Here";
+    const phoneNumbers = settings?.phone_numbers || ["+92-XXX-XXXXXXX"];
+    const thankYouMessage = settings?.thank_you_message || "Thank You!";
+    const footerMessage = settings?.footer_message || "Get Well Soon";
+    const logoUrl = settings?.logo_url;
 
     return (
       <div ref={ref} className="print-invoice-container">
@@ -46,8 +67,8 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
           {`
             @media print {
               @page {
-                size: A4;
-                margin: 10mm;
+                size: 80mm auto;
+                margin: 2mm;
               }
               
               body * {
@@ -75,284 +96,207 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
             }
             
             .print-invoice-container {
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Urdu Typesetting', Arial, sans-serif;
-              direction: rtl;
+              font-family: 'Courier New', Courier, monospace;
               background: white;
-              padding: 15px;
-              max-width: 210mm;
+              padding: 10px;
+              max-width: 80mm;
               margin: 0 auto;
-            }
-            
-            .invoice-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              margin-bottom: 10px;
-              padding-bottom: 5px;
-            }
-            
-            .header-left {
-              text-align: left;
-              direction: ltr;
-            }
-            
-            .header-left .owner-name {
-              font-size: 16px;
-              font-weight: bold;
-              color: #c00;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
-            }
-            
-            .header-left .phone {
-              font-size: 14px;
-              color: #000;
-              font-weight: bold;
-            }
-            
-            .header-center {
-              text-align: center;
-              flex: 1;
-            }
-            
-            .header-center .business-name {
-              font-size: 36px;
-              font-weight: bold;
-              color: #c00;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
-            }
-            
-            .header-center .tagline {
               font-size: 12px;
-              color: #00008B;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
+              color: #333;
             }
             
-            .header-center .sub-name {
-              font-size: 18px;
-              color: #c00;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
+            .receipt-header {
+              text-align: center;
+              margin-bottom: 10px;
             }
             
-            .header-right {
-              text-align: right;
-            }
-            
-            .header-right .logo {
+            .receipt-logo {
               width: 60px;
               height: 60px;
               object-fit: contain;
+              margin: 0 auto 8px;
+              display: block;
             }
             
-            .red-banner {
-              background: #c00;
-              color: white;
-              text-align: center;
-              padding: 8px;
-              font-size: 14px;
-              margin-bottom: 10px;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
+            .shop-name {
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 2px;
             }
             
-            .customer-info {
+            .shop-address {
+              font-size: 11px;
+              color: #666;
+              margin-bottom: 2px;
+            }
+            
+            .shop-phone {
+              font-size: 11px;
+              margin-bottom: 2px;
+            }
+            
+            .divider {
+              border-top: 1px dashed #ccc;
+              margin: 8px 0;
+            }
+            
+            .bill-info {
+              font-size: 11px;
+              text-align: left;
+              margin-bottom: 8px;
+            }
+            
+            .bill-info-row {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 10px;
-              border-bottom: 1px solid #000;
-              padding-bottom: 8px;
             }
             
-            .customer-info-item {
+            .items-header {
               display: flex;
-              align-items: center;
-              gap: 10px;
-              font-size: 14px;
+              justify-content: space-between;
+              font-size: 11px;
+              border-bottom: 1px dashed #ccc;
+              padding-bottom: 4px;
+              margin-bottom: 4px;
             }
             
-            .customer-info-label {
-              font-weight: bold;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
+            .items-header span:first-child {
+              flex: 2;
             }
             
-            .customer-info-value {
-              min-width: 150px;
-              border-bottom: 1px dotted #000;
+            .items-header span:last-child {
+              flex: 1;
+              text-align: right;
             }
             
-            .invoice-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 10px;
+            .item-row {
+              margin-bottom: 6px;
             }
             
-            .invoice-table th {
-              background: #00008B;
-              color: white;
-              padding: 8px 10px;
-              text-align: center;
-              font-size: 14px;
-              font-weight: bold;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
+            .item-name {
+              font-size: 11px;
+              font-weight: 500;
             }
             
-            .invoice-table td {
-              border: 1px solid #c00;
-              padding: 6px 10px;
-              text-align: center;
-              font-size: 13px;
-              min-height: 28px;
-              height: 28px;
+            .item-details {
+              font-size: 10px;
+              color: #666;
+              text-align: right;
             }
             
-            .invoice-table .item-row td {
-              background: white;
-            }
-            
-            .invoice-table .empty-row td {
-              background: white;
+            .totals-section {
+              margin-top: 10px;
+              border-top: 1px dashed #ccc;
+              padding-top: 8px;
             }
             
             .total-row {
-              background: #f0f0f0;
-            }
-            
-            .total-row td {
-              font-weight: bold;
-              font-size: 14px;
-            }
-            
-            .total-label {
-              background: #00008B !important;
-              color: white !important;
-            }
-            
-            .footer-terms {
-              background: #00008B;
-              color: white;
-              padding: 8px;
-              font-size: 11px;
-              text-align: center;
-              margin-top: 10px;
-              font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial, sans-serif;
-            }
-            
-            .footer-address {
               display: flex;
               justify-content: space-between;
-              padding: 10px 0;
-              font-size: 12px;
-              border-top: 1px solid #000;
-              margin-top: 10px;
+              font-size: 11px;
+              margin-bottom: 4px;
             }
             
-            .signature-line {
-              border-top: 1px solid #000;
-              width: 150px;
+            .grand-total {
+              font-size: 18px;
+              font-weight: bold;
               text-align: center;
-              padding-top: 5px;
+              margin: 10px 0;
+              color: #1a5f7a;
+            }
+            
+            .payment-info {
+              text-align: right;
+              font-size: 11px;
+            }
+            
+            .footer-section {
+              text-align: center;
+              margin-top: 15px;
+              border-top: 1px dashed #ccc;
+              padding-top: 10px;
+            }
+            
+            .thank-you {
+              font-size: 12px;
+              margin-bottom: 2px;
+            }
+            
+            .footer-message {
+              font-size: 11px;
+              color: #666;
             }
           `}
         </style>
 
-        {/* Header */}
-        <div className="invoice-header">
-          {/* Left side - Contact info */}
-          <div className="header-left">
-            <div className="owner-name">امیر حمزہ صادق</div>
-            <div className="phone">0303-7370346</div>
-            <div className="phone">0310-6570056</div>
-            <div className="owner-name" style={{ marginTop: '8px' }}>امیر عباس صادق</div>
-            <div className="phone">0306-7751905</div>
-          </div>
-          
-          {/* Center - Business name and tagline */}
-          <div className="header-center">
-            <div className="tagline">جنس وارنٹی کا اعلیٰ مرکز</div>
-            <div className="business-name">اُم زہ</div>
-            <div className="sub-name">کلاتھ اینڈ کٹ پیس پوائنٹ</div>
-          </div>
-          
-          {/* Right side - Logo */}
-          <div className="header-right">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Business Logo" className="logo" />
-            ) : (
-              <div style={{ width: '60px', height: '60px', border: '1px solid #ccc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '10px', color: '#666' }}>Logo</span>
-              </div>
-            )}
-          </div>
+        {/* Header with Logo */}
+        <div className="receipt-header">
+          {logoUrl && (
+            <img src={logoUrl} alt="Business Logo" className="receipt-logo" />
+          )}
+          <div className="shop-name">{shopName}</div>
+          <div className="shop-address">{shopAddress}</div>
+          {phoneNumbers.map((phone, index) => (
+            <div key={index} className="shop-phone">Ph: {phone}</div>
+          ))}
         </div>
 
-        {/* Red Banner */}
-        <div className="red-banner">
-          ہماری ہاں ہر قسم کے کپڑے کی وارنٹی دستیاب ہے۔
-          موسم کے مطابق ہر وارنٹی بازار سے بارعایت خرید یں۔
+        <div className="divider" />
+
+        {/* Bill Info */}
+        <div className="bill-info">
+          <div>Bill No: {invoiceNumber}</div>
+          <div>Date: {formatDateTime(invoiceDate)}</div>
+          {customerName && <div>Customer: {customerName}</div>}
         </div>
 
-        {/* Customer Info */}
-        <div className="customer-info">
-          <div className="customer-info-item">
-            <span className="customer-info-label">نام خریدار</span>
-            <span className="customer-info-value">{customerName || '____________________'}</span>
-          </div>
-          <div className="customer-info-item">
-            <span className="customer-info-label">تاریخ</span>
-            <span className="customer-info-value">{formatDate(invoiceDate)}</span>
-          </div>
+        <div className="divider" />
+
+        {/* Items Header */}
+        <div className="items-header">
+          <span>Item</span>
+          <span>Qty x Price = Total</span>
         </div>
 
-        {/* Invoice Table */}
-        <table className="invoice-table">
-          <thead>
-            <tr>
-              <th style={{ width: '10%' }}>تعداد</th>
-              <th style={{ width: '50%' }}>تفصیل</th>
-              <th style={{ width: '20%' }}>ریٹ</th>
-              <th style={{ width: '20%' }}>رقم</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.filter(item => item.product_name && item.quantity > 0).map((item, index) => (
-              <tr key={index} className="item-row">
-                <td>{item.quantity} {item.quantity_type}</td>
-                <td style={{ textAlign: 'right' }}>{item.product_name}</td>
-                <td>{item.unit_price.toLocaleString()}</td>
-                <td>{item.total_price.toLocaleString()}</td>
-              </tr>
-            ))}
-            
-            {/* Empty rows to fill the table */}
-            {emptyRows.map((_, index) => (
-              <tr key={`empty-${index}`} className="empty-row">
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-              </tr>
-            ))}
-            
-            {/* Total row */}
-            <tr className="total-row">
-              <td colSpan={3} className="total-label">ٹوٹل</td>
-              <td>{finalAmount.toLocaleString()}</td>
-            </tr>
-          </tbody>
-        </table>
+        {/* Items */}
+        {items.filter(item => item.product_name && item.quantity > 0).map((item, index) => (
+          <div key={index} className="item-row">
+            <div className="item-name">{item.product_name}</div>
+            <div className="item-details">
+              {item.quantity} x PKR {item.unit_price.toLocaleString()} = PKR {item.total_price.toLocaleString()}
+            </div>
+          </div>
+        ))}
 
-        {/* Footer Terms */}
-        <div className="footer-terms">
-          ★ اوریجنل کی گارنٹی نو کلیم ★ شرنگ کیا ہوا سٹ واپس یا تبدیل نہیں ہوگا
-          ★ بل کے بغیر سٹ واپس یا تبدیل نہیں ہوگا ★ سلا ہوا سٹ واپس یا کلیم نہ ہوگا
+        {/* Totals Section */}
+        <div className="totals-section">
+          <div className="total-row">
+            <span>Subtotal:</span>
+            <span>PKR {subtotal.toLocaleString()}</span>
+          </div>
+          {discount > 0 && (
+            <div className="total-row">
+              <span>Discount:</span>
+              <span>- PKR {discount.toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
-        {/* Footer Address */}
-        <div className="footer-address">
-          <div className="signature-line">
-            <span>دستخط</span>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <span>📍 اندرون شاہی بازار جناح روڈ (المشہور گندی گلی) بہاولپور۔</span>
-          </div>
+        {/* Grand Total */}
+        <div className="grand-total">
+          Total: PKR {finalAmount.toLocaleString()}
+        </div>
+
+        {/* Payment Info */}
+        <div className="payment-info">
+          <div>Paid: PKR {(paidAmount || 0).toLocaleString()}</div>
+          <div>Due: PKR {dueAmount.toLocaleString()}</div>
+        </div>
+
+        {/* Footer */}
+        <div className="footer-section">
+          <div className="thank-you">{thankYouMessage}</div>
+          <div className="footer-message">{footerMessage}</div>
         </div>
       </div>
     );

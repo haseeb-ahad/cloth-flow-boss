@@ -82,7 +82,14 @@ const Invoice = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [receiptSettings, setReceiptSettings] = useState<{
+    logo_url?: string | null;
+    shop_name?: string;
+    shop_address?: string;
+    phone_numbers?: string[];
+    thank_you_message?: string;
+    footer_message?: string;
+  }>({});
   
   // Refs for auto-focus
   const quantityInputRefs = useRef<{[key: number]: HTMLInputElement | null}>({});
@@ -93,18 +100,25 @@ const Invoice = () => {
   const itemsBeforeSaveRef = useRef<InvoiceItem[]>([]);
   const hasLoadedRef = useRef(false);
 
-  // Fetch logo from app_settings
-  const fetchLogoUrl = async () => {
+  // Fetch receipt settings from app_settings
+  const fetchReceiptSettings = async () => {
     try {
       const { data } = await supabase
         .from("app_settings")
-        .select("logo_url")
+        .select("logo_url, shop_name, shop_address, phone_numbers, thank_you_message, footer_message")
         .single();
-      if (data?.logo_url) {
-        setLogoUrl(data.logo_url);
+      if (data) {
+        setReceiptSettings({
+          logo_url: data.logo_url,
+          shop_name: data.shop_name,
+          shop_address: data.shop_address,
+          phone_numbers: data.phone_numbers,
+          thank_you_message: data.thank_you_message,
+          footer_message: data.footer_message,
+        });
       }
     } catch (error) {
-      console.error("Error fetching logo:", error);
+      console.error("Error fetching receipt settings:", error);
     }
   };
 
@@ -120,7 +134,7 @@ const Invoice = () => {
       setIsLoading(true);
       hasLoadedRef.current = true;
       
-      await Promise.all([fetchProducts(), fetchCustomerNames(), fetchLogoUrl()]);
+      await Promise.all([fetchProducts(), fetchCustomerNames(), fetchReceiptSettings()]);
       if (editSaleId) {
         await loadSaleData(editSaleId);
       }
@@ -1072,8 +1086,8 @@ const Invoice = () => {
             </div>
           </div>
           <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-muted border border-border overflow-hidden">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Business Logo" className="h-full w-full object-contain" />
+            {receiptSettings.logo_url ? (
+              <img src={receiptSettings.logo_url} alt="Business Logo" className="h-full w-full object-contain" />
             ) : (
               <Store className="h-10 w-10 text-muted-foreground" />
             )}
@@ -1601,7 +1615,8 @@ const Invoice = () => {
         items={items}
         discount={discount}
         finalAmount={calculateFinalAmount()}
-        logoUrl={logoUrl}
+        paidAmount={Number(paidAmount) || 0}
+        settings={receiptSettings}
       />
     </div>
   );
