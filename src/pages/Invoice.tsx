@@ -16,6 +16,7 @@ import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import PrintInvoice from "@/components/PrintInvoice";
 
 // DEBUG FLAG - Set to false after confirming fix
 const DEBUG_MODE = true;
@@ -81,14 +82,31 @@ const Invoice = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   
   // Refs for auto-focus
   const quantityInputRefs = useRef<{[key: number]: HTMLInputElement | null}>({});
+  const printRef = useRef<HTMLDivElement>(null);
 
   // CRITICAL PROTECTION: Prevent double saves and race conditions
   const saveInProgressRef = useRef(false);
   const itemsBeforeSaveRef = useRef<InvoiceItem[]>([]);
   const hasLoadedRef = useRef(false);
+
+  // Fetch logo from app_settings
+  const fetchLogoUrl = async () => {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("logo_url")
+        .single();
+      if (data?.logo_url) {
+        setLogoUrl(data.logo_url);
+      }
+    } catch (error) {
+      console.error("Error fetching logo:", error);
+    }
+  };
 
   // STABLE LOADING: Only load once, prevent re-renders from resetting items
   useEffect(() => {
@@ -102,7 +120,7 @@ const Invoice = () => {
       setIsLoading(true);
       hasLoadedRef.current = true;
       
-      await Promise.all([fetchProducts(), fetchCustomerNames()]);
+      await Promise.all([fetchProducts(), fetchCustomerNames(), fetchLogoUrl()]);
       if (editSaleId) {
         await loadSaleData(editSaleId);
       }
@@ -1018,7 +1036,8 @@ const Invoice = () => {
     }
   };
 
-  const printInvoice = (invoiceNumber: string) => {
+  const printInvoice = (invoiceNum: string) => {
+    // Set the invoice number for print and trigger print
     window.print();
   };
 
@@ -1052,8 +1071,12 @@ const Invoice = () => {
               <p className="font-semibold text-foreground">Ameer Abbas Sadiq</p>
             </div>
           </div>
-          <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-muted border border-border">
-            <Store className="h-10 w-10 text-muted-foreground" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-muted border border-border overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Business Logo" className="h-full w-full object-contain" />
+            ) : (
+              <Store className="h-10 w-10 text-muted-foreground" />
+            )}
           </div>
         </div>
       </Card>
@@ -1567,6 +1590,19 @@ const Invoice = () => {
           )}
         </div>
       </Card>
+      
+      {/* Print Invoice Component - Hidden on screen, visible only when printing */}
+      <PrintInvoice
+        ref={printRef}
+        invoiceNumber={invoiceNumber || `INV-${Date.now()}`}
+        customerName={customerName}
+        customerPhone={customerPhone}
+        invoiceDate={invoiceDate}
+        items={items}
+        discount={discount}
+        finalAmount={calculateFinalAmount()}
+        logoUrl={logoUrl}
+      />
     </div>
   );
 };

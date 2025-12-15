@@ -245,3 +245,36 @@ All colors MUST be HSL.
     }
   }
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  
+  /* Hide everything except print invoice */
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-invoice-container,
+  .print-invoice-container * {
+    visibility: visible !important;
+  }
+  
+  .print-invoice-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Hide non-printable elements */
+  header, nav, aside, footer, .no-print {
+    display: none !important;
+  }
+}
