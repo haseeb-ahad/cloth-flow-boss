@@ -97,6 +97,12 @@ export default function Expenses() {
     };
   }, [queryClient]);
 
+  const handleExportCSV = () => {
+    // Export the currently filtered expenses
+    exportExpensesToCSV(expenses);
+    toast.success(`Exported ${expenses.length} expenses`);
+  };
+
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -111,8 +117,18 @@ export default function Expenses() {
         return;
       }
 
+      // Apply type filter to imported expenses if active
+      const filteredParsedExpenses = typeFilter === "all" 
+        ? parsedExpenses 
+        : parsedExpenses.filter(exp => exp.expense_type === typeFilter);
+
+      if (filteredParsedExpenses.length === 0) {
+        toast.error(`No expenses matching type "${typeFilter}" found in CSV`);
+        return;
+      }
+
       let imported = 0;
-      for (const expense of parsedExpenses) {
+      for (const expense of filteredParsedExpenses) {
         const { error } = await supabase.from("expenses").insert({
           ...expense,
           owner_id: ownerId,
@@ -124,6 +140,7 @@ export default function Expenses() {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
       queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
     } catch (error) {
       toast.error("Failed to import CSV");
     } finally {
@@ -531,11 +548,15 @@ export default function Expenses() {
               </Button>
             )}
             <Button 
-              onClick={() => exportExpensesToCSV(expenses)} 
+              onClick={handleExportCSV} 
               variant="outline"
               disabled={expensesLoading || expenses.length === 0}
             >
-              <Download className="h-4 w-4 mr-2" />
+              {expensesLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
               Export CSV
             </Button>
             {hasPermission("expenses", "create") && (
