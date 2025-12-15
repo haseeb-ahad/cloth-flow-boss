@@ -66,7 +66,7 @@ const CustomerSparkline = ({ color, seed }: { color: string; seed: number }) => 
   const gradientId = useMemo(() => `customer-spark-${seed}`, [seed]);
 
   return (
-    <div className="h-8 w-16 overflow-hidden flex-shrink-0">
+    <div className="h-8 w-full max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-[200px] overflow-hidden">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
           <defs>
