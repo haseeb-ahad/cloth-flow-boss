@@ -53,6 +53,7 @@ export type Database = {
       app_settings: {
         Row: {
           app_name: string | null
+          description: string | null
           footer_message: string | null
           id: string
           language: string | null
@@ -69,6 +70,7 @@ export type Database = {
         }
         Insert: {
           app_name?: string | null
+          description?: string | null
           footer_message?: string | null
           id?: string
           language?: string | null
@@ -85,6 +87,7 @@ export type Database = {
         }
         Update: {
           app_name?: string | null
+          description?: string | null
           footer_message?: string | null
           id?: string
           language?: string | null

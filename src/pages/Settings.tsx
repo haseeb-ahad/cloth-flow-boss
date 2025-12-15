@@ -20,6 +20,7 @@ export default function Settings() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [appSettings, setAppSettings] = useState({
     app_name: "Business Manager",
+    description: "",
     language: "en",
     logo_url: "",
     shop_name: "Your Shop Name",
@@ -53,6 +54,7 @@ export default function Settings() {
       if (data) {
         setAppSettings({
           app_name: data.app_name || "Business Manager",
+          description: (data as any).description || "",
           language: data.language || "en",
           logo_url: data.logo_url || "",
           shop_name: data.shop_name || "Your Shop Name",
@@ -104,6 +106,7 @@ export default function Settings() {
         .from("app_settings")
         .update({
           app_name: appSettings.app_name,
+          description: appSettings.description,
           language: appSettings.language,
           shop_name: appSettings.shop_name,
           shop_address: appSettings.shop_address,
@@ -283,6 +286,17 @@ export default function Settings() {
                 value={appSettings.app_name}
                 onChange={(e) => setAppSettings({ ...appSettings, app_name: e.target.value })}
                 disabled={loading || userRole !== "admin"}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="appDescription">Application Description</Label>
+              <Input
+                id="appDescription"
+                value={appSettings.description}
+                onChange={(e) => setAppSettings({ ...appSettings, description: e.target.value })}
+                disabled={loading || userRole !== "admin"}
+                placeholder="e.g., Pro Suite"
               />
             </div>
 
