@@ -933,8 +933,9 @@ const Invoice = () => {
         paid += parseFloat(additionalPayment);
       }
 
-      // Step 1: Restore stock for all original items first
-      debugLog("♻️ Restoring stock for original items:", originalItems.map(i => i.product_name));
+      // Step 1: Reverse stock changes for all original items first
+      // CRITICAL: Regular items were DEDUCTED (so ADD back), Return items were ADDED (so DEDUCT back)
+      debugLog("♻️ Reversing stock for original items:", originalItems.map(i => `${i.product_name}${i.is_return ? ' (RETURN)' : ''}`));
       for (const originalItem of originalItems) {
         const { data: product, error: fetchError } = await supabase
           .from("products")
@@ -953,8 +954,19 @@ const Invoice = () => {
           throw new Error("Product not found");
         }
 
-        const restoredStock = product.stock_quantity + originalItem.quantity;
-        console.log(`Restoring ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
+        // CRITICAL FIX: Reverse the original operation
+        // - Regular items were DEDUCTED from stock, so we ADD back
+        // - Return items were ADDED to stock, so we DEDUCT back
+        let restoredStock: number;
+        if (originalItem.is_return) {
+          // Return items ADDED to inventory, so reverse by DEDUCTING
+          restoredStock = product.stock_quantity - originalItem.quantity;
+          console.log(`Reversing return for ${originalItem.product_name}: ${product.stock_quantity} - ${originalItem.quantity} = ${restoredStock}`);
+        } else {
+          // Regular items DEDUCTED from inventory, so reverse by ADDING
+          restoredStock = product.stock_quantity + originalItem.quantity;
+          console.log(`Reversing deduction for ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
+        }
 
         const { error: updateError } = await supabase
           .from("products")
@@ -1148,10 +1160,11 @@ const Invoice = () => {
     try {
       const { data: saleItems } = await supabase
         .from("sale_items")
-        .select("product_id, quantity")
+        .select("product_id, quantity, is_return")
         .eq("sale_id", editSaleId);
 
-      // Restore stock for all items
+      // Reverse stock changes for all items
+      // CRITICAL: Regular items were DEDUCTED (so ADD back), Return items were ADDED (so DEDUCT back)
       if (saleItems) {
         for (const item of saleItems) {
           const { data: product } = await supabase
@@ -1161,9 +1174,23 @@ const Invoice = () => {
             .maybeSingle();
 
           if (product) {
+            // CRITICAL FIX: Reverse the original operation
+            // - Regular items were DEDUCTED, so ADD back
+            // - Return items were ADDED, so DEDUCT back
+            let newStock: number;
+            if (item.is_return) {
+              // Return items ADDED to inventory, so reverse by DEDUCTING
+              newStock = product.stock_quantity - item.quantity;
+              console.log(`Reversing return on delete: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
+            } else {
+              // Regular items DEDUCTED from inventory, so reverse by ADDING
+              newStock = product.stock_quantity + item.quantity;
+              console.log(`Reversing deduction on delete: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
+            }
+            
             await supabase
               .from("products")
-              .update({ stock_quantity: product.stock_quantity + item.quantity })
+              .update({ stock_quantity: newStock })
               .eq("id", item.product_id);
           }
         }
