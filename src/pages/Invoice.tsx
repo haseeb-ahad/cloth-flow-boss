@@ -10,9 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
@@ -46,7 +45,6 @@ interface InvoiceItem {
   purchase_price: number;
   total_price: number;
   quantity_type: string;
-  is_return: boolean;
 }
 
 const Invoice = () => {
@@ -97,11 +95,6 @@ const Invoice = () => {
     worker_name?: string;
     worker_phone?: string;
   }>({});
-  
-  // Return dialog state
-  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [returnItemIndex, setReturnItemIndex] = useState<number | null>(null);
-  const [returnQuantity, setReturnQuantity] = useState("");
   
   // Refs for auto-focus
   const quantityInputRefs = useRef<{[key: number]: HTMLInputElement | null}>({});
@@ -257,7 +250,6 @@ const Invoice = () => {
             purchase_price: item.purchase_price,
             total_price: item.total_price,
             quantity_type: product?.quantity_type || "Unit",
-            is_return: (item as any).is_return || false,
           };
         });
         
@@ -329,7 +321,7 @@ const Invoice = () => {
       return;
     }
     
-    const newItem: InvoiceItem = {
+    const newItem = {
       product_id: "",
       product_name: "",
       quantity: 0,
@@ -337,7 +329,6 @@ const Invoice = () => {
       purchase_price: 0,
       total_price: 0,
       quantity_type: "Unit",
-      is_return: false,
     };
     const newItems = [...items, newItem];
     setItems(newItems);
@@ -346,8 +337,6 @@ const Invoice = () => {
 
   const removeItem = (index: number) => {
     debugLog(`🗑️ USER ACTION: Removing item at index ${index}`);
-    
-    const itemToRemove = items[index];
     
     // CRITICAL PROTECTION: Prevent removing last item in edit mode
     if (editSaleId && items.length === 1) {
@@ -364,35 +353,6 @@ const Invoice = () => {
       }
     }
     
-    // If removing a return item, restore qty to original item
-    if (itemToRemove.is_return) {
-      const newItems = [...items];
-      
-      // Find the original item for this return
-      const originalIndex = newItems.findIndex(i => 
-        !i.is_return && 
-        i.product_id === itemToRemove.product_id
-      );
-      
-      if (originalIndex !== -1) {
-        // Restore the return qty back to original item
-        const originalItem = newItems[originalIndex];
-        const restoredQty = originalItem.quantity + itemToRemove.quantity;
-        newItems[originalIndex] = {
-          ...originalItem,
-          quantity: restoredQty,
-          total_price: originalItem.unit_price * restoredQty,
-        };
-        debugLog(`♻️ Restored ${itemToRemove.quantity} to original item. New qty: ${restoredQty}`);
-      }
-      
-      // Remove the return item
-      const filteredItems = newItems.filter((_, i) => i !== index);
-      setItems(filteredItems);
-      toast.success("Return removed and quantity restored to original item.");
-      return;
-    }
-    
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
     debugLog(`📦 Items count after remove: ${newItems.length}`, newItems.map(i => i.product_name));
@@ -404,7 +364,7 @@ const Invoice = () => {
     if (item && isItemComplete(item) && index === currentItems.length - 1) {
       // Auto-add new item when last item is complete
       debugLog("✨ Auto-adding new item - current item complete");
-      const newItem: InvoiceItem = {
+      const newItem = {
         product_id: "",
         product_name: "",
         quantity: 0,
@@ -412,7 +372,6 @@ const Invoice = () => {
         purchase_price: 0,
         total_price: 0,
         quantity_type: "Unit",
-        is_return: false,
       };
       setItems([...currentItems, newItem]);
     }
@@ -463,59 +422,15 @@ const Invoice = () => {
       }
     } else if (field === "quantity") {
       const enteredQuantity = parseFloat(value) || 0;
-      const currentItem = newItems[index];
+      const product = products.find(p => p.id === newItems[index].product_id);
       
-      if (currentItem.is_return) {
-        // Find the corresponding main product item
-        const mainItemIndex = newItems.findIndex(i => 
-          !i.is_return && i.product_id === currentItem.product_id
-        );
-        
-        if (mainItemIndex === -1) {
-          toast.error("Original product not found for this return");
-          return;
-        }
-        
-        const mainItem = newItems[mainItemIndex];
-        // Calculate original invoice qty = current main qty + current return qty
-        const originalInvoiceQty = mainItem.quantity + currentItem.quantity;
-        
-        // Validate: return qty cannot exceed original invoice qty
-        if (enteredQuantity > originalInvoiceQty) {
-          toast.error(`Return quantity cannot exceed original invoice quantity (${originalInvoiceQty})`);
-          return;
-        }
-        
-        if (enteredQuantity < 0) {
-          toast.error("Return quantity cannot be negative");
-          return;
-        }
-        
-        // Update return item qty
-        newItems[index].quantity = enteredQuantity;
-        newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
-        
-        // Update main product qty = original invoice qty - return qty
-        const newMainQty = originalInvoiceQty - enteredQuantity;
-        newItems[mainItemIndex] = {
-          ...mainItem,
-          quantity: newMainQty,
-          total_price: mainItem.unit_price * newMainQty,
-        };
-        
-        debugLog(`♻️ Return qty changed to ${enteredQuantity}. Main item qty updated to ${newMainQty}`);
-      } else {
-        // For regular items, check stock availability
-        const product = products.find(p => p.id === currentItem.product_id);
-        
-        if (product && enteredQuantity > product.stock_quantity) {
-          toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
-          return;
-        }
-        
-        newItems[index].quantity = enteredQuantity;
-        newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
+      if (product && enteredQuantity > product.stock_quantity) {
+        toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
+        return;
       }
+      
+      newItems[index].quantity = enteredQuantity;
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     } else if (field === "unit_price") {
       const enteredUnitPrice = parseFloat(value) || 0;
       
@@ -560,20 +475,8 @@ const Invoice = () => {
     checkAndAutoAddItem(newItems, index);
   };
 
-  // Calculate subtotal (only non-return items)
-  const calculateSubtotal = () => {
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + item.total_price, 0);
-  };
-
-  // Calculate total return amount (negative)
-  const calculateReturnAmount = () => {
-    return items.filter(item => item.is_return).reduce((sum, item) => sum + item.total_price, 0);
-  };
-
   const calculateTotal = () => {
-    // Since we reduce original qty when return is added, just use subtotal
-    // Return items are for display/tracking only, not for calculation
-    return calculateSubtotal();
+    return items.reduce((sum, item) => sum + item.total_price, 0);
   };
 
   const calculateFinalAmount = () => {
@@ -581,12 +484,11 @@ const Invoice = () => {
   };
 
   const calculateTotalCost = () => {
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+    return items.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
   };
 
   const calculateTotalProfit = () => {
-    // Profit is calculated from non-return items only (since original qty is already reduced)
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    return items.reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
   };
 
   const calculateChange = () => {
@@ -594,75 +496,6 @@ const Invoice = () => {
     const paid = parseFloat(paidAmount);
     const final = calculateFinalAmount();
     return paid > final ? paid - final : 0;
-  };
-
-  // Open return dialog
-  const openReturnDialog = (index: number) => {
-    setReturnItemIndex(index);
-    setReturnQuantity("");
-    setReturnDialogOpen(true);
-  };
-
-  // Handle return confirmation
-  const handleReturnConfirm = () => {
-    if (returnItemIndex === null) return;
-    
-    const originalItem = items[returnItemIndex];
-    const qty = parseFloat(returnQuantity);
-    
-    // Validation
-    if (!returnQuantity || qty <= 0) {
-      toast.error("Please enter a valid return quantity");
-      return;
-    }
-    
-    if (qty > originalItem.quantity) {
-      toast.error(`Return quantity cannot exceed sold quantity (${originalItem.quantity})`);
-      return;
-    }
-
-    // Create a return item with same product details (for tracking/display)
-    const returnItem: InvoiceItem = {
-      product_id: originalItem.product_id,
-      product_name: originalItem.product_name,
-      quantity: qty,
-      unit_price: originalItem.unit_price,
-      purchase_price: originalItem.purchase_price,
-      total_price: originalItem.unit_price * qty,
-      quantity_type: originalItem.quantity_type,
-      is_return: true,
-    };
-    
-    // Update items: reduce original quantity AND add return item
-    const newItems = [...items];
-    
-    // Reduce original item's quantity
-    const newOriginalQty = originalItem.quantity - qty;
-    newItems[returnItemIndex] = {
-      ...originalItem,
-      quantity: newOriginalQty,
-      total_price: originalItem.unit_price * newOriginalQty,
-    };
-    
-    // Insert return item right after the original (for tracking)
-    newItems.splice(returnItemIndex + 1, 0, returnItem);
-    setItems(newItems);
-    
-    setReturnDialogOpen(false);
-    setReturnItemIndex(null);
-    setReturnQuantity("");
-    
-    toast.success(`Return of ${qty} ${originalItem.quantity_type} processed. Original qty reduced to ${newOriginalQty}.`);
-  };
-
-  // Get max return quantity for an item (current qty since original is already reduced by previous returns)
-  const getMaxReturnQuantity = (index: number) => {
-    const item = items[index];
-    if (!item || item.is_return) return 0;
-    
-    // Since original quantity is reduced when return is made,
-    // max returnable is simply the current quantity
-    return item.quantity;
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -874,7 +707,6 @@ const Invoice = () => {
         purchase_price: item.purchase_price,
         total_price: item.total_price,
         profit: profit,
-        is_return: item.is_return || false,
       });
 
       if (itemInsertError) {
@@ -884,13 +716,6 @@ const Invoice = () => {
       }
 
       debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
-
-      // SKIP inventory for return items - they are just for tracking
-      // The main item's reduced quantity already accounts for the return
-      if (item.is_return) {
-        debugLog(`⏭️ Skipping inventory update for return item: ${item.product_name} (tracking only)`);
-        continue;
-      }
 
       // Step 2: Fetch current stock from database (not from state)
       const { data: product, error: fetchError } = await supabase
@@ -905,14 +730,15 @@ const Invoice = () => {
         throw fetchError || new Error("Product not found");
       }
 
-      // Step 3: Deduct stock for regular items only
+      // Step 3: Calculate new stock and validate
       const newStock = product.stock_quantity - item.quantity;
       
       if (newStock < 0) {
         toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
         throw new Error("Insufficient stock");
       }
-      console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
+
+      console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} → ${newStock}`);
 
       // Step 4: Update inventory
       const { error: updateError } = await supabase
@@ -986,16 +812,9 @@ const Invoice = () => {
         paid += parseFloat(additionalPayment);
       }
 
-      // Step 1: Reverse stock changes for original items (ONLY regular items, skip returns)
-      // Return items are tracking-only and never affected inventory
-      debugLog("♻️ Reversing stock for original items:", originalItems.filter(i => !i.is_return).map(i => i.product_name));
+      // Step 1: Restore stock for all original items first
+      debugLog("♻️ Restoring stock for original items:", originalItems.map(i => i.product_name));
       for (const originalItem of originalItems) {
-        // SKIP return items - they never affected inventory
-        if (originalItem.is_return) {
-          debugLog(`⏭️ Skipping reversal for return item: ${originalItem.product_name} (tracking only)`);
-          continue;
-        }
-
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
@@ -1013,9 +832,8 @@ const Invoice = () => {
           throw new Error("Product not found");
         }
 
-        // Regular items were DEDUCTED from stock, so we ADD back
         const restoredStock = product.stock_quantity + originalItem.quantity;
-        console.log(`Reversing deduction for ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
+        console.log(`Restoring ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
 
         const { error: updateError } = await supabase
           .from("products")
@@ -1088,7 +906,6 @@ const Invoice = () => {
           purchase_price: item.purchase_price,
           total_price: item.total_price,
           profit: profit,
-          is_return: item.is_return || false,
         });
 
         if (insertError) {
@@ -1099,14 +916,7 @@ const Invoice = () => {
 
         debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
 
-        // SKIP inventory for return items - they are just for tracking
-        // The main item's reduced quantity already accounts for the return
-        if (item.is_return) {
-          debugLog(`⏭️ Skipping inventory update for return item: ${item.product_name} (tracking only)`);
-          continue;
-        }
-
-        // Deduct stock for regular items only
+        // Deduct stock for new quantities
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
@@ -1124,22 +934,21 @@ const Invoice = () => {
           throw new Error("Product not found");
         }
 
-        // Deduct stock for regular items
-        const newStock = product.stock_quantity - item.quantity;
-        console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
+        const deductedStock = product.stock_quantity - item.quantity;
+        console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${deductedStock}`);
 
-        if (newStock < 0) {
+        if (deductedStock < 0) {
           toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
           throw new Error("Insufficient stock");
         }
 
         const { error: updateError } = await supabase
           .from("products")
-          .update({ stock_quantity: newStock })
+          .update({ stock_quantity: deductedStock })
           .eq("id", item.product_id);
         
         if (updateError) {
-          console.error("Error updating stock:", updateError);
+          console.error("Error deducting stock:", updateError);
           toast.error(`Failed to update stock for ${item.product_name}`);
           throw updateError;
         }
@@ -1208,18 +1017,12 @@ const Invoice = () => {
     try {
       const { data: saleItems } = await supabase
         .from("sale_items")
-        .select("product_id, quantity, is_return")
+        .select("product_id, quantity")
         .eq("sale_id", editSaleId);
 
-      // Reverse stock changes for regular items only (return items never affected inventory)
+      // Restore stock for all items
       if (saleItems) {
         for (const item of saleItems) {
-          // SKIP return items - they never affected inventory
-          if (item.is_return) {
-            console.log(`Skipping return item on delete (tracking only)`);
-            continue;
-          }
-
           const { data: product } = await supabase
             .from("products")
             .select("stock_quantity")
@@ -1227,13 +1030,9 @@ const Invoice = () => {
             .maybeSingle();
 
           if (product) {
-            // Regular items were DEDUCTED, so ADD back
-            const newStock = product.stock_quantity + item.quantity;
-            console.log(`Reversing deduction on delete: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
-            
             await supabase
               .from("products")
-              .update({ stock_quantity: newStock })
+              .update({ stock_quantity: product.stock_quantity + item.quantity })
               .eq("id", item.product_id);
           }
         }
@@ -1427,9 +1226,8 @@ const Invoice = () => {
               
               return (
                 <div key={index} className={cn(
-                  "grid gap-3 md:grid-cols-[auto_2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto_auto] items-start border-b pb-4 transition-all duration-300",
-                  !itemComplete && errors && "bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border-red-200 dark:border-red-800",
-                  item.is_return && "bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg border-l-4 border-l-orange-500"
+                  "grid gap-3 md:grid-cols-[auto_2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-start border-b pb-4 transition-all duration-300",
+                  !itemComplete && errors && "bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border-red-200 dark:border-red-800"
                 )}>
                   {/* Status Icon */}
                   <div className="flex flex-col items-center justify-center pt-7">
@@ -1438,74 +1236,60 @@ const Invoice = () => {
                   
                   <div className="flex flex-col">
                     <Label className={cn("mb-2", errors?.product && "text-red-500 font-semibold")}>
-                      {item.is_return ? (
-                        <span className="flex items-center gap-2">
-                          Product <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">RETURN</span>
-                        </span>
-                      ) : (
-                        <>Product {errors?.product && <span className="text-red-500">*</span>}</>
-                      )}
+                      Product {errors?.product && <span className="text-red-500">*</span>}
                     </Label>
-                    {item.is_return ? (
-                      <Input 
-                        value={item.product_name} 
-                        disabled 
-                        className="bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 font-medium"
-                      />
-                    ) : (
-                      <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            role="combobox" 
-                            aria-expanded={openProductIndex === index} 
-                            className={cn(
-                              "w-full justify-between",
-                              errors?.product && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
-                            )}
-                          >
-                            {item.product_name || "Select product..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <Command>
-                            <CommandInput placeholder="Search product..." />
-                            <CommandList>
-                              <CommandEmpty>No product found.</CommandEmpty>
-                              <CommandGroup>
-                                {products.map((product) => (
-                                  <CommandItem
-                                    key={product.id}
-                                    value={product.name}
-                                    onSelect={() => {
-                                      updateItem(index, "product_id", product.id);
-                                      setOpenProductIndex(null);
-                                      // Clear product error when selected
-                                      setValidationErrors(prev => {
-                                        if (prev[index]) {
-                                          return {...prev, [index]: {...prev[index], product: false}};
-                                        }
-                                        return prev;
-                                      });
-                                    }}
-                                    className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
-                                  >
-                                    <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
-                                    <div className="flex flex-col">
-                                      <span>{product.name}</span>
-                                      <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
-                                        Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    )}
+                    <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          role="combobox" 
+                          aria-expanded={openProductIndex === index} 
+                          className={cn(
+                            "w-full justify-between",
+                            errors?.product && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
+                          )}
+                        >
+                          {item.product_name || "Select product..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search product..." />
+                          <CommandList>
+                            <CommandEmpty>No product found.</CommandEmpty>
+                            <CommandGroup>
+                              {products.map((product) => (
+                                <CommandItem
+                                  key={product.id}
+                                  value={product.name}
+                                  onSelect={() => {
+                                    updateItem(index, "product_id", product.id);
+                                    setOpenProductIndex(null);
+                                    // Clear product error when selected
+                                    setValidationErrors(prev => {
+                                      if (prev[index]) {
+                                        return {...prev, [index]: {...prev[index], product: false}};
+                                      }
+                                      return prev;
+                                    });
+                                  }}
+                                  className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
+                                  <div className="flex flex-col">
+                                    <span>{product.name}</span>
+                                    <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
+                                      Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="flex flex-col">
                     <Label className={cn("mb-2", errors?.quantity && "text-red-500 font-semibold")}>
@@ -1610,32 +1394,6 @@ const Invoice = () => {
                       className="font-semibold"
                     />
                   </div>
-                  {/* Only show return button for non-return items */}
-                  {!item.is_return && (
-                    <div className="flex flex-col items-center">
-                      <Label className="mb-2 opacity-0">Return</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => openReturnDialog(index)}
-                        disabled={isSaving || !isItemComplete(item) || getMaxReturnQuantity(index) <= 0}
-                        className="hover:bg-orange-100 hover:text-orange-600 hover:border-orange-300"
-                        title={getMaxReturnQuantity(index) <= 0 ? "All items already returned" : "Add return for this item"}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                  {/* Show indicator for return items */}
-                  {item.is_return && (
-                    <div className="flex flex-col items-center">
-                      <Label className="mb-2 opacity-0">Return</Label>
-                      <div className="h-9 w-9 flex items-center justify-center bg-orange-500 text-white rounded-md">
-                        <RotateCcw className="h-4 w-4" />
-                      </div>
-                    </div>
-                  )}
                   <div className="flex flex-col">
                     <Label className="mb-2 opacity-0">Action</Label>
                     <Button onClick={() => removeItem(index)} variant="destructive" size="icon" disabled={isSaving}>
@@ -1742,19 +1500,6 @@ const Invoice = () => {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
-                <span className="font-medium">Rs. {calculateSubtotal().toFixed(2)}</span>
-              </div>
-              {calculateReturnAmount() > 0 && (
-                <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
-                  <span className="flex items-center gap-1">
-                    <RotateCcw className="h-3 w-3" />
-                    Return Amount:
-                  </span>
-                  <span className="font-medium">- Rs. {calculateReturnAmount().toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm">
-                <span>Net Total:</span>
                 <span className="font-medium">Rs. {calculateTotal().toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -1770,7 +1515,7 @@ const Invoice = () => {
                 <span className="font-medium">- Rs. {discount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-3">
-                <span>Final Total:</span>
+                <span>Total:</span>
                 <span className="text-success">Rs. {calculateFinalAmount().toFixed(2)}</span>
               </div>
               {isFullPayment && (
@@ -1846,85 +1591,6 @@ const Invoice = () => {
           )}
         </div>
       </Card>
-      
-      {/* Return Dialog */}
-      <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-orange-500" />
-              Return Item
-            </DialogTitle>
-            <DialogDescription>
-              {returnItemIndex !== null && items[returnItemIndex] && (
-                <span>
-                  Enter the quantity to return for <strong>{items[returnItemIndex].product_name}</strong>
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {returnItemIndex !== null && items[returnItemIndex] && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="text-xs text-muted-foreground">Sold Quantity</p>
-                  <p className="font-medium">{items[returnItemIndex].quantity} {items[returnItemIndex].quantity_type}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Unit Price</p>
-                  <p className="font-medium">Rs. {items[returnItemIndex].unit_price.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Max Returnable</p>
-                  <p className="font-medium text-orange-600">{getMaxReturnQuantity(returnItemIndex)} {items[returnItemIndex].quantity_type}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Return Value</p>
-                  <p className="font-medium text-orange-600">
-                    Rs. {(parseFloat(returnQuantity || "0") * items[returnItemIndex].unit_price).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="returnQuantity">Return Quantity</Label>
-                <Input
-                  id="returnQuantity"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max={getMaxReturnQuantity(returnItemIndex)}
-                  value={returnQuantity}
-                  onChange={(e) => setReturnQuantity(e.target.value)}
-                  placeholder={`Max: ${getMaxReturnQuantity(returnItemIndex)}`}
-                  className="mt-1"
-                  autoFocus
-                />
-                {parseFloat(returnQuantity || "0") > getMaxReturnQuantity(returnItemIndex) && (
-                  <p className="text-xs text-destructive mt-1">
-                    Cannot exceed sold quantity ({getMaxReturnQuantity(returnItemIndex)})
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleReturnConfirm}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={!returnQuantity || parseFloat(returnQuantity) <= 0 || (returnItemIndex !== null && parseFloat(returnQuantity) > getMaxReturnQuantity(returnItemIndex))}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Confirm Return
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       
       {/* Print Invoice Component - Hidden on screen, visible only when printing */}
       <PrintInvoice

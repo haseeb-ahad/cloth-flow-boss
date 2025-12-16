@@ -158,7 +158,6 @@ export type Database = {
         Row: {
           amount: number
           created_at: string | null
-          credit_type: string
           customer_name: string
           customer_phone: string | null
           deleted_at: string | null
@@ -168,7 +167,6 @@ export type Database = {
           notes: string | null
           owner_id: string | null
           paid_amount: number | null
-          person_type: string | null
           remaining_amount: number
           sale_id: string | null
           status: string | null
@@ -177,7 +175,6 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string | null
-          credit_type?: string
           customer_name: string
           customer_phone?: string | null
           deleted_at?: string | null
@@ -187,7 +184,6 @@ export type Database = {
           notes?: string | null
           owner_id?: string | null
           paid_amount?: number | null
-          person_type?: string | null
           remaining_amount: number
           sale_id?: string | null
           status?: string | null
@@ -196,7 +192,6 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string | null
-          credit_type?: string
           customer_name?: string
           customer_phone?: string | null
           deleted_at?: string | null
@@ -206,7 +201,6 @@ export type Database = {
           notes?: string | null
           owner_id?: string | null
           paid_amount?: number | null
-          person_type?: string | null
           remaining_amount?: number
           sale_id?: string | null
           status?: string | null
@@ -589,7 +583,6 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_deleted: boolean | null
-          is_return: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -604,7 +597,6 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_deleted?: boolean | null
-          is_return?: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -619,7 +611,6 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_deleted?: boolean | null
-          is_return?: boolean | null
           product_id?: string
           product_name?: string
           profit?: number

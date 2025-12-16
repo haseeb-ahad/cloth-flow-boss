@@ -20,7 +20,6 @@ import Settings from "./pages/Settings";
 import Workers from "./pages/Workers";
 import ReceivePayment from "./pages/ReceivePayment";
 import Expenses from "./pages/Expenses";
-import CashCredit from "./pages/CashCredit";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
@@ -52,7 +51,6 @@ const App = () => (
               <Route path="/inventory" element={<ProtectedRoute feature="inventory" requirePermission="view"><Layout><Inventory /></Layout></ProtectedRoute>} />
               <Route path="/sales" element={<ProtectedRoute feature="sales" requirePermission="view"><Layout><Sales /></Layout></ProtectedRoute>} />
               <Route path="/credits" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><Credits /></Layout></ProtectedRoute>} />
-              <Route path="/cash-credit" element={<ProtectedRoute feature="credits" requirePermission="create"><Layout><CashCredit /></Layout></ProtectedRoute>} />
               <Route path="/customers" element={<ProtectedRoute feature="customers" requirePermission="view"><Layout><Customers /></Layout></ProtectedRoute>} />
               <Route path="/receive-payment" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><ReceivePayment /></Layout></ProtectedRoute>} />
               <Route path="/expenses" element={<ProtectedRoute adminOnly><Layout><Expenses /></Layout></ProtectedRoute>} />
