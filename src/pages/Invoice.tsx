@@ -347,6 +347,8 @@ const Invoice = () => {
   const removeItem = (index: number) => {
     debugLog(`🗑️ USER ACTION: Removing item at index ${index}`);
     
+    const itemToRemove = items[index];
+    
     // CRITICAL PROTECTION: Prevent removing last item in edit mode
     if (editSaleId && items.length === 1) {
       toast.error("Cannot remove the last item! An invoice must have at least one product.");
@@ -360,6 +362,35 @@ const Invoice = () => {
         debugLog("⚠️ User cancelled removal of last item");
         return;
       }
+    }
+    
+    // If removing a return item, restore qty to original item
+    if (itemToRemove.is_return) {
+      const newItems = [...items];
+      
+      // Find the original item for this return
+      const originalIndex = newItems.findIndex(i => 
+        !i.is_return && 
+        i.product_id === itemToRemove.product_id
+      );
+      
+      if (originalIndex !== -1) {
+        // Restore the return qty back to original item
+        const originalItem = newItems[originalIndex];
+        const restoredQty = originalItem.quantity + itemToRemove.quantity;
+        newItems[originalIndex] = {
+          ...originalItem,
+          quantity: restoredQty,
+          total_price: originalItem.unit_price * restoredQty,
+        };
+        debugLog(`♻️ Restored ${itemToRemove.quantity} to original item. New qty: ${restoredQty}`);
+      }
+      
+      // Remove the return item
+      const filteredItems = newItems.filter((_, i) => i !== index);
+      setItems(filteredItems);
+      toast.success("Return removed and quantity restored to original item.");
+      return;
     }
     
     const newItems = items.filter((_, i) => i !== index);
@@ -435,27 +466,10 @@ const Invoice = () => {
       const currentItem = newItems[index];
       
       if (currentItem.is_return) {
-        // For return items, validate against original sold quantity
-        const originalItem = items.find(i => 
-          !i.is_return && 
-          i.product_id === currentItem.product_id
-        );
-        
-        if (originalItem) {
-          // Calculate existing returns for this product (excluding current item)
-          const existingReturns = items.filter((i, idx) => 
-            i.is_return && 
-            i.product_id === currentItem.product_id &&
-            idx !== index
-          ).reduce((sum, i) => sum + i.quantity, 0);
-          
-          const maxReturnable = originalItem.quantity - existingReturns;
-          
-          if (enteredQuantity > maxReturnable) {
-            toast.error(`Return quantity cannot exceed sold quantity (${maxReturnable} ${currentItem.quantity_type || "Unit"})`);
-            return;
-          }
-        }
+        // Return items should not have their quantity edited directly
+        // Since original item qty is already reduced when return was created
+        toast.error("Cannot edit return quantity. Delete and re-create the return if needed.");
+        return;
       } else {
         // For regular items, check stock availability
         const product = products.find(p => p.id === currentItem.product_id);
@@ -523,8 +537,9 @@ const Invoice = () => {
   };
 
   const calculateTotal = () => {
-    // Subtotal minus returns
-    return calculateSubtotal() - calculateReturnAmount();
+    // Since we reduce original qty when return is added, just use subtotal
+    // Return items are for display/tracking only, not for calculation
+    return calculateSubtotal();
   };
 
   const calculateFinalAmount = () => {
@@ -536,9 +551,8 @@ const Invoice = () => {
   };
 
   const calculateTotalProfit = () => {
-    const saleProfit = items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
-    const returnLoss = items.filter(item => item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
-    return saleProfit - returnLoss;
+    // Profit is calculated from non-return items only (since original qty is already reduced)
+    return items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
   };
 
   const calculateChange = () => {
@@ -573,7 +587,7 @@ const Invoice = () => {
       return;
     }
 
-    // Create a return item with same product details
+    // Create a return item with same product details (for tracking/display)
     const returnItem: InvoiceItem = {
       product_id: originalItem.product_id,
       product_name: originalItem.product_name,
@@ -585,8 +599,18 @@ const Invoice = () => {
       is_return: true,
     };
     
-    // Insert return item right after the original
+    // Update items: reduce original quantity AND add return item
     const newItems = [...items];
+    
+    // Reduce original item's quantity
+    const newOriginalQty = originalItem.quantity - qty;
+    newItems[returnItemIndex] = {
+      ...originalItem,
+      quantity: newOriginalQty,
+      total_price: originalItem.unit_price * newOriginalQty,
+    };
+    
+    // Insert return item right after the original (for tracking)
     newItems.splice(returnItemIndex + 1, 0, returnItem);
     setItems(newItems);
     
@@ -594,21 +618,17 @@ const Invoice = () => {
     setReturnItemIndex(null);
     setReturnQuantity("");
     
-    toast.success(`Return of ${qty} ${originalItem.quantity_type} added successfully!`);
+    toast.success(`Return of ${qty} ${originalItem.quantity_type} processed. Original qty reduced to ${newOriginalQty}.`);
   };
 
-  // Get max return quantity for an item (sold qty minus any existing returns)
+  // Get max return quantity for an item (current qty since original is already reduced by previous returns)
   const getMaxReturnQuantity = (index: number) => {
     const item = items[index];
     if (!item || item.is_return) return 0;
     
-    // Find existing returns for this product
-    const existingReturns = items.filter(i => 
-      i.is_return && 
-      i.product_id === item.product_id
-    ).reduce((sum, i) => sum + i.quantity, 0);
-    
-    return Math.max(0, item.quantity - existingReturns);
+    // Since original quantity is reduced when return is made,
+    // max returnable is simply the current quantity
+    return item.quantity;
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
