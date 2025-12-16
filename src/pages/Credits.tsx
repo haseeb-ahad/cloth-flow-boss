@@ -33,6 +33,8 @@ interface Credit {
   invoice_number: string;
   description?: string | null;
   image_url?: string | null;
+  credit_type?: string;
+  person_type?: string;
 }
 
 interface Product {
@@ -113,6 +115,7 @@ const Credits = () => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [creditTypeFilter, setCreditTypeFilter] = useState<string>("all");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
   const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: { start: string; end: string } }>({});
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
@@ -181,7 +184,7 @@ const Credits = () => {
 
   useEffect(() => {
     filterCredits();
-  }, [credits, searchTerm]);
+  }, [credits, searchTerm, creditTypeFilter]);
 
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("name");
@@ -211,6 +214,15 @@ const Credits = () => {
         .not("customer_name", "is", null)
         .order("created_at", { ascending: true }); // Oldest first for FIFO display
 
+      // Fetch from credits table for cash credits
+      const { data: cashCreditsData } = await supabase
+        .from("credits")
+        .select("*")
+        .eq("credit_type", "cash")
+        .order("created_at", { ascending: true });
+
+      let allCredits: Credit[] = [];
+
       if (salesData) {
         // Map sales to credit format - only read values, no recalculation
         const creditsFromSales: Credit[] = salesData.map(sale => ({
@@ -227,11 +239,39 @@ const Credits = () => {
           invoice_number: sale.invoice_number,
           description: sale.description || null,
           image_url: sale.image_url || null,
+          credit_type: "invoice",
+          person_type: "customer",
         }));
-
-        setCredits(creditsFromSales);
-        setFilteredCredits(creditsFromSales);
+        allCredits = [...allCredits, ...creditsFromSales];
       }
+
+      if (cashCreditsData) {
+        // Map cash credits
+        const cashCredits: Credit[] = cashCreditsData.map(credit => ({
+          id: credit.id,
+          customer_name: credit.customer_name || "",
+          customer_phone: credit.customer_phone || null,
+          amount: credit.amount,
+          paid_amount: credit.paid_amount || 0,
+          remaining_amount: credit.remaining_amount,
+          due_date: credit.due_date,
+          status: credit.status || "pending",
+          notes: credit.notes,
+          created_at: credit.created_at || "",
+          invoice_number: `CASH-${credit.id.slice(0, 8).toUpperCase()}`,
+          description: credit.notes,
+          image_url: null,
+          credit_type: credit.credit_type || "cash",
+          person_type: credit.person_type || "other",
+        }));
+        allCredits = [...allCredits, ...cashCredits];
+      }
+
+      // Sort by created_at
+      allCredits.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      setCredits(allCredits);
+      setFilteredCredits(allCredits);
       toast.success("Credits data refreshed");
     } catch (error) {
       toast.error("Failed to fetch credits");
@@ -248,6 +288,10 @@ const Credits = () => {
         (credit.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (credit.customer_phone?.includes(searchTerm))
       );
+    }
+
+    if (creditTypeFilter !== "all") {
+      filtered = filtered.filter(credit => credit.credit_type === creditTypeFilter);
     }
 
     setFilteredCredits(filtered);
@@ -876,7 +920,7 @@ const Credits = () => {
       </div>
 
       <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-2 mb-4">
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
             <Label>Search by Name or Phone</Label>
             <div className="relative">
@@ -889,9 +933,22 @@ const Credits = () => {
               />
             </div>
           </div>
+          <div>
+            <Label>Credit Type</Label>
+            <Select value={creditTypeFilter} onValueChange={setCreditTypeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="invoice">Invoice Credit</SelectItem>
+                <SelectItem value="cash">Cash Credit</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setCustomerPaymentDateFilters({}); }} 
+              onClick={() => { setSearchTerm(""); setCreditTypeFilter("all"); setCustomerPaymentDateFilters({}); }} 
               variant="outline"
               className="w-full"
               disabled={isLoading}
@@ -941,6 +998,7 @@ const Credits = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Invoice #</TableHead>
+                          <TableHead>Type</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
@@ -953,6 +1011,11 @@ const Credits = () => {
                         {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell className="font-medium">{credit.invoice_number}</TableCell>
+                            <TableCell>
+                              <Badge variant={credit.credit_type === "cash" ? "secondary" : "outline"} className="text-xs">
+                                {credit.credit_type === "cash" ? "Cash" : "Invoice"}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{formatDate(credit.created_at)}</TableCell>
                             <TableCell className="text-right">
                               Rs. {credit.amount.toFixed(2)}
