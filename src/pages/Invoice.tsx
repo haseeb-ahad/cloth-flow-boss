@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
@@ -45,6 +45,7 @@ interface InvoiceItem {
   purchase_price: number;
   total_price: number;
   quantity_type: string;
+  is_return: boolean;
 }
 
 const Invoice = () => {
@@ -250,6 +251,7 @@ const Invoice = () => {
             purchase_price: item.purchase_price,
             total_price: item.total_price,
             quantity_type: product?.quantity_type || "Unit",
+            is_return: (item as any).is_return || false,
           };
         });
         
@@ -321,7 +323,7 @@ const Invoice = () => {
       return;
     }
     
-    const newItem = {
+    const newItem: InvoiceItem = {
       product_id: "",
       product_name: "",
       quantity: 0,
@@ -329,6 +331,7 @@ const Invoice = () => {
       purchase_price: 0,
       total_price: 0,
       quantity_type: "Unit",
+      is_return: false,
     };
     const newItems = [...items, newItem];
     setItems(newItems);
@@ -364,7 +367,7 @@ const Invoice = () => {
     if (item && isItemComplete(item) && index === currentItems.length - 1) {
       // Auto-add new item when last item is complete
       debugLog("✨ Auto-adding new item - current item complete");
-      const newItem = {
+      const newItem: InvoiceItem = {
         product_id: "",
         product_name: "",
         quantity: 0,
@@ -372,6 +375,7 @@ const Invoice = () => {
         purchase_price: 0,
         total_price: 0,
         quantity_type: "Unit",
+        is_return: false,
       };
       setItems([...currentItems, newItem]);
     }
@@ -707,6 +711,7 @@ const Invoice = () => {
         purchase_price: item.purchase_price,
         total_price: item.total_price,
         profit: profit,
+        is_return: item.is_return || false,
       });
 
       if (itemInsertError) {
@@ -906,6 +911,7 @@ const Invoice = () => {
           purchase_price: item.purchase_price,
           total_price: item.total_price,
           profit: profit,
+          is_return: item.is_return || false,
         });
 
         if (insertError) {
@@ -1226,7 +1232,7 @@ const Invoice = () => {
               
               return (
                 <div key={index} className={cn(
-                  "grid gap-3 md:grid-cols-[auto_2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto] items-start border-b pb-4 transition-all duration-300",
+                  "grid gap-3 md:grid-cols-[auto_2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto_auto] items-start border-b pb-4 transition-all duration-300",
                   !itemComplete && errors && "bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border-red-200 dark:border-red-800"
                 )}>
                   {/* Status Icon */}
@@ -1393,6 +1399,27 @@ const Invoice = () => {
                       spellCheck="false"
                       className="font-semibold"
                     />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <Label className="mb-2 opacity-0">Return</Label>
+                    <Button
+                      type="button"
+                      variant={item.is_return ? "default" : "outline"}
+                      size="icon"
+                      onClick={() => {
+                        const newItems = [...items];
+                        newItems[index] = { ...newItems[index], is_return: !newItems[index].is_return };
+                        setItems(newItems);
+                      }}
+                      disabled={isSaving}
+                      className={cn(
+                        "transition-all",
+                        item.is_return && "bg-orange-500 hover:bg-orange-600 text-white"
+                      )}
+                      title={item.is_return ? "Mark as regular sale" : "Mark as return"}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="flex flex-col">
                     <Label className="mb-2 opacity-0">Action</Label>

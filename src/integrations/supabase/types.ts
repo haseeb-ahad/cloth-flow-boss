@@ -583,6 +583,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_deleted: boolean | null
+          is_return: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -597,6 +598,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_return?: boolean | null
           product_id: string
           product_name: string
           profit: number
@@ -611,6 +613,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_return?: boolean | null
           product_id?: string
           product_name?: string
           profit?: number
