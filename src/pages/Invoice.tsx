@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,6 +97,11 @@ const Invoice = () => {
     worker_name?: string;
     worker_phone?: string;
   }>({});
+  
+  // Return dialog state
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [returnItemIndex, setReturnItemIndex] = useState<number | null>(null);
+  const [returnQuantity, setReturnQuantity] = useState("");
   
   // Refs for auto-focus
   const quantityInputRefs = useRef<{[key: number]: HTMLInputElement | null}>({});
@@ -428,9 +434,30 @@ const Invoice = () => {
       const enteredQuantity = parseFloat(value) || 0;
       const currentItem = newItems[index];
       
-      // For return items, no stock validation needed (we're adding back to stock)
-      // For regular items, check stock availability
-      if (!currentItem.is_return) {
+      if (currentItem.is_return) {
+        // For return items, validate against original sold quantity
+        const originalItem = items.find(i => 
+          !i.is_return && 
+          i.product_id === currentItem.product_id
+        );
+        
+        if (originalItem) {
+          // Calculate existing returns for this product (excluding current item)
+          const existingReturns = items.filter((i, idx) => 
+            i.is_return && 
+            i.product_id === currentItem.product_id &&
+            idx !== index
+          ).reduce((sum, i) => sum + i.quantity, 0);
+          
+          const maxReturnable = originalItem.quantity - existingReturns;
+          
+          if (enteredQuantity > maxReturnable) {
+            toast.error(`Return quantity cannot exceed sold quantity (${maxReturnable} ${currentItem.quantity_type || "Unit"})`);
+            return;
+          }
+        }
+      } else {
+        // For regular items, check stock availability
         const product = products.find(p => p.id === currentItem.product_id);
         
         if (product && enteredQuantity > product.stock_quantity) {
@@ -485,8 +512,19 @@ const Invoice = () => {
     checkAndAutoAddItem(newItems, index);
   };
 
+  // Calculate subtotal (only non-return items)
+  const calculateSubtotal = () => {
+    return items.filter(item => !item.is_return).reduce((sum, item) => sum + item.total_price, 0);
+  };
+
+  // Calculate total return amount (negative)
+  const calculateReturnAmount = () => {
+    return items.filter(item => item.is_return).reduce((sum, item) => sum + item.total_price, 0);
+  };
+
   const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.total_price, 0);
+    // Subtotal minus returns
+    return calculateSubtotal() - calculateReturnAmount();
   };
 
   const calculateFinalAmount = () => {
@@ -494,11 +532,13 @@ const Invoice = () => {
   };
 
   const calculateTotalCost = () => {
-    return items.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+    return items.filter(item => !item.is_return).reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
   };
 
   const calculateTotalProfit = () => {
-    return items.reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    const saleProfit = items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    const returnLoss = items.filter(item => item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    return saleProfit - returnLoss;
   };
 
   const calculateChange = () => {
@@ -506,6 +546,69 @@ const Invoice = () => {
     const paid = parseFloat(paidAmount);
     const final = calculateFinalAmount();
     return paid > final ? paid - final : 0;
+  };
+
+  // Open return dialog
+  const openReturnDialog = (index: number) => {
+    setReturnItemIndex(index);
+    setReturnQuantity("");
+    setReturnDialogOpen(true);
+  };
+
+  // Handle return confirmation
+  const handleReturnConfirm = () => {
+    if (returnItemIndex === null) return;
+    
+    const originalItem = items[returnItemIndex];
+    const qty = parseFloat(returnQuantity);
+    
+    // Validation
+    if (!returnQuantity || qty <= 0) {
+      toast.error("Please enter a valid return quantity");
+      return;
+    }
+    
+    if (qty > originalItem.quantity) {
+      toast.error(`Return quantity cannot exceed sold quantity (${originalItem.quantity})`);
+      return;
+    }
+
+    // Create a return item with same product details
+    const returnItem: InvoiceItem = {
+      product_id: originalItem.product_id,
+      product_name: originalItem.product_name,
+      quantity: qty,
+      unit_price: originalItem.unit_price,
+      purchase_price: originalItem.purchase_price,
+      total_price: originalItem.unit_price * qty,
+      quantity_type: originalItem.quantity_type,
+      is_return: true,
+    };
+    
+    // Insert return item right after the original
+    const newItems = [...items];
+    newItems.splice(returnItemIndex + 1, 0, returnItem);
+    setItems(newItems);
+    
+    setReturnDialogOpen(false);
+    setReturnItemIndex(null);
+    setReturnQuantity("");
+    
+    toast.success(`Return of ${qty} ${originalItem.quantity_type} added successfully!`);
+  };
+
+  // Get max return quantity for an item (sold qty minus any existing returns)
+  const getMaxReturnQuantity = (index: number) => {
+    const item = items[index];
+    if (!item || item.is_return) return 0;
+    
+    // Find existing returns for this product
+    const existingReturns = items.filter(i => 
+      i.is_return && 
+      i.product_id === item.product_id
+    ).reduce((sum, i) => sum + i.quantity, 0);
+    
+    return Math.max(0, item.quantity - existingReturns);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1445,35 +1548,10 @@ const Invoice = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => {
-                          // Create a return item with same product details but empty quantity
-                          const returnItem: InvoiceItem = {
-                            product_id: item.product_id,
-                            product_name: item.product_name,
-                            quantity: 0,
-                            unit_price: item.unit_price,
-                            purchase_price: item.purchase_price,
-                            total_price: 0,
-                            quantity_type: item.quantity_type,
-                            is_return: true,
-                          };
-                          
-                          // Insert return item right after the original
-                          const newItems = [...items];
-                          newItems.splice(index + 1, 0, returnItem);
-                          setItems(newItems);
-                          
-                          // Focus on the return item quantity input
-                          setTimeout(() => {
-                            const quantityInput = quantityInputRefs.current[index + 1];
-                            if (quantityInput) {
-                              quantityInput.focus();
-                            }
-                          }, 100);
-                        }}
-                        disabled={isSaving || !isItemComplete(item)}
+                        onClick={() => openReturnDialog(index)}
+                        disabled={isSaving || !isItemComplete(item) || getMaxReturnQuantity(index) <= 0}
                         className="hover:bg-orange-100 hover:text-orange-600 hover:border-orange-300"
-                        title="Add return for this item"
+                        title={getMaxReturnQuantity(index) <= 0 ? "All items already returned" : "Add return for this item"}
                       >
                         <RotateCcw className="h-4 w-4" />
                       </Button>
@@ -1594,6 +1672,19 @@ const Invoice = () => {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
+                <span className="font-medium">Rs. {calculateSubtotal().toFixed(2)}</span>
+              </div>
+              {calculateReturnAmount() > 0 && (
+                <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
+                  <span className="flex items-center gap-1">
+                    <RotateCcw className="h-3 w-3" />
+                    Return Amount:
+                  </span>
+                  <span className="font-medium">- Rs. {calculateReturnAmount().toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span>Net Total:</span>
                 <span className="font-medium">Rs. {calculateTotal().toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -1609,7 +1700,7 @@ const Invoice = () => {
                 <span className="font-medium">- Rs. {discount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-3">
-                <span>Total:</span>
+                <span>Final Total:</span>
                 <span className="text-success">Rs. {calculateFinalAmount().toFixed(2)}</span>
               </div>
               {isFullPayment && (
@@ -1685,6 +1776,85 @@ const Invoice = () => {
           )}
         </div>
       </Card>
+      
+      {/* Return Dialog */}
+      <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-orange-500" />
+              Return Item
+            </DialogTitle>
+            <DialogDescription>
+              {returnItemIndex !== null && items[returnItemIndex] && (
+                <span>
+                  Enter the quantity to return for <strong>{items[returnItemIndex].product_name}</strong>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {returnItemIndex !== null && items[returnItemIndex] && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground">Sold Quantity</p>
+                  <p className="font-medium">{items[returnItemIndex].quantity} {items[returnItemIndex].quantity_type}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Unit Price</p>
+                  <p className="font-medium">Rs. {items[returnItemIndex].unit_price.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Max Returnable</p>
+                  <p className="font-medium text-orange-600">{getMaxReturnQuantity(returnItemIndex)} {items[returnItemIndex].quantity_type}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Return Value</p>
+                  <p className="font-medium text-orange-600">
+                    Rs. {(parseFloat(returnQuantity || "0") * items[returnItemIndex].unit_price).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="returnQuantity">Return Quantity</Label>
+                <Input
+                  id="returnQuantity"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={getMaxReturnQuantity(returnItemIndex)}
+                  value={returnQuantity}
+                  onChange={(e) => setReturnQuantity(e.target.value)}
+                  placeholder={`Max: ${getMaxReturnQuantity(returnItemIndex)}`}
+                  className="mt-1"
+                  autoFocus
+                />
+                {parseFloat(returnQuantity || "0") > getMaxReturnQuantity(returnItemIndex) && (
+                  <p className="text-xs text-destructive mt-1">
+                    Cannot exceed sold quantity ({getMaxReturnQuantity(returnItemIndex)})
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleReturnConfirm}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={!returnQuantity || parseFloat(returnQuantity) <= 0 || (returnItemIndex !== null && parseFloat(returnQuantity) > getMaxReturnQuantity(returnItemIndex))}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Confirm Return
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Print Invoice Component - Hidden on screen, visible only when printing */}
       <PrintInvoice
