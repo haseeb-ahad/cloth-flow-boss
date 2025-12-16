@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard, Banknote, Wallet } from "lucide-react";
 import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -120,6 +120,13 @@ const Credits = () => {
   const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: { start: string; end: string } }>({});
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isCashCreditPaymentDialogOpen, setIsCashCreditPaymentDialogOpen] = useState(false);
+  const [cashCreditPaymentData, setCashCreditPaymentData] = useState({
+    payment_amount: "",
+    payment_date: new Date().toISOString().split('T')[0],
+    payment_mode: "cash",
+    notes: "",
+  });
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -428,6 +435,95 @@ const Credits = () => {
       setFullPayment(false);
     } catch (error) {
       toast.error("Failed to record payment");
+    }
+  };
+
+  const openCashCreditPaymentDialog = (credit: Credit) => {
+    setSelectedCredit(credit);
+    setCashCreditPaymentData({
+      payment_amount: "",
+      payment_date: new Date().toISOString().split('T')[0],
+      payment_mode: "cash",
+      notes: "",
+    });
+    setIsCashCreditPaymentDialogOpen(true);
+  };
+
+  const handleCashCreditPayment = async () => {
+    if (!selectedCredit) return;
+
+    // PERMISSION CHECK
+    if (!canEdit) {
+      toast.error("You do not have permission to record payments.");
+      return;
+    }
+
+    const payment = parseFloat(cashCreditPaymentData.payment_amount);
+    
+    if (!payment || payment <= 0) {
+      toast.error("Please enter a valid payment amount");
+      return;
+    }
+
+    if (payment > selectedCredit.remaining_amount) {
+      toast.error("Payment amount cannot exceed remaining balance");
+      return;
+    }
+
+    const newPaidAmount = selectedCredit.paid_amount + payment;
+    const newRemainingAmount = selectedCredit.remaining_amount - payment;
+    
+    // Determine status based on remaining
+    let newStatus = "pending";
+    if (newRemainingAmount <= 0) {
+      newStatus = "paid";
+    } else if (newPaidAmount > 0) {
+      newStatus = "partial";
+    }
+
+    setIsLoading(true);
+    try {
+      // Update credit record
+      const { error: updateError } = await supabase
+        .from("credits")
+        .update({
+          paid_amount: newPaidAmount,
+          remaining_amount: newRemainingAmount,
+          status: newStatus,
+        })
+        .eq("id", selectedCredit.id);
+
+      if (updateError) throw updateError;
+
+      // Record payment transaction
+      const { error: transactionError } = await supabase
+        .from("credit_transactions")
+        .insert({
+          credit_id: selectedCredit.id,
+          customer_name: selectedCredit.customer_name,
+          customer_phone: selectedCredit.customer_phone,
+          amount: payment,
+          transaction_date: cashCreditPaymentData.payment_date,
+          notes: `${cashCreditPaymentData.payment_mode.toUpperCase()}: ${cashCreditPaymentData.notes || "Payment received"}`,
+          owner_id: ownerId,
+        });
+
+      if (transactionError) throw transactionError;
+
+      toast.success("Cash credit payment recorded successfully!");
+      fetchCredits();
+      setIsCashCreditPaymentDialogOpen(false);
+      setCashCreditPaymentData({
+        payment_amount: "",
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_mode: "cash",
+        notes: "",
+      });
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      toast.error("Failed to record payment");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1005,6 +1101,7 @@ const Credits = () => {
                           <TableHead className="text-right font-semibold">Remaining</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-center">Notes</TableHead>
+                          {canEdit && <TableHead className="text-center">Actions</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1065,6 +1162,21 @@ const Credits = () => {
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
+                            {canEdit && (
+                              <TableCell className="text-center">
+                                {credit.credit_type === "cash" && credit.remaining_amount > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openCashCreditPaymentDialog(credit)}
+                                    className="gap-1"
+                                  >
+                                    <Wallet className="h-3.5 w-3.5" />
+                                    Receive
+                                  </Button>
+                                )}
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -1417,6 +1529,150 @@ const Credits = () => {
               <Button onClick={handleSaveInvoice} className="w-full" size="lg">
                 Save invoice & update credit
               </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cash Credit Payment Dialog */}
+      <Dialog open={isCashCreditPaymentDialogOpen} onOpenChange={setIsCashCreditPaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Receive Payment - Cash Credit
+            </DialogTitle>
+          </DialogHeader>
+          {selectedCredit && (
+            <div className="space-y-5">
+              {/* Credit Summary */}
+              <Card className="p-4 bg-muted/50">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Person</span>
+                    <span className="font-semibold">{selectedCredit.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Type</span>
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {selectedCredit.person_type || "Other"}
+                    </Badge>
+                  </div>
+                  <div className="border-t pt-2 mt-2">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="font-semibold text-sm">Rs. {selectedCredit.amount.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Paid</p>
+                        <p className="font-semibold text-sm text-success">Rs. {selectedCredit.paid_amount.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Remaining</p>
+                        <p className="font-bold text-sm text-warning">Rs. {selectedCredit.remaining_amount.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Payment Form */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="cash_payment_amount">Payment Amount *</Label>
+                  <Input
+                    id="cash_payment_amount"
+                    type="number"
+                    value={cashCreditPaymentData.payment_amount}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, payment_amount: e.target.value })}
+                    placeholder="Enter amount"
+                    max={selectedCredit.remaining_amount}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max: Rs. {selectedCredit.remaining_amount.toFixed(0)}
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="cash_payment_date">Payment Date</Label>
+                  <Input
+                    id="cash_payment_date"
+                    type="date"
+                    value={cashCreditPaymentData.payment_date}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, payment_date: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Payment Mode</Label>
+                  <Select 
+                    value={cashCreditPaymentData.payment_mode} 
+                    onValueChange={(value) => setCashCreditPaymentData({ ...cashCreditPaymentData, payment_mode: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">
+                        <div className="flex items-center gap-2">
+                          <Banknote className="h-4 w-4" />
+                          Cash
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="bank">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          Bank Transfer
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="other">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="h-4 w-4" />
+                          Other
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="cash_payment_notes">Note (Optional)</Label>
+                  <Textarea
+                    id="cash_payment_notes"
+                    value={cashCreditPaymentData.notes}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, notes: e.target.value })}
+                    placeholder="Add a reference or note..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  onClick={handleCashCreditPayment} 
+                  className="flex-1"
+                  disabled={isLoading || !cashCreditPaymentData.payment_amount}
+                >
+                  {isLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <DollarSign className="h-4 w-4 mr-2" />
+                  )}
+                  Record Payment
+                </Button>
+                <Button 
+                  onClick={() => setIsCashCreditPaymentDialogOpen(false)} 
+                  variant="outline"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
