@@ -885,6 +885,13 @@ const Invoice = () => {
 
       debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
 
+      // SKIP inventory for return items - they are just for tracking
+      // The main item's reduced quantity already accounts for the return
+      if (item.is_return) {
+        debugLog(`⏭️ Skipping inventory update for return item: ${item.product_name} (tracking only)`);
+        continue;
+      }
+
       // Step 2: Fetch current stock from database (not from state)
       const { data: product, error: fetchError } = await supabase
         .from("products")
@@ -898,22 +905,14 @@ const Invoice = () => {
         throw fetchError || new Error("Product not found");
       }
 
-      // Step 3: Calculate new stock - ADD for return items, DEDUCT for regular items
-      let newStock: number;
-      if (item.is_return) {
-        // Return items ADD to inventory
-        newStock = product.stock_quantity + item.quantity;
-        console.log(`Adding return stock for ${item.product_name}: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
-      } else {
-        // Regular items DEDUCT from inventory
-        newStock = product.stock_quantity - item.quantity;
-        
-        if (newStock < 0) {
-          toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-          throw new Error("Insufficient stock");
-        }
-        console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
+      // Step 3: Deduct stock for regular items only
+      const newStock = product.stock_quantity - item.quantity;
+      
+      if (newStock < 0) {
+        toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+        throw new Error("Insufficient stock");
       }
+      console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
 
       // Step 4: Update inventory
       const { error: updateError } = await supabase
@@ -987,10 +986,16 @@ const Invoice = () => {
         paid += parseFloat(additionalPayment);
       }
 
-      // Step 1: Reverse stock changes for all original items first
-      // CRITICAL: Regular items were DEDUCTED (so ADD back), Return items were ADDED (so DEDUCT back)
-      debugLog("♻️ Reversing stock for original items:", originalItems.map(i => `${i.product_name}${i.is_return ? ' (RETURN)' : ''}`));
+      // Step 1: Reverse stock changes for original items (ONLY regular items, skip returns)
+      // Return items are tracking-only and never affected inventory
+      debugLog("♻️ Reversing stock for original items:", originalItems.filter(i => !i.is_return).map(i => i.product_name));
       for (const originalItem of originalItems) {
+        // SKIP return items - they never affected inventory
+        if (originalItem.is_return) {
+          debugLog(`⏭️ Skipping reversal for return item: ${originalItem.product_name} (tracking only)`);
+          continue;
+        }
+
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
@@ -1008,19 +1013,9 @@ const Invoice = () => {
           throw new Error("Product not found");
         }
 
-        // CRITICAL FIX: Reverse the original operation
-        // - Regular items were DEDUCTED from stock, so we ADD back
-        // - Return items were ADDED to stock, so we DEDUCT back
-        let restoredStock: number;
-        if (originalItem.is_return) {
-          // Return items ADDED to inventory, so reverse by DEDUCTING
-          restoredStock = product.stock_quantity - originalItem.quantity;
-          console.log(`Reversing return for ${originalItem.product_name}: ${product.stock_quantity} - ${originalItem.quantity} = ${restoredStock}`);
-        } else {
-          // Regular items DEDUCTED from inventory, so reverse by ADDING
-          restoredStock = product.stock_quantity + originalItem.quantity;
-          console.log(`Reversing deduction for ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
-        }
+        // Regular items were DEDUCTED from stock, so we ADD back
+        const restoredStock = product.stock_quantity + originalItem.quantity;
+        console.log(`Reversing deduction for ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
 
         const { error: updateError } = await supabase
           .from("products")
@@ -1104,7 +1099,14 @@ const Invoice = () => {
 
         debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
 
-        // Deduct stock for new quantities
+        // SKIP inventory for return items - they are just for tracking
+        // The main item's reduced quantity already accounts for the return
+        if (item.is_return) {
+          debugLog(`⏭️ Skipping inventory update for return item: ${item.product_name} (tracking only)`);
+          continue;
+        }
+
+        // Deduct stock for regular items only
         const { data: product, error: fetchError } = await supabase
           .from("products")
           .select("stock_quantity")
@@ -1122,21 +1124,13 @@ const Invoice = () => {
           throw new Error("Product not found");
         }
 
-        // Calculate stock change - ADD for return items, DEDUCT for regular items
-        let newStock: number;
-        if (item.is_return) {
-          // Return items ADD to inventory
-          newStock = product.stock_quantity + item.quantity;
-          console.log(`Adding return stock for ${item.product_name}: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
-        } else {
-          // Regular items DEDUCT from inventory
-          newStock = product.stock_quantity - item.quantity;
-          console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
+        // Deduct stock for regular items
+        const newStock = product.stock_quantity - item.quantity;
+        console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
 
-          if (newStock < 0) {
-            toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-            throw new Error("Insufficient stock");
-          }
+        if (newStock < 0) {
+          toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+          throw new Error("Insufficient stock");
         }
 
         const { error: updateError } = await supabase
@@ -1217,10 +1211,15 @@ const Invoice = () => {
         .select("product_id, quantity, is_return")
         .eq("sale_id", editSaleId);
 
-      // Reverse stock changes for all items
-      // CRITICAL: Regular items were DEDUCTED (so ADD back), Return items were ADDED (so DEDUCT back)
+      // Reverse stock changes for regular items only (return items never affected inventory)
       if (saleItems) {
         for (const item of saleItems) {
+          // SKIP return items - they never affected inventory
+          if (item.is_return) {
+            console.log(`Skipping return item on delete (tracking only)`);
+            continue;
+          }
+
           const { data: product } = await supabase
             .from("products")
             .select("stock_quantity")
@@ -1228,19 +1227,9 @@ const Invoice = () => {
             .maybeSingle();
 
           if (product) {
-            // CRITICAL FIX: Reverse the original operation
-            // - Regular items were DEDUCTED, so ADD back
-            // - Return items were ADDED, so DEDUCT back
-            let newStock: number;
-            if (item.is_return) {
-              // Return items ADDED to inventory, so reverse by DEDUCTING
-              newStock = product.stock_quantity - item.quantity;
-              console.log(`Reversing return on delete: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
-            } else {
-              // Regular items DEDUCTED from inventory, so reverse by ADDING
-              newStock = product.stock_quantity + item.quantity;
-              console.log(`Reversing deduction on delete: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
-            }
+            // Regular items were DEDUCTED, so ADD back
+            const newStock = product.stock_quantity + item.quantity;
+            console.log(`Reversing deduction on delete: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
             
             await supabase
               .from("products")
