@@ -12,6 +12,7 @@ import {
   Package, 
   FileText, 
   CreditCard,
+  HandCoins,
   Store,
   Users,
   Settings,
@@ -72,6 +73,7 @@ const Layout = ({ children }: LayoutProps) => {
       { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
       { path: "/sales", icon: FileText, label: "Sales History", feature: "sales", adminOnly: false },
       { path: "/credits", icon: CreditCard, label: "Credits", feature: "credits", adminOnly: false },
+      { path: "/cash-credit", icon: HandCoins, label: "Cash Credit", feature: "credits", adminOnly: false, requirePermission: "create" },
       { path: "/receive-payment", icon: Banknote, label: "Receive Payment", feature: "receive_payment", adminOnly: false },
       { path: "/expenses", icon: Receipt, label: "Expenses", feature: "expenses", adminOnly: false },
       { path: "/customers", icon: Users, label: "Customers", feature: "customers", adminOnly: false },
@@ -82,6 +84,10 @@ const Layout = ({ children }: LayoutProps) => {
     return allItems.filter(item => {
       if (userRole === "worker" && item.adminOnly) return false;
       if (item.feature) {
+        // Special handling for items that require specific permissions
+        if ((item as any).requirePermission === "create") {
+          return hasPermission(item.feature, "create");
+        }
         return hasPermission(item.feature, "view");
       }
       if (item.adminOnly) {
