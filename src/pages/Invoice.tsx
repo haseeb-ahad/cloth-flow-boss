@@ -486,8 +486,7 @@ const Invoice = () => {
   };
 
   const calculateTotal = () => {
-    // Exclude return items from total calculation
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + item.total_price, 0);
+    return items.reduce((sum, item) => sum + item.total_price, 0);
   };
 
   const calculateFinalAmount = () => {
@@ -495,13 +494,11 @@ const Invoice = () => {
   };
 
   const calculateTotalCost = () => {
-    // Exclude return items from cost calculation
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+    return items.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
   };
 
   const calculateTotalProfit = () => {
-    // Exclude return items from profit calculation
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    return items.reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
   };
 
   const calculateChange = () => {
@@ -1382,81 +1379,63 @@ const Invoice = () => {
                     <Label className={cn("mb-2", errors?.price && "text-red-500 font-semibold")}>
                       Price {errors?.price && <span className="text-red-500">*</span>}
                     </Label>
-                    {item.is_return ? (
-                      <Input type="text" value="" disabled className="bg-muted" />
-                    ) : (
-                      <Input 
-                        type="number" 
-                        value={item.unit_price || ""} 
-                        onFocus={(e) => {
-                          if (item.unit_price === 0) {
-                            updateItem(index, "unit_price", "");
-                          }
-                        }}
-                        onChange={(e) => {
-                          e.preventDefault();
-                          updateItem(index, "unit_price", e.target.value);
-                          // Clear price error when value entered
-                          if (parseFloat(e.target.value) > 0) {
-                            setValidationErrors(prev => {
-                              if (prev[index]) {
-                                return {...prev, [index]: {...prev[index], price: false}};
-                              }
-                              return prev;
-                            });
-                          }
-                        }}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                        className={cn(
-                          "font-semibold",
-                          errors?.price && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
-                        )}
-                      />
-                    )}
+                    <Input 
+                      type="number" 
+                      value={item.unit_price || ""} 
+                      onFocus={(e) => {
+                        if (item.unit_price === 0) {
+                          updateItem(index, "unit_price", "");
+                        }
+                      }}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateItem(index, "unit_price", e.target.value);
+                        // Clear price error when value entered
+                        if (parseFloat(e.target.value) > 0) {
+                          setValidationErrors(prev => {
+                            if (prev[index]) {
+                              return {...prev, [index]: {...prev[index], price: false}};
+                            }
+                            return prev;
+                          });
+                        }
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      className={cn(
+                        "font-semibold",
+                        errors?.price && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
+                      )}
+                    />
                   </div>
                   <div className="flex flex-col">
                     <Label className="mb-2">Cost</Label>
-                    <Input 
-                      type="text" 
-                      value={item.is_return ? "" : (item.purchase_price * item.quantity).toFixed(2)} 
-                      disabled 
-                      className={item.is_return ? "bg-muted" : "text-destructive font-medium"} 
-                    />
+                    <Input type="number" value={(item.purchase_price * item.quantity).toFixed(2)} disabled className="text-destructive font-medium" />
                   </div>
                   <div className="flex flex-col">
                     <Label className="mb-2">Profit</Label>
-                    <Input 
-                      type="text" 
-                      value={item.is_return ? "" : ((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} 
-                      disabled 
-                      className={item.is_return ? "bg-muted" : "text-success font-medium"} 
-                    />
+                    <Input type="number" value={((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} disabled className="text-success font-medium" />
                   </div>
                   <div className="flex flex-col">
                     <Label className="mb-2">Total</Label>
-                    {item.is_return ? (
-                      <Input type="text" value="" disabled className="bg-muted" />
-                    ) : (
-                      <Input 
-                        type="number" 
-                        value={item.total_price || ""} 
-                        onFocus={(e) => {
-                          if (item.total_price === 0) {
-                            updateItem(index, "total_price", "");
-                          }
-                        }}
-                        onChange={(e) => {
-                          e.preventDefault();
-                          updateItem(index, "total_price", e.target.value);
-                        }}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                        className="font-semibold"
-                      />
-                    )}
+                    <Input 
+                      type="number" 
+                      value={item.total_price || ""} 
+                      onFocus={(e) => {
+                        if (item.total_price === 0) {
+                          updateItem(index, "total_price", "");
+                        }
+                      }}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        updateItem(index, "total_price", e.target.value);
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      className="font-semibold"
+                    />
                   </div>
                   {/* Only show return button for non-return items */}
                   {!item.is_return && (
