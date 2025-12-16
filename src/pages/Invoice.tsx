@@ -46,8 +46,6 @@ interface InvoiceItem {
   total_price: number;
   quantity_type: string;
   is_return: boolean;
-  parent_product_id?: string; // Links return item to original item
-  original_quantity?: number; // Stores original quantity before return deduction
 }
 
 const Invoice = () => {
@@ -430,50 +428,19 @@ const Invoice = () => {
       const enteredQuantity = parseFloat(value) || 0;
       const currentItem = newItems[index];
       
-      // If this is a return item, handle parent item deduction
-      if (currentItem.is_return && currentItem.parent_product_id) {
-        // Find the parent item (non-return item with same product_id before this index)
-        const parentIndex = newItems.findIndex((item, idx) => 
-          idx < index && 
-          !item.is_return && 
-          item.product_id === currentItem.parent_product_id
-        );
-        
-        if (parentIndex !== -1) {
-          const parentItem = newItems[parentIndex];
-          const originalQty = parentItem.original_quantity || parentItem.quantity;
-          
-          // Validate return quantity doesn't exceed original
-          if (enteredQuantity > originalQty) {
-            toast.error(`Return quantity cannot exceed original quantity (${originalQty})`);
-            return;
-          }
-          
-          // Update parent item quantity (original - return)
-          newItems[parentIndex].quantity = originalQty - enteredQuantity;
-          newItems[parentIndex].total_price = newItems[parentIndex].unit_price * newItems[parentIndex].quantity;
-          
-          // Update return item
-          newItems[index].quantity = enteredQuantity;
-          newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
-        }
-      } else {
-        // Regular item quantity update
+      // For return items, no stock validation needed (we're adding back to stock)
+      // For regular items, check stock availability
+      if (!currentItem.is_return) {
         const product = products.find(p => p.id === currentItem.product_id);
         
-        if (product && enteredQuantity > product.stock_quantity && !currentItem.is_return) {
+        if (product && enteredQuantity > product.stock_quantity) {
           toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
           return;
         }
-        
-        // Store original quantity if changing for first time and has return items linked
-        if (!currentItem.original_quantity) {
-          currentItem.original_quantity = currentItem.quantity;
-        }
-        
-        newItems[index].quantity = enteredQuantity;
-        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
+      
+      newItems[index].quantity = enteredQuantity;
+      newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
     } else if (field === "unit_price") {
       const enteredUnitPrice = parseFloat(value) || 0;
       
@@ -774,15 +741,22 @@ const Invoice = () => {
         throw fetchError || new Error("Product not found");
       }
 
-      // Step 3: Calculate new stock and validate
-      const newStock = product.stock_quantity - item.quantity;
-      
-      if (newStock < 0) {
-        toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-        throw new Error("Insufficient stock");
+      // Step 3: Calculate new stock - ADD for return items, DEDUCT for regular items
+      let newStock: number;
+      if (item.is_return) {
+        // Return items ADD to inventory
+        newStock = product.stock_quantity + item.quantity;
+        console.log(`Adding return stock for ${item.product_name}: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
+      } else {
+        // Regular items DEDUCT from inventory
+        newStock = product.stock_quantity - item.quantity;
+        
+        if (newStock < 0) {
+          toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+          throw new Error("Insufficient stock");
+        }
+        console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
       }
-
-      console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} → ${newStock}`);
 
       // Step 4: Update inventory
       const { error: updateError } = await supabase
@@ -979,21 +953,30 @@ const Invoice = () => {
           throw new Error("Product not found");
         }
 
-        const deductedStock = product.stock_quantity - item.quantity;
-        console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${deductedStock}`);
+        // Calculate stock change - ADD for return items, DEDUCT for regular items
+        let newStock: number;
+        if (item.is_return) {
+          // Return items ADD to inventory
+          newStock = product.stock_quantity + item.quantity;
+          console.log(`Adding return stock for ${item.product_name}: ${product.stock_quantity} + ${item.quantity} = ${newStock}`);
+        } else {
+          // Regular items DEDUCT from inventory
+          newStock = product.stock_quantity - item.quantity;
+          console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
 
-        if (deductedStock < 0) {
-          toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-          throw new Error("Insufficient stock");
+          if (newStock < 0) {
+            toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+            throw new Error("Insufficient stock");
+          }
         }
 
         const { error: updateError } = await supabase
           .from("products")
-          .update({ stock_quantity: deductedStock })
+          .update({ stock_quantity: newStock })
           .eq("id", item.product_id);
         
         if (updateError) {
-          console.error("Error deducting stock:", updateError);
+          console.error("Error updating stock:", updateError);
           toast.error(`Failed to update stock for ${item.product_name}`);
           throw updateError;
         }
@@ -1473,17 +1456,10 @@ const Invoice = () => {
                             total_price: 0,
                             quantity_type: item.quantity_type,
                             is_return: true,
-                            parent_product_id: item.product_id,
-                            original_quantity: item.quantity,
                           };
                           
-                          // Store original quantity if not already set
-                          const newItems = [...items];
-                          if (!newItems[index].original_quantity) {
-                            newItems[index].original_quantity = newItems[index].quantity;
-                          }
-                          
                           // Insert return item right after the original
+                          const newItems = [...items];
                           newItems.splice(index + 1, 0, returnItem);
                           setItems(newItems);
                           
