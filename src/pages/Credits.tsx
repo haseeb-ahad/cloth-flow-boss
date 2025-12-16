@@ -1066,20 +1066,30 @@ const Credits = () => {
             // Skip customers with no remaining balance
             if (totalRemaining <= 0) return null;
 
-            // Check if any credits for this customer are cash credits
+            // Check if any credits for this customer are cash or invoice credits
             const hasCashCredit = customerCredits.some(credit => credit.credit_type === "cash");
+            const hasInvoiceCredit = customerCredits.some(credit => credit.credit_type === "invoice");
+            const hasAnyLabel = hasCashCredit || hasInvoiceCredit;
 
             return (
               <Collapsible key={key} open={isExpanded} onOpenChange={() => toggleCustomer(key)}>
                 <Card className="p-4 bg-muted/30 relative">
-                  {hasCashCredit && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md text-xs font-medium">
-                      <Banknote className="h-3.5 w-3.5" />
-                      <span>Cash Credit</span>
-                    </div>
-                  )}
+                  <div className="absolute top-2 left-2 flex items-center gap-2">
+                    {hasCashCredit && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md text-xs font-medium">
+                        <Banknote className="h-3.5 w-3.5" />
+                        <span>Cash Credit</span>
+                      </div>
+                    )}
+                    {hasInvoiceCredit && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md text-xs font-medium">
+                        <CreditCard className="h-3.5 w-3.5" />
+                        <span>Invoice Credit</span>
+                      </div>
+                    )}
+                  </div>
                   <CollapsibleTrigger className="w-full">
-                    <div className={`flex items-center justify-between ${hasCashCredit ? "mt-6" : ""}`}>
+                    <div className={`flex items-center justify-between ${hasAnyLabel ? "mt-6" : ""}`}>
                       <div className="flex items-center gap-4">
                         {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                         <div className="text-left">
