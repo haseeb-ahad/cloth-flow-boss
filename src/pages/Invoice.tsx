@@ -46,6 +46,8 @@ interface InvoiceItem {
   total_price: number;
   quantity_type: string;
   is_return: boolean;
+  parent_index?: number; // Index of parent item for return items
+  original_quantity?: number; // Original quantity before return deductions
 }
 
 const Invoice = () => {
@@ -428,9 +430,27 @@ const Invoice = () => {
       const enteredQuantity = parseFloat(value) || 0;
       const currentItem = newItems[index];
       
-      // For return items, no stock validation needed (we're adding back to stock)
-      // For regular items, check stock availability
-      if (!currentItem.is_return) {
+      // Handle return item quantity - deduct from parent item
+      if (currentItem.is_return && currentItem.parent_index !== undefined) {
+        const parentItem = newItems[currentItem.parent_index];
+        if (parentItem) {
+          // Get original quantity if not set
+          if (!parentItem.original_quantity) {
+            parentItem.original_quantity = parentItem.quantity;
+          }
+          
+          // Validate return quantity doesn't exceed original
+          if (enteredQuantity > parentItem.original_quantity) {
+            toast.error(`Cannot return more than original quantity (${parentItem.original_quantity})`);
+            return;
+          }
+          
+          // Deduct return quantity from parent item's quantity
+          parentItem.quantity = parentItem.original_quantity - enteredQuantity;
+          parentItem.total_price = parentItem.unit_price * parentItem.quantity;
+        }
+      } else if (!currentItem.is_return) {
+        // For regular items, check stock availability
         const product = products.find(p => p.id === currentItem.product_id);
         
         if (product && enteredQuantity > product.stock_quantity) {
@@ -1446,6 +1466,12 @@ const Invoice = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => {
+                          // Store original quantity on parent item if not already set
+                          const newItems = [...items];
+                          if (!newItems[index].original_quantity) {
+                            newItems[index].original_quantity = newItems[index].quantity;
+                          }
+                          
                           // Create a return item with same product details but empty quantity
                           const returnItem: InvoiceItem = {
                             product_id: item.product_id,
@@ -1456,10 +1482,11 @@ const Invoice = () => {
                             total_price: 0,
                             quantity_type: item.quantity_type,
                             is_return: true,
+                            parent_index: index, // Track which item this return belongs to
+                            original_quantity: item.quantity, // Store original for validation
                           };
                           
                           // Insert return item right after the original
-                          const newItems = [...items];
                           newItems.splice(index + 1, 0, returnItem);
                           setItems(newItems);
                           
