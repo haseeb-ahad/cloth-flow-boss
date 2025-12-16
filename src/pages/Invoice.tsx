@@ -466,10 +466,44 @@ const Invoice = () => {
       const currentItem = newItems[index];
       
       if (currentItem.is_return) {
-        // Return items should not have their quantity edited directly
-        // Since original item qty is already reduced when return was created
-        toast.error("Cannot edit return quantity. Delete and re-create the return if needed.");
-        return;
+        // Find the corresponding main product item
+        const mainItemIndex = newItems.findIndex(i => 
+          !i.is_return && i.product_id === currentItem.product_id
+        );
+        
+        if (mainItemIndex === -1) {
+          toast.error("Original product not found for this return");
+          return;
+        }
+        
+        const mainItem = newItems[mainItemIndex];
+        // Calculate original invoice qty = current main qty + current return qty
+        const originalInvoiceQty = mainItem.quantity + currentItem.quantity;
+        
+        // Validate: return qty cannot exceed original invoice qty
+        if (enteredQuantity > originalInvoiceQty) {
+          toast.error(`Return quantity cannot exceed original invoice quantity (${originalInvoiceQty})`);
+          return;
+        }
+        
+        if (enteredQuantity < 0) {
+          toast.error("Return quantity cannot be negative");
+          return;
+        }
+        
+        // Update return item qty
+        newItems[index].quantity = enteredQuantity;
+        newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
+        
+        // Update main product qty = original invoice qty - return qty
+        const newMainQty = originalInvoiceQty - enteredQuantity;
+        newItems[mainItemIndex] = {
+          ...mainItem,
+          quantity: newMainQty,
+          total_price: mainItem.unit_price * newMainQty,
+        };
+        
+        debugLog(`♻️ Return qty changed to ${enteredQuantity}. Main item qty updated to ${newMainQty}`);
       } else {
         // For regular items, check stock availability
         const product = products.find(p => p.id === currentItem.product_id);
@@ -478,10 +512,10 @@ const Invoice = () => {
           toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
           return;
         }
+        
+        newItems[index].quantity = enteredQuantity;
+        newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
       }
-      
-      newItems[index].quantity = enteredQuantity;
-      newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
     } else if (field === "unit_price") {
       const enteredUnitPrice = parseFloat(value) || 0;
       
