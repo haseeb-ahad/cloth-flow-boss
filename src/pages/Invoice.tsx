@@ -46,6 +46,8 @@ interface InvoiceItem {
   total_price: number;
   quantity_type: string;
   is_return: boolean;
+  parent_product_id?: string; // Links return item to original item
+  original_quantity?: number; // Stores original quantity before return deduction
 }
 
 const Invoice = () => {
@@ -426,15 +428,52 @@ const Invoice = () => {
       }
     } else if (field === "quantity") {
       const enteredQuantity = parseFloat(value) || 0;
-      const product = products.find(p => p.id === newItems[index].product_id);
+      const currentItem = newItems[index];
       
-      if (product && enteredQuantity > product.stock_quantity) {
-        toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
-        return;
+      // If this is a return item, handle parent item deduction
+      if (currentItem.is_return && currentItem.parent_product_id) {
+        // Find the parent item (non-return item with same product_id before this index)
+        const parentIndex = newItems.findIndex((item, idx) => 
+          idx < index && 
+          !item.is_return && 
+          item.product_id === currentItem.parent_product_id
+        );
+        
+        if (parentIndex !== -1) {
+          const parentItem = newItems[parentIndex];
+          const originalQty = parentItem.original_quantity || parentItem.quantity;
+          
+          // Validate return quantity doesn't exceed original
+          if (enteredQuantity > originalQty) {
+            toast.error(`Return quantity cannot exceed original quantity (${originalQty})`);
+            return;
+          }
+          
+          // Update parent item quantity (original - return)
+          newItems[parentIndex].quantity = originalQty - enteredQuantity;
+          newItems[parentIndex].total_price = newItems[parentIndex].unit_price * newItems[parentIndex].quantity;
+          
+          // Update return item
+          newItems[index].quantity = enteredQuantity;
+          newItems[index].total_price = newItems[index].unit_price * enteredQuantity;
+        }
+      } else {
+        // Regular item quantity update
+        const product = products.find(p => p.id === currentItem.product_id);
+        
+        if (product && enteredQuantity > product.stock_quantity && !currentItem.is_return) {
+          toast.error(`Available stock is only ${product.stock_quantity} ${product.quantity_type || "Unit"}`);
+          return;
+        }
+        
+        // Store original quantity if changing for first time and has return items linked
+        if (!currentItem.original_quantity) {
+          currentItem.original_quantity = currentItem.quantity;
+        }
+        
+        newItems[index].quantity = enteredQuantity;
+        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
-      
-      newItems[index].quantity = enteredQuantity;
-      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     } else if (field === "unit_price") {
       const enteredUnitPrice = parseFloat(value) || 0;
       
@@ -1233,7 +1272,8 @@ const Invoice = () => {
               return (
                 <div key={index} className={cn(
                   "grid gap-3 md:grid-cols-[auto_2fr_1fr_0.7fr_1fr_1fr_1fr_1fr_auto_auto] items-start border-b pb-4 transition-all duration-300",
-                  !itemComplete && errors && "bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border-red-200 dark:border-red-800"
+                  !itemComplete && errors && "bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border-red-200 dark:border-red-800",
+                  item.is_return && "bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg border-l-4 border-l-orange-500"
                 )}>
                   {/* Status Icon */}
                   <div className="flex flex-col items-center justify-center pt-7">
@@ -1242,60 +1282,74 @@ const Invoice = () => {
                   
                   <div className="flex flex-col">
                     <Label className={cn("mb-2", errors?.product && "text-red-500 font-semibold")}>
-                      Product {errors?.product && <span className="text-red-500">*</span>}
+                      {item.is_return ? (
+                        <span className="flex items-center gap-2">
+                          Product <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">RETURN</span>
+                        </span>
+                      ) : (
+                        <>Product {errors?.product && <span className="text-red-500">*</span>}</>
+                      )}
                     </Label>
-                    <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
-                      <PopoverTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          role="combobox" 
-                          aria-expanded={openProductIndex === index} 
-                          className={cn(
-                            "w-full justify-between",
-                            errors?.product && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
-                          )}
-                        >
-                          {item.product_name || "Select product..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0">
-                        <Command>
-                          <CommandInput placeholder="Search product..." />
-                          <CommandList>
-                            <CommandEmpty>No product found.</CommandEmpty>
-                            <CommandGroup>
-                              {products.map((product) => (
-                                <CommandItem
-                                  key={product.id}
-                                  value={product.name}
-                                  onSelect={() => {
-                                    updateItem(index, "product_id", product.id);
-                                    setOpenProductIndex(null);
-                                    // Clear product error when selected
-                                    setValidationErrors(prev => {
-                                      if (prev[index]) {
-                                        return {...prev, [index]: {...prev[index], product: false}};
-                                      }
-                                      return prev;
-                                    });
-                                  }}
-                                  className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
-                                >
-                                  <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
-                                  <div className="flex flex-col">
-                                    <span>{product.name}</span>
-                                    <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
-                                      Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
-                                    </span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    {item.is_return ? (
+                      <Input 
+                        value={item.product_name} 
+                        disabled 
+                        className="bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 font-medium"
+                      />
+                    ) : (
+                      <Popover open={openProductIndex === index} onOpenChange={(open) => setOpenProductIndex(open ? index : null)}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            role="combobox" 
+                            aria-expanded={openProductIndex === index} 
+                            className={cn(
+                              "w-full justify-between",
+                              errors?.product && "border-red-500 ring-2 ring-red-200 dark:ring-red-800 animate-pulse"
+                            )}
+                          >
+                            {item.product_name || "Select product..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search product..." />
+                            <CommandList>
+                              <CommandEmpty>No product found.</CommandEmpty>
+                              <CommandGroup>
+                                {products.map((product) => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.name}
+                                    onSelect={() => {
+                                      updateItem(index, "product_id", product.id);
+                                      setOpenProductIndex(null);
+                                      // Clear product error when selected
+                                      setValidationErrors(prev => {
+                                        if (prev[index]) {
+                                          return {...prev, [index]: {...prev[index], product: false}};
+                                        }
+                                        return prev;
+                                      });
+                                    }}
+                                    className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
+                                  >
+                                    <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
+                                    <div className="flex flex-col">
+                                      <span>{product.name}</span>
+                                      <span className="text-xs hover:text-white [&[aria-selected=true]]:text-white">
+                                        Stock: {product.stock_quantity} | Cost: Rs. {product.purchase_price} | Category: {product.category || 'N/A'}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <Label className={cn("mb-2", errors?.quantity && "text-red-500 font-semibold")}>
@@ -1400,27 +1454,64 @@ const Invoice = () => {
                       className="font-semibold"
                     />
                   </div>
-                  <div className="flex flex-col items-center">
-                    <Label className="mb-2 opacity-0">Return</Label>
-                    <Button
-                      type="button"
-                      variant={item.is_return ? "default" : "outline"}
-                      size="icon"
-                      onClick={() => {
-                        const newItems = [...items];
-                        newItems[index] = { ...newItems[index], is_return: !newItems[index].is_return };
-                        setItems(newItems);
-                      }}
-                      disabled={isSaving}
-                      className={cn(
-                        "transition-all",
-                        item.is_return && "bg-orange-500 hover:bg-orange-600 text-white"
-                      )}
-                      title={item.is_return ? "Mark as regular sale" : "Mark as return"}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {/* Only show return button for non-return items */}
+                  {!item.is_return && (
+                    <div className="flex flex-col items-center">
+                      <Label className="mb-2 opacity-0">Return</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          // Create a return item with same product details but empty quantity
+                          const returnItem: InvoiceItem = {
+                            product_id: item.product_id,
+                            product_name: item.product_name,
+                            quantity: 0,
+                            unit_price: item.unit_price,
+                            purchase_price: item.purchase_price,
+                            total_price: 0,
+                            quantity_type: item.quantity_type,
+                            is_return: true,
+                            parent_product_id: item.product_id,
+                            original_quantity: item.quantity,
+                          };
+                          
+                          // Store original quantity if not already set
+                          const newItems = [...items];
+                          if (!newItems[index].original_quantity) {
+                            newItems[index].original_quantity = newItems[index].quantity;
+                          }
+                          
+                          // Insert return item right after the original
+                          newItems.splice(index + 1, 0, returnItem);
+                          setItems(newItems);
+                          
+                          // Focus on the return item quantity input
+                          setTimeout(() => {
+                            const quantityInput = quantityInputRefs.current[index + 1];
+                            if (quantityInput) {
+                              quantityInput.focus();
+                            }
+                          }, 100);
+                        }}
+                        disabled={isSaving || !isItemComplete(item)}
+                        className="hover:bg-orange-100 hover:text-orange-600 hover:border-orange-300"
+                        title="Add return for this item"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  {/* Show indicator for return items */}
+                  {item.is_return && (
+                    <div className="flex flex-col items-center">
+                      <Label className="mb-2 opacity-0">Return</Label>
+                      <div className="h-9 w-9 flex items-center justify-center bg-orange-500 text-white rounded-md">
+                        <RotateCcw className="h-4 w-4" />
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-col">
                     <Label className="mb-2 opacity-0">Action</Label>
                     <Button onClick={() => removeItem(index)} variant="destructive" size="icon" disabled={isSaving}>
