@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import MiniSparkline from "@/components/dashboard/MiniSparkline";
 import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
@@ -55,6 +56,7 @@ interface WeeklyData {
 }
 
 const Dashboard = () => {
+  const { timezone } = useTimezone();
   const [stats, setStats] = useState<DashboardStats>({
     totalSales: 0,
     totalProfit: 0,
@@ -99,62 +101,121 @@ const Dashboard = () => {
     setIsLoading(false);
   };
 
+  // Helper function to get current date parts in user's timezone
+  const getDatePartsInTimezone = (date: Date, tz: string) => {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(date);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Get timezone offset in milliseconds
+  const getTimezoneOffsetMs = (tz: string) => {
+    const now = new Date();
+    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    return tzDate.getTime() - utcDate.getTime();
+  };
+
+  // Get today's date range in user's timezone (for todaySales)
+  const getTodayDateRange = () => {
+    const now = new Date();
+    const tz = timezone || 'Asia/Karachi';
+    const tzOffset = getTimezoneOffsetMs(tz);
+    const todayParts = getDatePartsInTimezone(now, tz);
+    
+    const createStartOfDay = (year: number, month: number, day: number) => {
+      const localStart = new Date(year, month, day, 0, 0, 0, 0);
+      return new Date(localStart.getTime() - tzOffset);
+    };
+
+    const createEndOfDay = (year: number, month: number, day: number) => {
+      const localEnd = new Date(year, month, day, 23, 59, 59, 999);
+      return new Date(localEnd.getTime() - tzOffset);
+    };
+
+    return {
+      start: createStartOfDay(todayParts.year, todayParts.month, todayParts.day),
+      end: createEndOfDay(todayParts.year, todayParts.month, todayParts.day)
+    };
+  };
+
   const getDateRangeFilter = () => {
     const now = new Date();
+    const tz = timezone || 'Asia/Karachi';
+    const tzOffset = getTimezoneOffsetMs(tz);
+    const todayParts = getDatePartsInTimezone(now, tz);
+    
     let start: Date;
     let end: Date;
 
+    // Create start of day in timezone, then convert to UTC
+    const createStartOfDay = (year: number, month: number, day: number) => {
+      const localStart = new Date(year, month, day, 0, 0, 0, 0);
+      return new Date(localStart.getTime() - tzOffset);
+    };
+
+    // Create end of day in timezone, then convert to UTC
+    const createEndOfDay = (year: number, month: number, day: number) => {
+      const localEnd = new Date(year, month, day, 23, 59, 59, 999);
+      return new Date(localEnd.getTime() - tzOffset);
+    };
+
     switch (dateRange) {
       case "today":
-        const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 23, 59, 59, 999));
+        start = createStartOfDay(todayParts.year, todayParts.month, todayParts.day);
+        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
         break;
       case "yesterday":
-        const yesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        start = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 23, 59, 59, 999));
+        const yesterdayDate = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
+        const yesterdayParts = { year: yesterdayDate.getFullYear(), month: yesterdayDate.getMonth(), day: yesterdayDate.getDate() };
+        start = createStartOfDay(yesterdayParts.year, yesterdayParts.month, yesterdayParts.day);
+        end = createEndOfDay(yesterdayParts.year, yesterdayParts.month, yesterdayParts.day);
         break;
       case "1week":
-        const weekAgoUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-        start = new Date(Date.UTC(weekAgoUTC.getFullYear(), weekAgoUTC.getMonth(), weekAgoUTC.getDate(), 0, 0, 0, 0));
-        const todayEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(todayEndUTC.getFullYear(), todayEndUTC.getMonth(), todayEndUTC.getDate(), 23, 59, 59, 999));
+        const weekAgoDate = new Date(todayParts.year, todayParts.month, todayParts.day - 7);
+        const weekAgoParts = { year: weekAgoDate.getFullYear(), month: weekAgoDate.getMonth(), day: weekAgoDate.getDate() };
+        start = createStartOfDay(weekAgoParts.year, weekAgoParts.month, weekAgoParts.day);
+        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
         break;
       case "1month":
-        const monthAgoUTC = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        start = new Date(Date.UTC(monthAgoUTC.getFullYear(), monthAgoUTC.getMonth(), monthAgoUTC.getDate(), 0, 0, 0, 0));
-        const monthEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(monthEndUTC.getFullYear(), monthEndUTC.getMonth(), monthEndUTC.getDate(), 23, 59, 59, 999));
+        const monthAgoDate = new Date(todayParts.year, todayParts.month - 1, todayParts.day);
+        const monthAgoParts = { year: monthAgoDate.getFullYear(), month: monthAgoDate.getMonth(), day: monthAgoDate.getDate() };
+        start = createStartOfDay(monthAgoParts.year, monthAgoParts.month, monthAgoParts.day);
+        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
         break;
       case "1year":
-        const yearAgoUTC = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(yearAgoUTC.getFullYear(), yearAgoUTC.getMonth(), yearAgoUTC.getDate(), 0, 0, 0, 0));
-        const yearEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(yearEndUTC.getFullYear(), yearEndUTC.getMonth(), yearEndUTC.getDate(), 23, 59, 59, 999));
+        const yearAgoDate = new Date(todayParts.year - 1, todayParts.month, todayParts.day);
+        const yearAgoParts = { year: yearAgoDate.getFullYear(), month: yearAgoDate.getMonth(), day: yearAgoDate.getDate() };
+        start = createStartOfDay(yearAgoParts.year, yearAgoParts.month, yearAgoParts.day);
+        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
         break;
       case "grand":
         start = new Date(0);
-        const grandEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(grandEndUTC.getFullYear(), grandEndUTC.getMonth(), grandEndUTC.getDate(), 23, 59, 59, 999));
+        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
         break;
       case "custom":
         if (startDate) {
-          start = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0));
+          start = createStartOfDay(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
         } else {
           start = new Date(0);
         }
         if (endDate) {
-          end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999));
+          end = createEndOfDay(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
         } else {
-          const customEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          end = new Date(Date.UTC(customEndUTC.getFullYear(), customEndUTC.getMonth(), customEndUTC.getDate(), 23, 59, 59, 999));
+          end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
         }
         break;
       default:
-        const defaultTodayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 23, 59, 59, 999));
+        start = createStartOfDay(todayParts.year, todayParts.month, todayParts.day);
+        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
     }
 
     return { start, end };
@@ -172,11 +233,13 @@ const Dashboard = () => {
     
     const saleIds = sales?.map(sale => sale.id) || [];
 
-    const today = new Date().toISOString().split('T')[0];
+    // Use timezone-aware today calculation for todaySales (always "today" regardless of selected dateRange)
+    const todayRange = getTodayDateRange();
     const { data: todaySalesData } = await supabase
       .from("sales")
       .select("final_amount")
-      .gte("created_at", today);
+      .gte("created_at", todayRange.start.toISOString())
+      .lte("created_at", todayRange.end.toISOString());
     const todaySales = todaySalesData?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
 
     let totalProfit = 0;
@@ -292,27 +355,38 @@ const Dashboard = () => {
   };
 
   const fetchWeeklyData = async () => {
+    const tz = timezone || 'Asia/Karachi';
     const now = new Date();
-    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+    const todayParts = getDatePartsInTimezone(now, tz);
+    const tzOffset = getTimezoneOffsetMs(tz);
+    
+    // Calculate week start in user's timezone
+    const weekStartDate = new Date(todayParts.year, todayParts.month, todayParts.day - 6);
+    const weekStartLocal = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate(), 0, 0, 0, 0);
+    const weekStartUTC = new Date(weekStartLocal.getTime() - tzOffset);
     
     const { data: sales } = await supabase
       .from("sales")
       .select("created_at, final_amount")
-      .gte("created_at", weekAgo.toISOString())
+      .gte("created_at", weekStartUTC.toISOString())
       .order("created_at", { ascending: true });
 
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dataByDay: { [key: string]: number } = {};
     
-    // Initialize all days with 0
+    // Initialize all days with 0 based on timezone
     for (let i = 0; i < 7; i++) {
-      const d = new Date(weekAgo);
-      d.setDate(weekAgo.getDate() + i);
+      const d = new Date(weekStartDate);
+      d.setDate(weekStartDate.getDate() + i);
       dataByDay[days[d.getDay()]] = 0;
     }
 
+    // Group sales by day in user's timezone
     sales?.forEach((sale) => {
-      const day = days[new Date(sale.created_at!).getDay()];
+      const saleDate = new Date(sale.created_at!);
+      const saleParts = getDatePartsInTimezone(saleDate, tz);
+      const saleLocalDate = new Date(saleParts.year, saleParts.month, saleParts.day);
+      const day = days[saleLocalDate.getDay()];
       dataByDay[day] = (dataByDay[day] || 0) + Number(sale.final_amount);
     });
 
