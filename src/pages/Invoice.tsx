@@ -1033,8 +1033,8 @@ const Invoice = () => {
       }
 
       // Step 2: Update sale record with accurate data
-      // Convert date to ISO string with time set to noon to avoid timezone issues
-      const invoiceDateISO = new Date(invoiceDate + 'T12:00:00').toISOString();
+      // Use current date and time when editing
+      const currentDateISO = new Date().toISOString();
       
       // Upload image if provided
       const uploadedImageUrl = await uploadImage();
@@ -1049,7 +1049,7 @@ const Invoice = () => {
         paid_amount: paid,
         status: paid >= finalAmount ? "completed" : "pending",
         payment_status: isFullPayment ? "paid" : "pending",
-        created_at: invoiceDateISO,
+        created_at: currentDateISO,
         description: description || null,
         image_url: uploadedImageUrl || null,
       }).eq("id", editSaleId);
@@ -1171,7 +1171,7 @@ const Invoice = () => {
             amount: newCreditAmount,
             remaining_amount: newCreditAmount,
             paid_amount: 0,
-            created_at: invoiceDateISO,
+            created_at: currentDateISO,
           }).eq("id", existingCredit.id);
           if (creditUpdateError) {
             console.error("Error updating credit:", creditUpdateError);
@@ -1188,7 +1188,7 @@ const Invoice = () => {
           remaining_amount: creditAmount,
           status: "pending",
           notes: `Partial payment for invoice ${invoiceNumber}`,
-          created_at: invoiceDateISO,
+          created_at: currentDateISO,
         });
         if (creditInsertError) {
           console.error("Error creating credit:", creditInsertError);
