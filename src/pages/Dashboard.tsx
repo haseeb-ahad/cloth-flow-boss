@@ -186,12 +186,15 @@ const Dashboard = () => {
     if (saleIds.length > 0) {
       const { data: saleItems } = await supabase
         .from("sale_items")
-        .select("profit, purchase_price, quantity, unit_price")
+        .select("profit, purchase_price, quantity, unit_price, is_return")
         .in("sale_id", saleIds);
       
-      totalProfit = saleItems?.reduce((sum, item) => sum + Number(item.profit), 0) || 0;
-      totalCost = saleItems?.reduce((sum, item) => sum + (Number(item.purchase_price) * item.quantity), 0) || 0;
-      totalPrice = saleItems?.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0) || 0;
+      // Filter out return items - they are tracking only
+      const regularItems = saleItems?.filter(item => !item.is_return) || [];
+      
+      totalProfit = regularItems.reduce((sum, item) => sum + Number(item.profit), 0);
+      totalCost = regularItems.reduce((sum, item) => sum + (Number(item.purchase_price) * item.quantity), 0);
+      totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0);
     }
 
     const { data: credits } = await supabase
@@ -231,9 +234,10 @@ const Dashboard = () => {
     if (saleIds.length > 0) {
       const { data } = await supabase
         .from("sale_items")
-        .select("profit, sale_id")
+        .select("profit, sale_id, is_return")
         .in("sale_id", saleIds);
-      saleItems = data || [];
+      // Filter out return items
+      saleItems = data?.filter(item => !item.is_return) || [];
     }
 
     const dataByDate: { [key: string]: { sales: number; profit: number } } = {};
@@ -335,9 +339,10 @@ const Dashboard = () => {
     if (saleIds.length > 0) {
       const { data } = await supabase
         .from("sale_items")
-        .select("product_name, quantity, total_price")
+        .select("product_name, quantity, total_price, is_return")
         .in("sale_id", saleIds);
-      saleItems = data || [];
+      // Filter out return items
+      saleItems = data?.filter(item => !item.is_return) || [];
     }
 
     if (!saleItems || saleItems.length === 0) {
@@ -385,12 +390,13 @@ const Dashboard = () => {
     const saleIds = sales.map(s => s.id);
     const { data: saleItems } = await supabase
       .from("sale_items")
-      .select("sale_id, profit")
+      .select("sale_id, profit, is_return")
       .in("sale_id", saleIds);
 
-    // Map sale_id to profit
+    // Filter out return items and map sale_id to profit
+    const regularItems = saleItems?.filter(item => !item.is_return) || [];
     const saleProfitMap: { [key: string]: number } = {};
-    saleItems?.forEach((item) => {
+    regularItems.forEach((item) => {
       if (!saleProfitMap[item.sale_id]) {
         saleProfitMap[item.sale_id] = 0;
       }
