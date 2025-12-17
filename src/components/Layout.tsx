@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -21,7 +20,6 @@ import {
   Banknote,
   Receipt,
   Clock,
-  Search,
   Bell,
   ChevronLeft,
   ChevronRight,
@@ -295,20 +293,7 @@ const Layout = ({ children }: LayoutProps) => {
         )}>
           {/* Modern Top Bar */}
           <header className="sticky top-0 z-30 border-b border-border/50 bg-card/80 backdrop-blur-xl">
-            <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-              {/* Left - Search (Desktop) */}
-              <div className="hidden md:flex items-center gap-4 flex-1 max-w-md">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search anything..." 
-                    className="pl-9 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-9"
-                  />
-                  <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                    ⌘K
-                  </kbd>
-                </div>
-              </div>
+          <div className="flex h-16 items-center justify-end px-4 lg:px-6">
 
               {/* Right - Actions */}
               <div className="flex items-center gap-3 ml-auto">
