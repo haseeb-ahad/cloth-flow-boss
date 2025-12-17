@@ -121,7 +121,7 @@ const Layout = ({ children }: LayoutProps) => {
                   <img 
                     src={appSettings.logo_url} 
                     alt="Logo" 
-                    className="h-9 w-9 rounded-lg object-contain bg-background shadow-sm"
+                    className="max-w-[200px] max-h-12 rounded-lg object-contain"
                   />
                 ) : (
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow">
@@ -245,7 +245,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <img 
                       src={appSettings.logo_url} 
                       alt="Logo" 
-                      className="h-9 w-9 rounded-lg object-contain bg-background shadow-sm"
+                      className="max-w-[200px] max-h-12 rounded-lg object-contain"
                     />
                   ) : (
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow">
