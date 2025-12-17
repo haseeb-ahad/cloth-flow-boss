@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard, Banknote, Wallet } from "lucide-react";
 import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -33,6 +33,8 @@ interface Credit {
   invoice_number: string;
   description?: string | null;
   image_url?: string | null;
+  credit_type?: string;
+  person_type?: string;
 }
 
 interface Product {
@@ -113,10 +115,18 @@ const Credits = () => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [creditTypeFilter, setCreditTypeFilter] = useState<string>("all");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
   const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: { start: string; end: string } }>({});
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isCashCreditPaymentDialogOpen, setIsCashCreditPaymentDialogOpen] = useState(false);
+  const [cashCreditPaymentData, setCashCreditPaymentData] = useState({
+    payment_amount: "",
+    payment_date: new Date().toISOString().split('T')[0],
+    payment_mode: "cash",
+    notes: "",
+  });
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -181,7 +191,7 @@ const Credits = () => {
 
   useEffect(() => {
     filterCredits();
-  }, [credits, searchTerm]);
+  }, [credits, searchTerm, creditTypeFilter]);
 
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("name");
@@ -211,6 +221,15 @@ const Credits = () => {
         .not("customer_name", "is", null)
         .order("created_at", { ascending: true }); // Oldest first for FIFO display
 
+      // Fetch from credits table for cash credits
+      const { data: cashCreditsData } = await supabase
+        .from("credits")
+        .select("*")
+        .eq("credit_type", "cash")
+        .order("created_at", { ascending: true });
+
+      let allCredits: Credit[] = [];
+
       if (salesData) {
         // Map sales to credit format - only read values, no recalculation
         const creditsFromSales: Credit[] = salesData.map(sale => ({
@@ -227,11 +246,39 @@ const Credits = () => {
           invoice_number: sale.invoice_number,
           description: sale.description || null,
           image_url: sale.image_url || null,
+          credit_type: "invoice",
+          person_type: "customer",
         }));
-
-        setCredits(creditsFromSales);
-        setFilteredCredits(creditsFromSales);
+        allCredits = [...allCredits, ...creditsFromSales];
       }
+
+      if (cashCreditsData) {
+        // Map cash credits
+        const cashCredits: Credit[] = cashCreditsData.map(credit => ({
+          id: credit.id,
+          customer_name: credit.customer_name || "",
+          customer_phone: credit.customer_phone || null,
+          amount: credit.amount,
+          paid_amount: credit.paid_amount || 0,
+          remaining_amount: credit.remaining_amount,
+          due_date: credit.due_date,
+          status: credit.status || "pending",
+          notes: credit.notes,
+          created_at: credit.created_at || "",
+          invoice_number: `CASH-${credit.id.slice(0, 8).toUpperCase()}`,
+          description: credit.notes,
+          image_url: null,
+          credit_type: credit.credit_type || "cash",
+          person_type: credit.person_type || "other",
+        }));
+        allCredits = [...allCredits, ...cashCredits];
+      }
+
+      // Sort by created_at
+      allCredits.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      setCredits(allCredits);
+      setFilteredCredits(allCredits);
       toast.success("Credits data refreshed");
     } catch (error) {
       toast.error("Failed to fetch credits");
@@ -248,6 +295,10 @@ const Credits = () => {
         (credit.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (credit.customer_phone?.includes(searchTerm))
       );
+    }
+
+    if (creditTypeFilter !== "all") {
+      filtered = filtered.filter(credit => credit.credit_type === creditTypeFilter);
     }
 
     setFilteredCredits(filtered);
@@ -384,6 +435,95 @@ const Credits = () => {
       setFullPayment(false);
     } catch (error) {
       toast.error("Failed to record payment");
+    }
+  };
+
+  const openCashCreditPaymentDialog = (credit: Credit) => {
+    setSelectedCredit(credit);
+    setCashCreditPaymentData({
+      payment_amount: "",
+      payment_date: new Date().toISOString().split('T')[0],
+      payment_mode: "cash",
+      notes: "",
+    });
+    setIsCashCreditPaymentDialogOpen(true);
+  };
+
+  const handleCashCreditPayment = async () => {
+    if (!selectedCredit) return;
+
+    // PERMISSION CHECK
+    if (!canEdit) {
+      toast.error("You do not have permission to record payments.");
+      return;
+    }
+
+    const payment = parseFloat(cashCreditPaymentData.payment_amount);
+    
+    if (!payment || payment <= 0) {
+      toast.error("Please enter a valid payment amount");
+      return;
+    }
+
+    if (payment > selectedCredit.remaining_amount) {
+      toast.error("Payment amount cannot exceed remaining balance");
+      return;
+    }
+
+    const newPaidAmount = selectedCredit.paid_amount + payment;
+    const newRemainingAmount = selectedCredit.remaining_amount - payment;
+    
+    // Determine status based on remaining
+    let newStatus = "pending";
+    if (newRemainingAmount <= 0) {
+      newStatus = "paid";
+    } else if (newPaidAmount > 0) {
+      newStatus = "partial";
+    }
+
+    setIsLoading(true);
+    try {
+      // Update credit record
+      const { error: updateError } = await supabase
+        .from("credits")
+        .update({
+          paid_amount: newPaidAmount,
+          remaining_amount: newRemainingAmount,
+          status: newStatus,
+        })
+        .eq("id", selectedCredit.id);
+
+      if (updateError) throw updateError;
+
+      // Record payment transaction
+      const { error: transactionError } = await supabase
+        .from("credit_transactions")
+        .insert({
+          credit_id: selectedCredit.id,
+          customer_name: selectedCredit.customer_name,
+          customer_phone: selectedCredit.customer_phone,
+          amount: payment,
+          transaction_date: cashCreditPaymentData.payment_date,
+          notes: `${cashCreditPaymentData.payment_mode.toUpperCase()}: ${cashCreditPaymentData.notes || "Payment received"}`,
+          owner_id: ownerId,
+        });
+
+      if (transactionError) throw transactionError;
+
+      toast.success("Cash credit payment recorded successfully!");
+      fetchCredits();
+      setIsCashCreditPaymentDialogOpen(false);
+      setCashCreditPaymentData({
+        payment_amount: "",
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_mode: "cash",
+        notes: "",
+      });
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      toast.error("Failed to record payment");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -876,7 +1016,7 @@ const Credits = () => {
       </div>
 
       <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-2 mb-4">
+        <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
             <Label>Search by Name or Phone</Label>
             <div className="relative">
@@ -889,9 +1029,22 @@ const Credits = () => {
               />
             </div>
           </div>
+          <div>
+            <Label>Credit Type</Label>
+            <Select value={creditTypeFilter} onValueChange={setCreditTypeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="invoice">Invoice Credit</SelectItem>
+                <SelectItem value="cash">Cash Credit</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setCustomerPaymentDateFilters({}); }} 
+              onClick={() => { setSearchTerm(""); setCreditTypeFilter("all"); setCustomerPaymentDateFilters({}); }} 
               variant="outline"
               className="w-full"
               disabled={isLoading}
@@ -913,11 +1066,30 @@ const Credits = () => {
             // Skip customers with no remaining balance
             if (totalRemaining <= 0) return null;
 
+            // Check if any credits for this customer are cash or invoice credits
+            const hasCashCredit = customerCredits.some(credit => credit.credit_type === "cash");
+            const hasInvoiceCredit = customerCredits.some(credit => credit.credit_type === "invoice");
+            const hasAnyLabel = hasCashCredit || hasInvoiceCredit;
+
             return (
               <Collapsible key={key} open={isExpanded} onOpenChange={() => toggleCustomer(key)}>
-                <Card className="p-4 bg-muted/30">
+                <Card className="p-4 bg-muted/30 relative">
+                  <div className="absolute top-2 left-2 flex items-center gap-2">
+                    {hasCashCredit && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md text-xs font-medium">
+                        <Banknote className="h-3.5 w-3.5" />
+                        <span>Cash Credit</span>
+                      </div>
+                    )}
+                    {hasInvoiceCredit && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md text-xs font-medium">
+                        <CreditCard className="h-3.5 w-3.5" />
+                        <span>Invoice Credit</span>
+                      </div>
+                    )}
+                  </div>
                   <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between">
+                    <div className={`flex items-center justify-between ${hasAnyLabel ? "mt-6" : ""}`}>
                       <div className="flex items-center gap-4">
                         {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                         <div className="text-left">
@@ -941,18 +1113,25 @@ const Credits = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Invoice #</TableHead>
+                          <TableHead>Type</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right font-semibold">Remaining</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-center">Notes</TableHead>
+                          {canEdit && <TableHead className="text-center">Actions</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell className="font-medium">{credit.invoice_number}</TableCell>
+                            <TableCell>
+                              <Badge variant={credit.credit_type === "cash" ? "secondary" : "outline"} className="text-xs">
+                                {credit.credit_type === "cash" ? "Cash" : "Invoice"}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{formatDate(credit.created_at)}</TableCell>
                             <TableCell className="text-right">
                               Rs. {credit.amount.toFixed(2)}
@@ -1002,6 +1181,21 @@ const Credits = () => {
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
+                            {canEdit && (
+                              <TableCell className="text-center">
+                                {credit.credit_type === "cash" && credit.remaining_amount > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openCashCreditPaymentDialog(credit)}
+                                    className="gap-1"
+                                  >
+                                    <Wallet className="h-3.5 w-3.5" />
+                                    Receive
+                                  </Button>
+                                )}
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -1354,6 +1548,150 @@ const Credits = () => {
               <Button onClick={handleSaveInvoice} className="w-full" size="lg">
                 Save invoice & update credit
               </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cash Credit Payment Dialog */}
+      <Dialog open={isCashCreditPaymentDialogOpen} onOpenChange={setIsCashCreditPaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Receive Payment - Cash Credit
+            </DialogTitle>
+          </DialogHeader>
+          {selectedCredit && (
+            <div className="space-y-5">
+              {/* Credit Summary */}
+              <Card className="p-4 bg-muted/50">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Person</span>
+                    <span className="font-semibold">{selectedCredit.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Type</span>
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {selectedCredit.person_type || "Other"}
+                    </Badge>
+                  </div>
+                  <div className="border-t pt-2 mt-2">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="font-semibold text-sm">Rs. {selectedCredit.amount.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Paid</p>
+                        <p className="font-semibold text-sm text-success">Rs. {selectedCredit.paid_amount.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Remaining</p>
+                        <p className="font-bold text-sm text-warning">Rs. {selectedCredit.remaining_amount.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Payment Form */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="cash_payment_amount">Payment Amount *</Label>
+                  <Input
+                    id="cash_payment_amount"
+                    type="number"
+                    value={cashCreditPaymentData.payment_amount}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, payment_amount: e.target.value })}
+                    placeholder="Enter amount"
+                    max={selectedCredit.remaining_amount}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max: Rs. {selectedCredit.remaining_amount.toFixed(0)}
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="cash_payment_date">Payment Date</Label>
+                  <Input
+                    id="cash_payment_date"
+                    type="date"
+                    value={cashCreditPaymentData.payment_date}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, payment_date: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Payment Mode</Label>
+                  <Select 
+                    value={cashCreditPaymentData.payment_mode} 
+                    onValueChange={(value) => setCashCreditPaymentData({ ...cashCreditPaymentData, payment_mode: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">
+                        <div className="flex items-center gap-2">
+                          <Banknote className="h-4 w-4" />
+                          Cash
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="bank">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          Bank Transfer
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="other">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="h-4 w-4" />
+                          Other
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="cash_payment_notes">Note (Optional)</Label>
+                  <Textarea
+                    id="cash_payment_notes"
+                    value={cashCreditPaymentData.notes}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, notes: e.target.value })}
+                    placeholder="Add a reference or note..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  onClick={handleCashCreditPayment} 
+                  className="flex-1"
+                  disabled={isLoading || !cashCreditPaymentData.payment_amount}
+                >
+                  {isLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <DollarSign className="h-4 w-4 mr-2" />
+                  )}
+                  Record Payment
+                </Button>
+                <Button 
+                  onClick={() => setIsCashCreditPaymentDialogOpen(false)} 
+                  variant="outline"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
