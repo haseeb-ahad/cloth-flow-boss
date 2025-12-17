@@ -47,10 +47,8 @@ import {
   CheckCircle2,
   XCircle,
   Crown,
-  Settings,
   DollarSign,
   Calendar,
-  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -117,7 +115,6 @@ const SuperAdminPlans = () => {
     yearly_price: 0,
     duration_value: 1,
     duration_type: "months" as DurationType,
-    trial_days: 0,
     is_lifetime: false,
     is_active: true,
     features: DEFAULT_FEATURES,
@@ -169,7 +166,6 @@ const SuperAdminPlans = () => {
       yearly_price: 0,
       duration_value: 1,
       duration_type: "months",
-      trial_days: 0,
       is_lifetime: false,
       is_active: true,
       features: DEFAULT_FEATURES,
@@ -187,7 +183,6 @@ const SuperAdminPlans = () => {
       yearly_price: plan.yearly_price,
       duration_value: value,
       duration_type: type,
-      trial_days: plan.trial_days || 0,
       is_lifetime: plan.is_lifetime || false,
       is_active: plan.is_active,
       features: plan.features || DEFAULT_FEATURES,
@@ -210,7 +205,6 @@ const SuperAdminPlans = () => {
         monthly_price: formData.monthly_price,
         yearly_price: formData.yearly_price,
         duration_months,
-        trial_days: formData.trial_days,
         is_lifetime: formData.is_lifetime,
         is_active: formData.is_active,
         features: formData.features,
@@ -354,11 +348,6 @@ const SuperAdminPlans = () => {
                       ? `${Math.round(plan.duration_months * 30)} Days` 
                       : `${plan.duration_months} ${plan.duration_months === 1 ? 'Month' : 'Months'}`}
                   </Badge>
-                  {plan.trial_days > 0 && (
-                    <Badge className="bg-blue-100 text-blue-700">
-                      {plan.trial_days} Days Free Trial
-                    </Badge>
-                  )}
                 </div>
 
                 <div className="pt-4 border-t space-y-2">
@@ -498,23 +487,6 @@ const SuperAdminPlans = () => {
                   disabled={formData.is_lifetime}
                 />
               </div>
-            </div>
-
-            {/* Trial Days */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Free Trial Days (0 = No Trial)
-              </Label>
-              <Input
-                type="number"
-                value={formData.trial_days}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, trial_days: parseInt(e.target.value) || 0 }))
-                }
-                placeholder="e.g., 7 for 7-day trial"
-              />
-              <p className="text-xs text-slate-500">Users get full access during trial period. After trial expires, they must upgrade.</p>
             </div>
 
             {/* Toggles */}
