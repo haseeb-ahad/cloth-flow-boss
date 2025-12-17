@@ -26,7 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Menu
+  Menu,
+  AlertTriangle
 } from "lucide-react";
 import {
   Tooltip,
@@ -47,7 +48,7 @@ interface AppSettings {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { userRole, signOut, user, hasPermission } = useAuth();
+  const { userRole, signOut, user, hasPermission, subscriptionStatus } = useAuth();
   const { timezone } = useTimezone();
   const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null, description: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -356,6 +357,25 @@ const Layout = ({ children }: LayoutProps) => {
 
           {/* Page Content */}
           <main className="p-4 lg:p-6">
+            {/* Subscription Warning Banner */}
+            {userRole === "admin" && subscriptionStatus?.is_expired && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 animate-fade-in">
+                <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-red-800">Subscription Expired</p>
+                  <p className="text-sm text-red-600">Your subscription has expired. Please contact the administrator to renew your plan and regain access to all features.</p>
+                </div>
+              </div>
+            )}
+            {userRole === "admin" && subscriptionStatus?.is_trial && !subscriptionStatus?.is_expired && subscriptionStatus?.days_remaining !== null && subscriptionStatus.days_remaining <= 3 && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 animate-fade-in">
+                <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-amber-800">Trial Ending Soon</p>
+                  <p className="text-sm text-amber-600">Your free trial will expire in {subscriptionStatus.days_remaining} day{subscriptionStatus.days_remaining !== 1 ? 's' : ''}. Please upgrade to continue using all features.</p>
+                </div>
+              </div>
+            )}
             <div className="animate-fade-in">
               {children}
             </div>

@@ -43,6 +43,7 @@ import {
   Settings,
   DollarSign,
   Calendar,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,21 +57,34 @@ interface Plan {
   duration_months: number;
   is_lifetime: boolean;
   is_active: boolean;
+  trial_days: number;
   features: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>;
   created_at: string;
 }
 
-const FEATURES = ["invoice", "inventory", "sales", "credits", "customers", "expenses", "receive_payment"];
+const FEATURES = [
+  "invoice",
+  "inventory",
+  "sales",
+  "credits",
+  "customers",
+  "expenses",
+  "receive_payment",
+  "cash_credit",
+  "workers",
+];
 const PERMISSIONS = ["view", "create", "edit", "delete"];
 
 const FEATURE_LABELS: Record<string, string> = {
-  invoice: "Invoice",
+  invoice: "Invoices",
   inventory: "Inventory",
-  sales: "Sales",
+  sales: "Sales History",
   credits: "Credits",
   customers: "Customers",
   expenses: "Expenses",
-  receive_payment: "Receive Payment",
+  receive_payment: "Receive Payments",
+  cash_credit: "Cash Credits (Udhar Diya)",
+  workers: "Manage Workers",
 };
 
 const DEFAULT_FEATURES = FEATURES.reduce((acc, feature) => {
@@ -93,6 +107,7 @@ const SuperAdminPlans = () => {
     monthly_price: 0,
     yearly_price: 0,
     duration_months: 1,
+    trial_days: 0,
     is_lifetime: false,
     is_active: true,
     features: DEFAULT_FEATURES,
@@ -125,6 +140,7 @@ const SuperAdminPlans = () => {
       monthly_price: 0,
       yearly_price: 0,
       duration_months: 1,
+      trial_days: 0,
       is_lifetime: false,
       is_active: true,
       features: DEFAULT_FEATURES,
@@ -140,7 +156,8 @@ const SuperAdminPlans = () => {
       monthly_price: plan.monthly_price,
       yearly_price: plan.yearly_price,
       duration_months: plan.duration_months,
-      is_lifetime: plan.is_lifetime,
+      trial_days: plan.trial_days || 0,
+      is_lifetime: plan.is_lifetime || false,
       is_active: plan.is_active,
       features: plan.features || DEFAULT_FEATURES,
     });
@@ -277,28 +294,33 @@ const SuperAdminPlans = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-slate-900">
-                    Rs {plan.monthly_price.toLocaleString()}
+                    {plan.is_lifetime ? "Free" : `Rs ${plan.monthly_price.toLocaleString()}`}
                   </span>
-                  <span className="text-slate-500">/month</span>
+                  {!plan.is_lifetime && <span className="text-slate-500">/month</span>}
                 </div>
-                {plan.yearly_price > 0 && (
+                {!plan.is_lifetime && plan.yearly_price > 0 && (
                   <p className="text-sm text-slate-500">
                     or Rs {plan.yearly_price.toLocaleString()}/year
                   </p>
                 )}
+                {plan.trial_days > 0 && (
+                  <Badge className="bg-blue-100 text-blue-700">
+                    {plan.trial_days} Days Free Trial
+                  </Badge>
+                )}
 
                 <div className="pt-4 border-t space-y-2">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Features</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Features ({Object.values(plan.features || {}).filter(f => f.view).length}/{FEATURES.length})</p>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
                     {FEATURES.map((feature) => {
                       const featureData = plan.features?.[feature];
                       const hasAccess = featureData?.view || featureData?.create;
                       return (
-                        <div key={feature} className="flex items-center gap-2">
+                        <div key={feature} className="flex items-center gap-1.5">
                           {hasAccess ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                           ) : (
-                            <XCircle className="w-4 h-4 text-slate-300" />
+                            <XCircle className="w-3.5 h-3.5 text-slate-300" />
                           )}
                           <span className={hasAccess ? "text-slate-700" : "text-slate-400"}>
                             {FEATURE_LABELS[feature] || feature}
@@ -387,6 +409,7 @@ const SuperAdminPlans = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, monthly_price: parseFloat(e.target.value) || 0 }))
                   }
+                  disabled={formData.is_lifetime}
                 />
               </div>
               <div className="space-y-2">
@@ -400,8 +423,26 @@ const SuperAdminPlans = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, yearly_price: parseFloat(e.target.value) || 0 }))
                   }
+                  disabled={formData.is_lifetime}
                 />
               </div>
+            </div>
+
+            {/* Trial Days */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Free Trial Days (0 = No Trial)
+              </Label>
+              <Input
+                type="number"
+                value={formData.trial_days}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, trial_days: parseInt(e.target.value) || 0 }))
+                }
+                placeholder="e.g., 7 for 7-day trial"
+              />
+              <p className="text-xs text-slate-500">Users get full access during trial period. After trial expires, they must upgrade.</p>
             </div>
 
             {/* Toggles */}
@@ -409,9 +450,14 @@ const SuperAdminPlans = () => {
               <div className="flex items-center gap-2">
                 <Switch
                   checked={formData.is_lifetime}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_lifetime: checked }))}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ 
+                    ...prev, 
+                    is_lifetime: checked,
+                    monthly_price: checked ? 0 : prev.monthly_price,
+                    yearly_price: checked ? 0 : prev.yearly_price,
+                  }))}
                 />
-                <Label>Lifetime Plan</Label>
+                <Label>Lifetime Free Plan</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch

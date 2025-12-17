@@ -56,11 +56,14 @@ interface AdminUser {
     end_date: string | null;
     amount_paid: number;
     billing_cycle: string;
+    is_trial: boolean;
   } | null;
   plan: {
     id: string;
     name: string;
     features: Record<string, any>;
+    trial_days: number;
+    is_lifetime: boolean;
   } | null;
 }
 
@@ -70,6 +73,7 @@ interface Plan {
   monthly_price: number;
   yearly_price: number;
   is_lifetime: boolean;
+  trial_days: number;
 }
 
 const SuperAdminAdmins = () => {
@@ -117,7 +121,17 @@ const SuperAdminAdmins = () => {
     setIsSaving(true);
     try {
       const plan = plans.find((p) => p.id === selectedPlan);
-      const amount = billingCycle === "yearly" ? plan?.yearly_price : plan?.monthly_price;
+      let amount = 0;
+      let is_trial = false;
+      
+      if (billingCycle === "yearly") {
+        amount = plan?.yearly_price || 0;
+      } else if (billingCycle === "monthly") {
+        amount = plan?.monthly_price || 0;
+      } else if (billingCycle === "trial") {
+        is_trial = true;
+        amount = 0;
+      }
 
       await supabase.functions.invoke("super-admin", {
         body: {
@@ -126,7 +140,9 @@ const SuperAdminAdmins = () => {
             admin_id: selectedAdmin.id,
             plan_id: selectedPlan,
             billing_cycle: billingCycle,
-            amount_paid: amount || 0,
+            amount_paid: amount,
+            is_trial,
+            trial_days: plan?.trial_days || 7,
           },
         },
       });
@@ -169,10 +185,34 @@ const SuperAdminAdmins = () => {
 
   const getStatusBadge = (admin: AdminUser) => {
     const status = admin.subscription?.status || "free";
+    const isTrial = admin.subscription?.is_trial;
+    const endDate = admin.subscription?.end_date;
+    const isExpired = endDate && new Date(endDate) < new Date();
+    
+    // Check if trial/subscription is expired
+    if (isExpired && status !== "free") {
+      return (
+        <Badge className="bg-red-100 text-red-700">
+          <XCircle className="w-3 h-3 mr-1" />
+          Expired
+        </Badge>
+      );
+    }
+    
+    if (isTrial) {
+      const daysLeft = endDate ? Math.ceil((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+      return (
+        <Badge className="bg-amber-100 text-amber-700">
+          <Clock className="w-3 h-3 mr-1" />
+          Trial ({daysLeft} days left)
+        </Badge>
+      );
+    }
+
     const configs: Record<string, { className: string; icon: React.ElementType; label: string }> = {
       active: { className: "bg-emerald-100 text-emerald-700", icon: CheckCircle2, label: "Active" },
       expired: { className: "bg-red-100 text-red-700", icon: XCircle, label: "Expired" },
-      free: { className: "bg-blue-100 text-blue-700", icon: Crown, label: "Free" },
+      free: { className: "bg-blue-100 text-blue-700", icon: Crown, label: "Free Lifetime" },
       cancelled: { className: "bg-slate-100 text-slate-700", icon: Clock, label: "Cancelled" },
     };
     const config = configs[status] || configs.free;
@@ -344,7 +384,9 @@ const SuperAdminAdmins = () => {
                 <SelectContent>
                   {plans.map((plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name} {plan.is_lifetime ? "(Lifetime)" : `- Rs ${plan.monthly_price}/mo`}
+                      {plan.name} 
+                      {plan.is_lifetime ? " (Lifetime Free)" : ` - Rs ${plan.monthly_price}/mo`}
+                      {plan.trial_days > 0 && ` (${plan.trial_days} day trial)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -357,11 +399,18 @@ const SuperAdminAdmins = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="lifetime">Lifetime (Free)</SelectItem>
+                  <SelectItem value="lifetime">Lifetime (Free Forever)</SelectItem>
+                  <SelectItem value="trial">Free Trial</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="yearly">Yearly</SelectItem>
                 </SelectContent>
               </Select>
+              {billingCycle === "trial" && (
+                <p className="text-xs text-amber-600">User will get trial days as per plan settings. After trial expires, access will be restricted.</p>
+              )}
+              {billingCycle === "lifetime" && (
+                <p className="text-xs text-blue-600">User will have permanent free access with all plan features.</p>
+              )}
             </div>
           </div>
           <DialogFooter>

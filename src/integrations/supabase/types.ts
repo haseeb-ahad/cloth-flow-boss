@@ -474,6 +474,7 @@ export type Database = {
           is_lifetime: boolean | null
           monthly_price: number
           name: string
+          trial_days: number | null
           updated_at: string
           yearly_price: number
         }
@@ -487,6 +488,7 @@ export type Database = {
           is_lifetime?: boolean | null
           monthly_price?: number
           name: string
+          trial_days?: number | null
           updated_at?: string
           yearly_price?: number
         }
@@ -500,6 +502,7 @@ export type Database = {
           is_lifetime?: boolean | null
           monthly_price?: number
           name?: string
+          trial_days?: number | null
           updated_at?: string
           yearly_price?: number
         }
@@ -748,6 +751,7 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          is_trial: boolean | null
           plan_id: string | null
           start_date: string
           status: string
@@ -761,6 +765,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_trial?: boolean | null
           plan_id?: string | null
           start_date?: string
           status?: string
@@ -774,6 +779,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_trial?: boolean | null
           plan_id?: string | null
           start_date?: string
           status?: string

@@ -10,7 +10,8 @@ interface AuthContextType {
   permissions: WorkerPermission[];
   adminFeatureOverrides: AdminFeatureOverride[];
   loading: boolean;
-  ownerId: string | null; // The admin_id for workers, or user_id for admins
+  ownerId: string | null;
+  subscriptionStatus: SubscriptionStatus | null;
   signOut: () => Promise<void>;
   hasPermission: (feature: string, action: "view" | "create" | "edit" | "delete") => boolean;
   getFirstPermittedRoute: () => string;
@@ -32,6 +33,14 @@ interface AdminFeatureOverride {
   can_delete: boolean;
 }
 
+interface SubscriptionStatus {
+  status: string;
+  is_trial: boolean;
+  end_date: string | null;
+  is_expired: boolean;
+  days_remaining: number | null;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -42,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [adminFeatureOverrides, setAdminFeatureOverrides] = useState<AdminFeatureOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,6 +106,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (roleData?.role === "admin") {
         setOwnerId(userId);
         
+        // Fetch admin subscription status
+        const { data: subData } = await supabase
+          .from("subscriptions")
+          .select("status, is_trial, end_date")
+          .eq("admin_id", userId)
+          .single();
+        
+        if (subData) {
+          const endDate = subData.end_date ? new Date(subData.end_date) : null;
+          const isExpired = endDate ? endDate < new Date() : false;
+          const daysRemaining = endDate ? Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+          
+          setSubscriptionStatus({
+            status: isExpired && subData.status !== "free" ? "expired" : subData.status,
+            is_trial: subData.is_trial || false,
+            end_date: subData.end_date,
+            is_expired: isExpired && subData.status !== "free",
+            days_remaining: daysRemaining,
+          });
+        } else {
+          setSubscriptionStatus(null);
+        }
+        
         // Fetch admin feature overrides set by super admin
         const { data: overridesData, error: overridesError } = await supabase
           .from("admin_feature_overrides")
@@ -113,6 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } else if (roleData?.role === "worker") {
         setOwnerId(roleData.admin_id || userId);
+        setSubscriptionStatus(null);
       }
 
       // Fetch permissions if worker
@@ -145,8 +179,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasPermission = (feature: string, action: "view" | "create" | "edit" | "delete"): boolean => {
-    // For admins, check if super admin has set feature overrides
+    // For admins, check subscription status first
     if (userRole === "admin") {
+      // If subscription is expired, block all access
+      if (subscriptionStatus?.is_expired) {
+        return false;
+      }
+      
       // If there are feature overrides from super admin, use them
       if (adminFeatureOverrides.length > 0) {
         const override = adminFeatureOverrides.find(o => o.feature === feature);
@@ -213,6 +252,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         adminFeatureOverrides,
         loading,
         ownerId,
+        subscriptionStatus,
         signOut,
         hasPermission,
         getFirstPermittedRoute,
