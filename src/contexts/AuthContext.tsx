@@ -181,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const getFirstPermittedRoute = (): string => {
     // Admins go to dashboard
-    if (userRole === "admin") return "/";
+    if (userRole === "admin") return "/dashboard";
     
     // For workers, find the first feature they have view permission for
     const featureRouteMap: Record<string, string> = {

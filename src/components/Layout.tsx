@@ -68,7 +68,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const navItems = useMemo(() => {
     const allItems = [
-      { path: "/", icon: LayoutDashboard, label: "Dashboard", feature: null, adminOnly: true },
+      { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", feature: null, adminOnly: true },
       { path: "/invoice", icon: ShoppingCart, label: "New Invoice", feature: "invoice", adminOnly: false },
       { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
       { path: "/sales", icon: FileText, label: "Sales History", feature: "sales", adminOnly: false },
