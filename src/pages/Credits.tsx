@@ -126,6 +126,7 @@ const Credits = () => {
     payment_date: new Date().toISOString().split('T')[0],
     payment_mode: "cash",
     notes: "",
+    due_date: "",
   });
   const [formData, setFormData] = useState({
     customer_name: "",
@@ -445,6 +446,7 @@ const Credits = () => {
       payment_date: new Date().toISOString().split('T')[0],
       payment_mode: "cash",
       notes: "",
+      due_date: credit.due_date || "",
     });
     setIsCashCreditPaymentDialogOpen(true);
   };
@@ -483,19 +485,21 @@ const Credits = () => {
 
     setIsLoading(true);
     try {
-      // Update credit record
+      // Update credit record with due_date and notes
       const { error: updateError } = await supabase
         .from("credits")
         .update({
           paid_amount: newPaidAmount,
           remaining_amount: newRemainingAmount,
           status: newStatus,
+          due_date: cashCreditPaymentData.due_date || null,
+          notes: cashCreditPaymentData.notes || selectedCredit.notes,
         })
         .eq("id", selectedCredit.id);
 
       if (updateError) throw updateError;
 
-      // Record payment transaction
+      // Record payment transaction with receive notes
       const { error: transactionError } = await supabase
         .from("credit_transactions")
         .insert({
@@ -518,6 +522,7 @@ const Credits = () => {
         payment_date: new Date().toISOString().split('T')[0],
         payment_mode: "cash",
         notes: "",
+        due_date: "",
       });
     } catch (error) {
       console.error("Error recording payment:", error);
@@ -1658,7 +1663,18 @@ const Credits = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="cash_payment_notes">Note (Optional)</Label>
+                  <Label htmlFor="cash_due_date">Due Date (Optional)</Label>
+                  <Input
+                    id="cash_due_date"
+                    type="date"
+                    value={cashCreditPaymentData.due_date}
+                    onChange={(e) => setCashCreditPaymentData({ ...cashCreditPaymentData, due_date: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="cash_payment_notes">Receive Notes (Optional)</Label>
                   <Textarea
                     id="cash_payment_notes"
                     value={cashCreditPaymentData.notes}
