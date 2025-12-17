@@ -63,12 +63,16 @@
     --radius-lg: 1rem;
     --radius-xl: 1.25rem;
 
-    /* Modern gradients */
+    /* Modern gradients - Landing page inspired */
     --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-hero: linear-gradient(to bottom right, hsl(214 32% 91%) 0%, hsl(0 0% 100%) 50%, hsl(213 94% 95%) 100%);
     --gradient-success: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(142 65% 55%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 20% 99%) 100%);
     --gradient-ai: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(330 80% 60%) 100%);
     --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
+    --gradient-button: linear-gradient(to right, hsl(221 83% 53%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-button-hover: linear-gradient(to right, hsl(221 83% 48%) 0%, hsl(262 83% 53%) 100%);
+    --gradient-badge: linear-gradient(to right, hsl(213 94% 95%) 0%, hsl(270 100% 96%) 100%);
 
     /* Modern elevation shadows - subtle and elegant */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
@@ -183,6 +187,10 @@
     background: var(--gradient-primary);
   }
 
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
   .gradient-success {
     background: var(--gradient-success);
   }
@@ -197,6 +205,27 @@
 
   .gradient-surface {
     background: var(--gradient-surface);
+  }
+
+  .gradient-button {
+    background: var(--gradient-button);
+  }
+
+  .gradient-button:hover {
+    background: var(--gradient-button-hover);
+  }
+
+  .gradient-badge {
+    background: var(--gradient-badge);
+  }
+
+  /* Landing page style text gradient */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
   }
 
   /* Pastel backgrounds */
