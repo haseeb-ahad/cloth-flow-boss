@@ -76,16 +76,6 @@ export default {
           yellow: "hsl(var(--pastel-yellow))",
           green: "hsl(var(--pastel-green))",
         },
-        // Blue-Cyan palette chart colors
-        chart: {
-          navy: "hsl(240 94% 19%)",
-          "primary-blue": "hsl(213 97% 27%)",
-          brand: "hsl(199 100% 36%)",
-          accent: "hsl(194 100% 39%)",
-          highlight: "hsl(189 100% 42%)",
-          soft: "hsl(191 71% 59%)",
-          light: "hsl(191 75% 75%)",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
