@@ -124,38 +124,34 @@ serve(async (req) => {
       }
 
       case "assign_subscription": {
-        const { admin_id, plan_id, billing_cycle, amount_paid, is_trial, trial_days } = data;
+        const { admin_id, plan_id } = data;
         
-        // Get the plan features
+        // Get the plan details
         const { data: plan } = await supabase
           .from("plans")
-          .select("features, trial_days, is_lifetime")
+          .select("*")
           .eq("id", plan_id)
           .single();
+
+        if (!plan) throw new Error("Plan not found");
 
         // Check if admin already has a subscription
         const { data: existing } = await supabase
           .from("subscriptions")
           .select("id")
           .eq("admin_id", admin_id)
-          .single();
+          .maybeSingle();
 
         let end_date = null;
         let status = "active";
-        let isTrial = is_trial || false;
         
-        if (billing_cycle === "lifetime" || plan?.is_lifetime) {
+        if (plan.is_lifetime) {
           status = "free";
           end_date = null; // No expiration for lifetime
-        } else if (billing_cycle === "trial" || isTrial) {
-          const trialDays = trial_days || plan?.trial_days || 7;
-          end_date = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
-          status = "active";
-          isTrial = true;
-        } else if (billing_cycle === "monthly") {
-          end_date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        } else if (billing_cycle === "yearly") {
-          end_date = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        } else {
+          // Calculate end_date based on duration_months
+          const durationMs = plan.duration_months * 30 * 24 * 60 * 60 * 1000;
+          end_date = new Date(Date.now() + durationMs).toISOString();
         }
 
         let subscription;
@@ -164,10 +160,10 @@ serve(async (req) => {
             .from("subscriptions")
             .update({
               plan_id,
-              billing_cycle,
-              amount_paid,
+              billing_cycle: plan.is_lifetime ? "lifetime" : "monthly",
+              amount_paid: plan.monthly_price || 0,
               status,
-              is_trial: isTrial,
+              is_trial: false,
               start_date: new Date().toISOString(),
               end_date,
             })
@@ -183,10 +179,10 @@ serve(async (req) => {
             .insert({
               admin_id,
               plan_id,
-              billing_cycle,
-              amount_paid,
+              billing_cycle: plan.is_lifetime ? "lifetime" : "monthly",
+              amount_paid: plan.monthly_price || 0,
               status,
-              is_trial: isTrial,
+              is_trial: false,
               end_date,
             })
             .select()
@@ -197,7 +193,7 @@ serve(async (req) => {
         }
 
         // Sync plan features to admin_feature_overrides
-        if (plan?.features) {
+        if (plan.features) {
           // Delete existing overrides
           await supabase
             .from("admin_feature_overrides")

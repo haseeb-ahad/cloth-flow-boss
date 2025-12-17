@@ -88,7 +88,6 @@ const SuperAdminAdmins = () => {
   const [paymentHistoryDialog, setPaymentHistoryDialog] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
   const [selectedPlan, setSelectedPlan] = useState("");
-  const [billingCycle, setBillingCycle] = useState("lifetime");
   const [payments, setPayments] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -120,34 +119,18 @@ const SuperAdminAdmins = () => {
     if (!selectedAdmin || !selectedPlan) return;
     setIsSaving(true);
     try {
-      const plan = plans.find((p) => p.id === selectedPlan);
-      let amount = 0;
-      let is_trial = false;
-      
-      if (billingCycle === "yearly") {
-        amount = plan?.yearly_price || 0;
-      } else if (billingCycle === "monthly") {
-        amount = plan?.monthly_price || 0;
-      } else if (billingCycle === "trial") {
-        is_trial = true;
-        amount = 0;
-      }
-
       await supabase.functions.invoke("super-admin", {
         body: {
           action: "assign_subscription",
           data: {
             admin_id: selectedAdmin.id,
             plan_id: selectedPlan,
-            billing_cycle: billingCycle,
-            amount_paid: amount,
-            is_trial,
-            trial_days: plan?.trial_days || 7,
           },
         },
       });
       toast.success("Plan assigned successfully!");
       setAssignPlanDialog(false);
+      setSelectedPlan("");
       fetchData();
     } catch (error) {
       console.error("Error assigning plan:", error);
@@ -385,32 +368,12 @@ const SuperAdminAdmins = () => {
                   {plans.map((plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
                       {plan.name} 
-                      {plan.is_lifetime ? " (Lifetime Free)" : ` - Rs ${plan.monthly_price}/mo`}
-                      {plan.trial_days > 0 && ` (${plan.trial_days} day trial)`}
+                      {plan.is_lifetime && " (Lifetime Free)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Billing Cycle</Label>
-              <Select value={billingCycle} onValueChange={setBillingCycle}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="lifetime">Lifetime (Free Forever)</SelectItem>
-                  <SelectItem value="trial">Free Trial</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-              {billingCycle === "trial" && (
-                <p className="text-xs text-amber-600">User will get trial days as per plan settings. After trial expires, access will be restricted.</p>
-              )}
-              {billingCycle === "lifetime" && (
-                <p className="text-xs text-blue-600">User will have permanent free access with all plan features.</p>
-              )}
+              <p className="text-xs text-slate-500">Plan duration and features will be applied automatically.</p>
             </div>
           </div>
           <DialogFooter>
