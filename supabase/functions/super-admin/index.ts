@@ -124,12 +124,12 @@ serve(async (req) => {
       }
 
       case "assign_subscription": {
-        const { admin_id, plan_id, billing_cycle, amount_paid } = data;
+        const { admin_id, plan_id, billing_cycle, amount_paid, is_trial, trial_days } = data;
         
         // Get the plan features
         const { data: plan } = await supabase
           .from("plans")
-          .select("features")
+          .select("features, trial_days, is_lifetime")
           .eq("id", plan_id)
           .single();
 
@@ -141,7 +141,18 @@ serve(async (req) => {
           .single();
 
         let end_date = null;
-        if (billing_cycle === "monthly") {
+        let status = "active";
+        let isTrial = is_trial || false;
+        
+        if (billing_cycle === "lifetime" || plan?.is_lifetime) {
+          status = "free";
+          end_date = null; // No expiration for lifetime
+        } else if (billing_cycle === "trial" || isTrial) {
+          const trialDays = trial_days || plan?.trial_days || 7;
+          end_date = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
+          status = "active";
+          isTrial = true;
+        } else if (billing_cycle === "monthly") {
           end_date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         } else if (billing_cycle === "yearly") {
           end_date = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
@@ -155,7 +166,8 @@ serve(async (req) => {
               plan_id,
               billing_cycle,
               amount_paid,
-              status: billing_cycle === "lifetime" ? "free" : "active",
+              status,
+              is_trial: isTrial,
               start_date: new Date().toISOString(),
               end_date,
             })
@@ -173,7 +185,8 @@ serve(async (req) => {
               plan_id,
               billing_cycle,
               amount_paid,
-              status: billing_cycle === "lifetime" ? "free" : "active",
+              status,
+              is_trial: isTrial,
               end_date,
             })
             .select()
