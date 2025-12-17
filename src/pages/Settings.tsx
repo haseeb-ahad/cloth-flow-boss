@@ -44,13 +44,16 @@ export default function Settings() {
   }, [user]);
 
   const loadSettings = async () => {
+    if (!user) return;
     try {
+      // First try to get existing settings for this admin/team
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      
       if (data) {
         setAppSettings({
           app_name: data.app_name || "Business Manager",
@@ -66,6 +69,25 @@ export default function Settings() {
           worker_name: (data as any).worker_name || "",
           worker_phone: (data as any).worker_phone || "",
         });
+      } else if (userRole === "admin") {
+        // Create default settings for new admin
+        const { error: insertError } = await supabase
+          .from("app_settings")
+          .insert({
+            owner_id: user.id,
+            app_name: "Business Manager",
+            shop_name: "Your Shop Name",
+            shop_address: "Your Shop Address Here",
+            phone_numbers: ["+92-XXX-XXXXXXX"],
+            owner_names: ["Owner Name"],
+            thank_you_message: "Thank You!",
+            footer_message: "Get Well Soon",
+            language: "en",
+          });
+        
+        if (insertError) {
+          console.error("Error creating settings:", insertError);
+        }
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -95,7 +117,7 @@ export default function Settings() {
   };
 
   const handleSaveGeneralSettings = async () => {
-    if (userRole !== "admin") {
+    if (userRole !== "admin" || !user) {
       toast.error("Only admins can update general settings");
       return;
     }
@@ -117,7 +139,7 @@ export default function Settings() {
           worker_name: appSettings.worker_name,
           worker_phone: appSettings.worker_phone,
         } as any)
-        .eq("id", (await supabase.from("app_settings").select("id").single()).data?.id);
+        .eq("owner_id", user.id);
 
       if (error) throw error;
       toast.success("General settings updated successfully!");
@@ -166,19 +188,12 @@ export default function Settings() {
       const logoUrl = urlData.publicUrl;
 
       // Update app_settings with logo URL
-      const { data: settingsData } = await supabase
+      const { error: updateError } = await supabase
         .from("app_settings")
-        .select("id")
-        .single();
+        .update({ logo_url: logoUrl })
+        .eq("owner_id", user!.id);
 
-      if (settingsData) {
-        const { error: updateError } = await supabase
-          .from("app_settings")
-          .update({ logo_url: logoUrl })
-          .eq("id", settingsData.id);
-
-        if (updateError) throw updateError;
-      }
+      if (updateError) throw updateError;
 
       setAppSettings(prev => ({ ...prev, logo_url: logoUrl }));
       toast.success("Logo uploaded successfully!");
@@ -191,26 +206,19 @@ export default function Settings() {
   };
 
   const handleRemoveLogo = async () => {
-    if (userRole !== "admin") {
+    if (userRole !== "admin" || !user) {
       toast.error("Only admins can remove logo");
       return;
     }
 
     setUploadingLogo(true);
     try {
-      const { data: settingsData } = await supabase
+      const { error: updateError } = await supabase
         .from("app_settings")
-        .select("id")
-        .single();
+        .update({ logo_url: null })
+        .eq("owner_id", user.id);
 
-      if (settingsData) {
-        const { error: updateError } = await supabase
-          .from("app_settings")
-          .update({ logo_url: null })
-          .eq("id", settingsData.id);
-
-        if (updateError) throw updateError;
-      }
+      if (updateError) throw updateError;
 
       setAppSettings(prev => ({ ...prev, logo_url: "" }));
       if (logoInputRef.current) {
