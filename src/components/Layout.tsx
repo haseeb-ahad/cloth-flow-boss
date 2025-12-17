@@ -102,7 +102,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex">
         {/* Modern Sidebar */}
         <aside 
           className={cn(
@@ -125,8 +125,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className="max-w-[200px] max-h-12 rounded-lg object-contain"
                   />
                 ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow">
-                    <Store className="h-5 w-5 text-primary-foreground" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25">
+                    <Store className="h-5 w-5 text-white" />
                   </div>
                 )}
                 <div className="flex flex-col">
@@ -143,8 +143,8 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
             )}
             {sidebarCollapsed && (
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow">
-                <Store className="h-5 w-5 text-primary-foreground" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25">
+                <Store className="h-5 w-5 text-white" />
               </div>
             )}
           </div>
@@ -249,8 +249,8 @@ const Layout = ({ children }: LayoutProps) => {
                       className="max-w-[200px] max-h-12 rounded-lg object-contain"
                     />
                   ) : (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow">
-                      <Store className="h-5 w-5 text-primary-foreground" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25">
+                      <Store className="h-5 w-5 text-white" />
                     </div>
                   )}
                   <span className="text-sm font-semibold text-foreground">
@@ -330,7 +330,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <p className="text-sm font-medium text-foreground leading-none">{user?.email?.split('@')[0]}</p>
                     <p className="text-xs text-muted-foreground capitalize mt-0.5">{userRole}</p>
                   </div>
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-lg shadow-blue-500/25">
                     {user?.email?.charAt(0).toUpperCase()}
                   </div>
                 </div>
