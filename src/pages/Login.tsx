@@ -50,7 +50,7 @@ export default function Login() {
       if (error) throw error;
 
       toast.success("Login successful!");
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message || "Login failed. Please check your credentials.");

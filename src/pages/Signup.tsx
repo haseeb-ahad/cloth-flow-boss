@@ -60,7 +60,7 @@ export default function Signup() {
             full_name: formData.fullName,
             role: "admin", // Only admins can sign up through this form
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 

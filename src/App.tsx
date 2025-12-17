@@ -43,13 +43,13 @@ const App = () => (
               <Route path="/super-admin" element={<SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute>} />
 
               {/* Public routes */}
-              <Route path="/landing" element={<Landing />} />
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes */}
-              <Route path="/" element={<ProtectedRoute adminOnly><Layout><Index /></Layout></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute adminOnly><Layout><Index /></Layout></ProtectedRoute>} />
               <Route path="/invoice" element={<ProtectedRoute feature="invoice" requirePermission="view"><Layout><Invoice /></Layout></ProtectedRoute>} />
               <Route path="/inventory" element={<ProtectedRoute feature="inventory" requirePermission="view"><Layout><Inventory /></Layout></ProtectedRoute>} />
               <Route path="/sales" element={<ProtectedRoute feature="sales" requirePermission="view"><Layout><Sales /></Layout></ProtectedRoute>} />
