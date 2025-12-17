@@ -153,9 +153,12 @@ const Sales = () => {
             .select("*")
             .eq("sale_id", sale.id);
           
-          const total_cost = saleItems?.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0) || 0;
-          const total_profit = saleItems?.reduce((sum, item) => sum + item.profit, 0) || 0;
-          const item_count = saleItems?.length || 0;
+          // Filter out return items - they are tracking only, original qty already reduced
+          const regularItems = saleItems?.filter(item => !item.is_return) || [];
+          
+          const total_cost = regularItems.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+          const total_profit = regularItems.reduce((sum, item) => sum + item.profit, 0);
+          const item_count = regularItems.length;
           
           return {
             ...sale,
