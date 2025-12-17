@@ -7,6 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -92,6 +99,8 @@ const DEFAULT_FEATURES = FEATURES.reduce((acc, feature) => {
   return acc;
 }, {} as Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>);
 
+type DurationType = "days" | "months";
+
 const SuperAdminPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +115,8 @@ const SuperAdminPlans = () => {
     description: "",
     monthly_price: 0,
     yearly_price: 0,
-    duration_months: 1,
+    duration_value: 1,
+    duration_type: "months" as DurationType,
     trial_days: 0,
     is_lifetime: false,
     is_active: true,
@@ -132,6 +142,24 @@ const SuperAdminPlans = () => {
     setIsLoading(false);
   };
 
+  // Helper to convert duration_months to value and type
+  const getDurationFromMonths = (months: number): { value: number; type: DurationType } => {
+    // If less than 1 month (stored as decimal), treat as days
+    if (months < 1) {
+      const days = Math.round(months * 30);
+      return { value: days || 1, type: "days" };
+    }
+    return { value: months, type: "months" };
+  };
+
+  // Helper to convert value and type to duration_months
+  const getDurationMonths = (value: number, type: DurationType): number => {
+    if (type === "days") {
+      return value / 30; // Store as fraction of month
+    }
+    return value;
+  };
+
   const handleOpenCreate = () => {
     setSelectedPlan(null);
     setFormData({
@@ -139,7 +167,8 @@ const SuperAdminPlans = () => {
       description: "",
       monthly_price: 0,
       yearly_price: 0,
-      duration_months: 1,
+      duration_value: 1,
+      duration_type: "months",
       trial_days: 0,
       is_lifetime: false,
       is_active: true,
@@ -150,12 +179,14 @@ const SuperAdminPlans = () => {
 
   const handleOpenEdit = (plan: Plan) => {
     setSelectedPlan(plan);
+    const { value, type } = getDurationFromMonths(plan.duration_months);
     setFormData({
       name: plan.name,
       description: plan.description || "",
       monthly_price: plan.monthly_price,
       yearly_price: plan.yearly_price,
-      duration_months: plan.duration_months,
+      duration_value: value,
+      duration_type: type,
       trial_days: plan.trial_days || 0,
       is_lifetime: plan.is_lifetime || false,
       is_active: plan.is_active,
@@ -172,17 +203,30 @@ const SuperAdminPlans = () => {
 
     setIsSaving(true);
     try {
+      const duration_months = getDurationMonths(formData.duration_value, formData.duration_type);
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        monthly_price: formData.monthly_price,
+        yearly_price: formData.yearly_price,
+        duration_months,
+        trial_days: formData.trial_days,
+        is_lifetime: formData.is_lifetime,
+        is_active: formData.is_active,
+        features: formData.features,
+      };
+
       if (selectedPlan) {
         await supabase.functions.invoke("super-admin", {
           body: {
             action: "update_plan",
-            data: { id: selectedPlan.id, ...formData },
+            data: { id: selectedPlan.id, ...payload },
           },
         });
         toast.success("Plan updated successfully!");
       } else {
         await supabase.functions.invoke("super-admin", {
-          body: { action: "create_plan", data: formData },
+          body: { action: "create_plan", data: payload },
         });
         toast.success("Plan created successfully!");
       }
@@ -303,11 +347,19 @@ const SuperAdminPlans = () => {
                     or Rs {plan.yearly_price.toLocaleString()}/year
                   </p>
                 )}
-                {plan.trial_days > 0 && (
-                  <Badge className="bg-blue-100 text-blue-700">
-                    {plan.trial_days} Days Free Trial
+                <div className="flex flex-wrap gap-2">
+                  {/* Duration Badge */}
+                  <Badge className="bg-purple-100 text-purple-700">
+                    {plan.duration_months < 1 
+                      ? `${Math.round(plan.duration_months * 30)} Days` 
+                      : `${plan.duration_months} ${plan.duration_months === 1 ? 'Month' : 'Months'}`}
                   </Badge>
-                )}
+                  {plan.trial_days > 0 && (
+                    <Badge className="bg-blue-100 text-blue-700">
+                      {plan.trial_days} Days Free Trial
+                    </Badge>
+                  )}
+                </div>
 
                 <div className="pt-4 border-t space-y-2">
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Features ({Object.values(plan.features || {}).filter(f => f.view).length}/{FEATURES.length})</p>
@@ -365,25 +417,45 @@ const SuperAdminPlans = () => {
 
           <div className="space-y-6 py-4">
             {/* Basic Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Plan Name</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Professional"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Duration (months)</Label>
+            <div className="space-y-2">
+              <Label>Plan Name</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Professional"
+              />
+            </div>
+
+            {/* Duration */}
+            <div className="space-y-2">
+              <Label>Plan Duration</Label>
+              <div className="flex gap-2">
                 <Input
                   type="number"
-                  value={formData.duration_months}
+                  min={1}
+                  value={formData.duration_value}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, duration_months: parseInt(e.target.value) || 1 }))
+                    setFormData((prev) => ({ ...prev, duration_value: parseInt(e.target.value) || 1 }))
                   }
+                  className="flex-1"
+                  placeholder="e.g., 1, 7, 30"
                 />
+                <Select
+                  value={formData.duration_type}
+                  onValueChange={(value: DurationType) =>
+                    setFormData((prev) => ({ ...prev, duration_type: value }))
+                  }
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="months">Months</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              <p className="text-xs text-slate-500">Set plan duration in days or months (e.g., 1 day, 7 days, 1 month)</p>
             </div>
 
             <div className="space-y-2">
