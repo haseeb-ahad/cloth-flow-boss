@@ -53,7 +53,7 @@ const Invoice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { ownerId, hasPermission, userRole } = useAuth();
-  const { timezone } = useTimezone();
+  const { timezone, formatDateInput } = useTimezone();
   const editSaleId = searchParams.get("edit");
   
   // Permission checks
@@ -76,7 +76,7 @@ const Invoice = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [additionalPayment, setAdditionalPayment] = useState("");
   const [isFullPayment, setIsFullPayment] = useState(false);
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [invoiceDate, setInvoiceDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
@@ -137,6 +137,13 @@ const Invoice = () => {
       console.error("Error fetching receipt settings:", error);
     }
   };
+
+  // Set initial invoice date based on timezone (for new invoices)
+  useEffect(() => {
+    if (!editSaleId && invoiceDate === "") {
+      setInvoiceDate(formatDateInput(new Date()));
+    }
+  }, [editSaleId, formatDateInput, invoiceDate]);
 
   // STABLE LOADING: Only load once, prevent re-renders from resetting items
   useEffect(() => {
@@ -231,13 +238,9 @@ const Invoice = () => {
         
         // Extract date from created_at timestamp and format as YYYY-MM-DD
         if (sale.created_at) {
-          const saleDate = new Date(sale.created_at);
-          const year = saleDate.getFullYear();
-          const month = String(saleDate.getMonth() + 1).padStart(2, '0');
-          const day = String(saleDate.getDate()).padStart(2, '0');
-          setInvoiceDate(`${year}-${month}-${day}`);
+          setInvoiceDate(formatDateInput(new Date(sale.created_at)));
         } else {
-          setInvoiceDate(new Date().toISOString().split('T')[0]);
+          setInvoiceDate(formatDateInput(new Date()));
         }
 
         // Fetch product details to get correct quantity_type
@@ -1272,7 +1275,7 @@ const Invoice = () => {
     setDiscount(0);
     setPaymentMethod("cash");
     setPaidAmount("");
-    setInvoiceDate(new Date().toISOString().split('T')[0]);
+    setInvoiceDate(formatDateInput(new Date()));
     setIsFullPayment(false);
     setDescription("");
     setImageFile(null);
