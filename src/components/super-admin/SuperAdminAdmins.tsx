@@ -5,6 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -34,6 +44,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Trash2,
   Search,
   Filter,
   Eye,
@@ -86,10 +97,12 @@ const SuperAdminAdmins = () => {
   // Dialog states
   const [assignPlanDialog, setAssignPlanDialog] = useState(false);
   const [paymentHistoryDialog, setPaymentHistoryDialog] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
   const [selectedPlan, setSelectedPlan] = useState("");
   const [payments, setPayments] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -152,6 +165,28 @@ const SuperAdminAdmins = () => {
       console.error("Error fetching payments:", error);
     }
     setPaymentHistoryDialog(true);
+  };
+
+  const handleDeleteAdmin = async () => {
+    if (!selectedAdmin) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke("super-admin", {
+        body: {
+          action: "delete_admin",
+          data: { admin_id: selectedAdmin.id },
+        },
+      });
+      if (error) throw error;
+      toast.success("Admin deleted successfully!");
+      setDeleteDialog(false);
+      setSelectedAdmin(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      toast.error("Failed to delete admin");
+    }
+    setIsDeleting(false);
   };
 
   const filteredAdmins = admins.filter((admin) => {
@@ -335,6 +370,18 @@ const SuperAdminAdmins = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => {
+                            setSelectedAdmin(admin);
+                            setDeleteDialog(true);
+                          }}
+                          title="Delete Admin"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -445,6 +492,45 @@ const SuperAdminAdmins = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Delete Store Admin
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedAdmin?.full_name || selectedAdmin?.email}</strong>?
+              <br /><br />
+              <span className="text-red-600 font-medium">
+                This will permanently delete the admin account and ALL their data including:
+              </span>
+              <ul className="list-disc list-inside mt-2 text-sm text-slate-600">
+                <li>All products and inventory</li>
+                <li>All sales and invoices</li>
+                <li>All credits and payments</li>
+                <li>All expenses and reports</li>
+                <li>All workers under this admin</li>
+                <li>Store settings and configurations</li>
+              </ul>
+              <br />
+              <span className="text-red-600 font-semibold">This action cannot be undone!</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAdmin}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Yes, Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

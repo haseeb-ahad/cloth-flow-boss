@@ -327,6 +327,97 @@ serve(async (req) => {
         });
       }
 
+      case "delete_admin": {
+        const { admin_id } = data;
+        
+        console.log("Deleting admin:", admin_id);
+
+        // Delete all related data in order (respecting foreign keys)
+        
+        // 1. Delete worker permissions for workers under this admin
+        const { data: workers } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("admin_id", admin_id)
+          .eq("role", "worker");
+        
+        const workerIds = workers?.map(w => w.user_id) || [];
+        
+        if (workerIds.length > 0) {
+          await supabase.from("worker_permissions").delete().in("worker_id", workerIds);
+          
+          // Delete workers from auth
+          for (const workerId of workerIds) {
+            await supabase.auth.admin.deleteUser(workerId);
+          }
+        }
+
+        // 2. Delete admin's sale_items (via sales)
+        const { data: sales } = await supabase
+          .from("sales")
+          .select("id")
+          .eq("owner_id", admin_id);
+        const saleIds = sales?.map(s => s.id) || [];
+        if (saleIds.length > 0) {
+          await supabase.from("sale_items").delete().in("sale_id", saleIds);
+        }
+
+        // 3. Delete credit_transactions (via credits)
+        const { data: credits } = await supabase
+          .from("credits")
+          .select("id")
+          .eq("owner_id", admin_id);
+        const creditIds = credits?.map(c => c.id) || [];
+        if (creditIds.length > 0) {
+          await supabase.from("credit_transactions").delete().in("credit_id", creditIds);
+        }
+
+        // 4. Delete installment_payments (via installments)
+        const { data: installments } = await supabase
+          .from("installments")
+          .select("id")
+          .eq("owner_id", admin_id);
+        const installmentIds = installments?.map(i => i.id) || [];
+        if (installmentIds.length > 0) {
+          await supabase.from("installment_payments").delete().in("installment_id", installmentIds);
+        }
+
+        // 5. Delete admin's main data tables
+        await supabase.from("sales").delete().eq("owner_id", admin_id);
+        await supabase.from("credits").delete().eq("owner_id", admin_id);
+        await supabase.from("installments").delete().eq("owner_id", admin_id);
+        await supabase.from("products").delete().eq("owner_id", admin_id);
+        await supabase.from("expenses").delete().eq("owner_id", admin_id);
+        await supabase.from("payment_ledger").delete().eq("owner_id", admin_id);
+        await supabase.from("app_settings").delete().eq("owner_id", admin_id);
+
+        // 6. Delete admin-specific tables
+        await supabase.from("admin_feature_overrides").delete().eq("admin_id", admin_id);
+        await supabase.from("store_info").delete().eq("admin_id", admin_id);
+        await supabase.from("payments").delete().eq("admin_id", admin_id);
+        await supabase.from("subscriptions").delete().eq("admin_id", admin_id);
+
+        // 7. Delete user_roles (admin and their workers)
+        await supabase.from("user_roles").delete().eq("admin_id", admin_id);
+        await supabase.from("user_roles").delete().eq("user_id", admin_id);
+
+        // 8. Delete profile
+        await supabase.from("profiles").delete().eq("user_id", admin_id);
+
+        // 9. Finally delete the admin user from auth
+        const { error: authError } = await supabase.auth.admin.deleteUser(admin_id);
+        if (authError) {
+          console.error("Auth delete error:", authError);
+          // Continue even if auth delete fails (user might already be deleted)
+        }
+
+        console.log("Admin deleted successfully:", admin_id);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       default:
         throw new Error("Unknown action");
     }
