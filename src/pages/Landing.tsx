@@ -1,0 +1,628 @@
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { 
+  FileText, 
+  Package, 
+  BarChart3, 
+  CreditCard, 
+  Wallet, 
+  Users, 
+  ChevronRight,
+  Star,
+  ArrowRight,
+  Sparkles,
+  Zap,
+  Shield,
+  Clock
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 60 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, ease: "easeOut" }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const floatingAnimation = {
+  animate: {
+    y: [0, -10, 0],
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut" as const
+    }
+  }
+};
+
+const pulseAnimation = {
+  animate: {
+    scale: [1, 1.02, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut" as const
+    }
+  }
+};
+
+const features = [
+  {
+    icon: FileText,
+    title: "Create Invoice",
+    description: "Generate professional invoices instantly with customizable templates and automatic calculations.",
+    color: "from-blue-500 to-cyan-400"
+  },
+  {
+    icon: Package,
+    title: "Inventory Management",
+    description: "Track stock levels dynamically with real-time updates and low-stock alerts.",
+    color: "from-purple-500 to-pink-400"
+  },
+  {
+    icon: BarChart3,
+    title: "Sales & Analytics",
+    description: "Visualize your business performance with interactive charts and detailed reports.",
+    color: "from-orange-500 to-amber-400"
+  },
+  {
+    icon: CreditCard,
+    title: "Credits & Payments",
+    description: "Seamlessly track customer credits and payment history with FIFO allocation.",
+    color: "from-green-500 to-emerald-400"
+  },
+  {
+    icon: Wallet,
+    title: "Expense Management",
+    description: "Monitor and categorize expenses with real-time profit calculations.",
+    color: "from-rose-500 to-pink-400"
+  },
+  {
+    icon: Users,
+    title: "Team Management",
+    description: "Manage workers with granular permissions and role-based access control.",
+    color: "from-indigo-500 to-violet-400"
+  }
+];
+
+const testimonials = [
+  {
+    name: "Ahmed Khan",
+    role: "Retail Store Owner",
+    content: "Invoxa transformed how we manage our inventory. The real-time tracking and automated invoicing save us hours every week.",
+    rating: 5
+  },
+  {
+    name: "Sarah Ali",
+    role: "Wholesale Business",
+    content: "The credit management feature is a game-changer. We can now track customer balances effortlessly.",
+    rating: 5
+  },
+  {
+    name: "Muhammad Raza",
+    role: "Textile Shop Owner",
+    content: "Best investment for our business. The analytics help us make better decisions every day.",
+    rating: 5
+  }
+];
+
+const Landing = () => {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
+      {/* Animated Background Shapes */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{ 
+            x: [0, 100, 0], 
+            y: [0, -50, 0],
+            rotate: [0, 180, 360]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{ 
+            x: [0, -80, 0], 
+            y: [0, 80, 0],
+            rotate: [360, 180, 0]
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/2 -left-40 w-80 h-80 bg-gradient-to-br from-pink-200/30 to-orange-200/30 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{ 
+            x: [0, 60, 0], 
+            y: [0, -60, 0]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-20 right-1/4 w-64 h-64 bg-gradient-to-br from-cyan-200/30 to-blue-200/30 rounded-full blur-3xl"
+        />
+      </div>
+
+      {/* Navigation */}
+      <motion.nav 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-50 px-6 py-4 lg:px-12"
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-2"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Invoxa
+            </span>
+          </motion.div>
+          
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-slate-600 hover:text-slate-900 transition-colors">Features</a>
+            <a href="#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors">Testimonials</a>
+            <a href="#pricing" className="text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link to="/login">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button variant="ghost" className="text-slate-700 hover:text-slate-900">
+                  Login
+                </Button>
+              </motion.div>
+            </Link>
+            <Link to="/signup">
+              <motion.div 
+                whileHover={{ scale: 1.05, boxShadow: "0 10px 40px -10px rgba(99, 102, 241, 0.4)" }} 
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25">
+                  Get Started
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </motion.div>
+            </Link>
+          </div>
+        </div>
+      </motion.nav>
+
+      {/* Hero Section */}
+      <section className="relative z-10 px-6 pt-16 pb-32 lg:px-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -60 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-8"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 text-sm font-medium"
+              >
+                <Zap className="w-4 h-4" />
+                Trusted by 1000+ businesses
+              </motion.div>
+              
+              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+                <span className="text-slate-900">Simplify Your</span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Business Finances
+                </span>
+                <br />
+                <span className="text-slate-900">with Invoxa</span>
+              </h1>
+              
+              <p className="text-xl text-slate-600 max-w-lg leading-relaxed">
+                Manage invoices, inventory, payments, customers, and more—all in one powerful platform designed for modern businesses.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/signup">
+                  <motion.div
+                    whileHover={{ scale: 1.05, boxShadow: "0 20px 60px -15px rgba(99, 102, 241, 0.5)" }}
+                    whileTap={{ scale: 0.95 }}
+                    {...pulseAnimation}
+                  >
+                    <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6 shadow-xl shadow-blue-500/30">
+                      Start Free Trial
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </motion.div>
+                </Link>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50">
+                    Watch Demo
+                  </Button>
+                </motion.div>
+              </div>
+              
+              <div className="flex items-center gap-6 pt-4">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br ${
+                      i === 1 ? 'from-blue-400 to-blue-600' :
+                      i === 2 ? 'from-purple-400 to-purple-600' :
+                      i === 3 ? 'from-pink-400 to-pink-600' :
+                      'from-orange-400 to-orange-600'
+                    }`} />
+                  ))}
+                </div>
+                <div className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">500+</span> businesses trust Invoxa
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Dashboard Mockup */}
+            <motion.div
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative"
+            >
+              <motion.div
+                {...floatingAnimation}
+                className="relative z-10"
+              >
+                <div className="bg-white rounded-2xl shadow-2xl shadow-slate-200/50 p-6 border border-slate-100">
+                  {/* Mock Dashboard Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-red-400" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                      <div className="w-3 h-3 rounded-full bg-green-400" />
+                    </div>
+                    <div className="h-6 w-32 bg-slate-100 rounded-full" />
+                  </div>
+                  
+                  {/* Mock Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    {[
+                      { label: "Revenue", value: "PKR 125,000", color: "from-blue-500 to-cyan-400" },
+                      { label: "Profit", value: "PKR 45,000", color: "from-green-500 to-emerald-400" },
+                      { label: "Credits", value: "PKR 23,000", color: "from-purple-500 to-pink-400" }
+                    ].map((stat, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 + i * 0.1 }}
+                        className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4"
+                      >
+                        <div className={`text-xs font-medium bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                          {stat.label}
+                        </div>
+                        <div className="text-lg font-bold text-slate-900 mt-1">{stat.value}</div>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  {/* Mock Chart */}
+                  <div className="h-40 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl flex items-end justify-around px-4 pb-4">
+                    {[40, 65, 45, 80, 55, 70, 90].map((h, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ delay: 0.8 + i * 0.1, duration: 0.5, ease: "easeOut" }}
+                        className="w-6 rounded-t-md bg-gradient-to-t from-blue-600 to-purple-500"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Floating Cards */}
+              <motion.div
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1 }}
+                className="absolute -left-8 top-1/4 bg-white rounded-xl shadow-lg p-4 border border-slate-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500">Payment Received</div>
+                    <div className="text-sm font-semibold text-slate-900">+PKR 15,000</div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.2 }}
+                className="absolute -right-4 bottom-1/4 bg-white rounded-xl shadow-lg p-4 border border-slate-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500">New Invoice</div>
+                    <div className="text-sm font-semibold text-slate-900">#INV-2024</div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="relative z-10 px-6 py-24 lg:px-12 bg-gradient-to-b from-transparent to-slate-50/50">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 text-sm font-medium mb-4">
+              <Shield className="w-4 h-4" />
+              Powerful Features
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
+              Everything You Need to
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Run Your Business
+              </span>
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              A complete suite of tools designed to streamline your operations and boost productivity.
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)" }}
+                className="group bg-white rounded-2xl p-8 border border-slate-100 shadow-lg shadow-slate-100/50 transition-all duration-300"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg`}
+                >
+                  <feature.icon className="w-7 h-7 text-white" />
+                </motion.div>
+                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  {feature.description}
+                </p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="relative z-10 px-6 py-24 lg:px-12">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl p-12 lg:p-16"
+          >
+            <div className="grid md:grid-cols-4 gap-8 text-center text-white">
+              {[
+                { value: "10K+", label: "Invoices Generated" },
+                { value: "500+", label: "Active Businesses" },
+                { value: "99.9%", label: "Uptime" },
+                { value: "24/7", label: "Support" }
+              ].map((stat, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <div className="text-4xl lg:text-5xl font-bold mb-2">{stat.value}</div>
+                  <div className="text-white/80">{stat.label}</div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section id="testimonials" className="relative z-10 px-6 py-24 lg:px-12 bg-gradient-to-b from-slate-50/50 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 text-sm font-medium mb-4">
+              <Star className="w-4 h-4 fill-current" />
+              Customer Stories
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
+              Loved by Businesses
+              <br />
+              <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+                Just Like Yours
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -5 }}
+                className="bg-white rounded-2xl p-8 border border-slate-100 shadow-lg"
+              >
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-amber-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-slate-600 mb-6 leading-relaxed">"{testimonial.content}"</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
+                  <div>
+                    <div className="font-semibold text-slate-900">{testimonial.name}</div>
+                    <div className="text-sm text-slate-500">{testimonial.role}</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 px-6 py-24 lg:px-12">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-8"
+          >
+            <h2 className="text-4xl lg:text-5xl font-bold text-slate-900">
+              Ready to Transform
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Your Business?
+              </span>
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Join thousands of businesses already using Invoxa to streamline their operations.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link to="/signup">
+                <motion.div
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 60px -15px rgba(99, 102, 241, 0.5)" }}
+                  whileTap={{ scale: 0.95 }}
+                  animate={{
+                    boxShadow: [
+                      "0 0 0 0 rgba(99, 102, 241, 0)",
+                      "0 0 0 10px rgba(99, 102, 241, 0.1)",
+                      "0 0 0 0 rgba(99, 102, 241, 0)"
+                    ]
+                  }}
+                  transition={{
+                    boxShadow: { duration: 2, repeat: Infinity }
+                  }}
+                >
+                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-10 py-6 shadow-xl">
+                    Get Started Free
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
+              </Link>
+            </div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="text-slate-500 flex items-center justify-center gap-2"
+            >
+              <Clock className="w-4 h-4" />
+              No credit card required • Start in 2 minutes
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 px-6 py-16 lg:px-12 bg-slate-900 text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-12 mb-12">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold">Invoxa</span>
+              </div>
+              <p className="text-slate-400">
+                The all-in-one platform for modern business management.
+              </p>
+            </div>
+            
+            {[
+              { title: "Product", links: ["Features", "Pricing", "Updates", "Beta"] },
+              { title: "Company", links: ["About", "Careers", "Press", "Contact"] },
+              { title: "Support", links: ["Help Center", "Documentation", "API", "Status"] }
+            ].map((section, i) => (
+              <div key={i}>
+                <h4 className="font-semibold mb-4">{section.title}</h4>
+                <ul className="space-y-2">
+                  {section.links.map((link, j) => (
+                    <li key={j}>
+                      <motion.a
+                        href="#"
+                        whileHover={{ x: 5 }}
+                        className="text-slate-400 hover:text-white transition-colors"
+                      >
+                        {link}
+                      </motion.a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          
+          <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-slate-400 text-sm">
+              © 2024 Invoxa. All rights reserved.
+            </p>
+            <div className="flex gap-4">
+              {["Twitter", "LinkedIn", "GitHub"].map((social, i) => (
+                <motion.a
+                  key={i}
+                  href="#"
+                  whileHover={{ scale: 1.2, color: "#fff" }}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  {social}
+                </motion.a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Landing;
