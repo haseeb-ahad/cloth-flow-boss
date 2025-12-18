@@ -830,8 +830,11 @@ const Invoice = () => {
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
-    // Use selected invoice date
-    const selectedDate = invoiceDate ? new Date(invoiceDate + "T12:00:00") : new Date();
+    // Use selected invoice date with current time
+    const now = new Date();
+    const selectedDate = invoiceDate 
+      ? new Date(`${invoiceDate}T${now.toTimeString().slice(0, 8)}`) 
+      : now;
     const invoiceDateISO = selectedDate.toISOString();
 
     // Upload image if provided
