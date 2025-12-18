@@ -57,6 +57,7 @@ interface Plan {
   id: string;
   name: string;
   description: string | null;
+  daily_price: number;
   monthly_price: number;
   yearly_price: number;
   duration_months: number;
@@ -111,6 +112,7 @@ const SuperAdminPlans = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    daily_price: 0,
     monthly_price: 0,
     yearly_price: 0,
     duration_value: 1,
@@ -162,6 +164,7 @@ const SuperAdminPlans = () => {
     setFormData({
       name: "",
       description: "",
+      daily_price: 0,
       monthly_price: 0,
       yearly_price: 0,
       duration_value: 1,
@@ -179,6 +182,7 @@ const SuperAdminPlans = () => {
     setFormData({
       name: plan.name,
       description: plan.description || "",
+      daily_price: plan.daily_price || 0,
       monthly_price: plan.monthly_price,
       yearly_price: plan.yearly_price,
       duration_value: value,
@@ -202,6 +206,7 @@ const SuperAdminPlans = () => {
       const payload = {
         name: formData.name,
         description: formData.description,
+        daily_price: formData.daily_price,
         monthly_price: formData.monthly_price,
         yearly_price: formData.yearly_price,
         duration_months,
@@ -458,7 +463,21 @@ const SuperAdminPlans = () => {
             </div>
 
             {/* Pricing */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Daily Price (Rs)
+                </Label>
+                <Input
+                  type="number"
+                  value={formData.daily_price}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, daily_price: parseFloat(e.target.value) || 0 }))
+                  }
+                  disabled={formData.is_lifetime}
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
