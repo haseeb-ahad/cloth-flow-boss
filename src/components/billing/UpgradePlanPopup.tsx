@@ -339,34 +339,40 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
             />
             {proofFile ? (
               <div className="relative p-4 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50">
-                <div className="flex items-center gap-3">
-                  {proofPreview ? (
-                    <img
-                      src={proofPreview}
-                      alt="Preview"
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-lg bg-emerald-100 flex items-center justify-center">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                <div className="flex flex-col gap-3">
+                  {proofPreview && (
+                    <div className="w-full">
+                      <img
+                        src={proofPreview}
+                        alt="Preview"
+                        className="w-full max-h-48 object-contain rounded-lg bg-white"
+                      />
                     </div>
                   )}
-                  <div className="flex-1">
-                    <p className="font-medium text-emerald-800 truncate">{proofFile.name}</p>
-                    <p className="text-sm text-emerald-600">
-                      {(proofFile.size / 1024).toFixed(1)} KB
-                    </p>
+                  <div className="flex items-center gap-3">
+                    {!proofPreview && (
+                      <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-emerald-800 truncate">{proofFile.name}</p>
+                      <p className="text-sm text-emerald-600">
+                        {(proofFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-shrink-0"
+                      onClick={() => {
+                        setProofFile(null);
+                        setProofPreview(null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setProofFile(null);
-                      setProofPreview(null);
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
             ) : (
