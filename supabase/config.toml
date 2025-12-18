@@ -8,6 +8,3 @@ verify_jwt = false
 
 [functions.super-admin]
 verify_jwt = false
-
-[functions.voice-assistant]
-verify_jwt = false

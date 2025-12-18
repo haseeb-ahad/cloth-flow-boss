@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import VoiceAssistant from "@/components/VoiceAssistant";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -367,9 +366,6 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
           </main>
         </div>
-        
-        {/* Voice Assistant - Available on all pages */}
-        <VoiceAssistant />
       </div>
     </TooltipProvider>
   );
