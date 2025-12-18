@@ -297,6 +297,33 @@ const Layout = ({ children }: LayoutProps) => {
 
               {/* Right - Actions */}
               <div className="flex items-center gap-3 ml-auto">
+                {/* Plan Status Badge */}
+                {userRole === "admin" && subscriptionStatus && (
+                  <div className={cn(
+                    "hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium",
+                    subscriptionStatus.is_expired 
+                      ? "bg-red-100 text-red-700 border border-red-200"
+                      : subscriptionStatus.days_remaining !== null && subscriptionStatus.days_remaining <= 7
+                        ? "bg-amber-100 text-amber-700 border border-amber-200"
+                        : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                  )}>
+                    <span className={cn(
+                      "h-2 w-2 rounded-full",
+                      subscriptionStatus.is_expired 
+                        ? "bg-red-500"
+                        : subscriptionStatus.days_remaining !== null && subscriptionStatus.days_remaining <= 7
+                          ? "bg-amber-500 animate-pulse"
+                          : "bg-emerald-500"
+                    )} />
+                    {subscriptionStatus.is_expired 
+                      ? "Expired"
+                      : subscriptionStatus.days_remaining !== null && subscriptionStatus.days_remaining <= 7
+                        ? `${subscriptionStatus.days_remaining} Days Left`
+                        : "Active"
+                    }
+                  </div>
+                )}
+
                 {/* Timezone Badge */}
                 <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2.5 py-1.5 rounded-lg">
                   <Clock className="h-3.5 w-3.5" />
@@ -352,12 +379,12 @@ const Layout = ({ children }: LayoutProps) => {
                 </div>
               </div>
             )}
-            {userRole === "admin" && subscriptionStatus?.is_trial && !subscriptionStatus?.is_expired && subscriptionStatus?.days_remaining !== null && subscriptionStatus.days_remaining <= 3 && (
+            {userRole === "admin" && !subscriptionStatus?.is_expired && subscriptionStatus?.days_remaining !== null && subscriptionStatus.days_remaining <= 7 && (
               <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 animate-fade-in">
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="font-medium text-amber-800">Trial Ending Soon</p>
-                  <p className="text-sm text-amber-600">Your free trial will expire in {subscriptionStatus.days_remaining} day{subscriptionStatus.days_remaining !== 1 ? 's' : ''}. Please upgrade to continue using all features.</p>
+                  <p className="font-medium text-amber-800">Plan Expiring Soon</p>
+                  <p className="text-sm text-amber-600">Your plan will expire in {subscriptionStatus.days_remaining} day{subscriptionStatus.days_remaining !== 1 ? 's' : ''}. Please renew to continue using all features.</p>
                 </div>
               </div>
             )}
