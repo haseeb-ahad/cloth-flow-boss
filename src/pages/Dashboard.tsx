@@ -131,14 +131,15 @@ const Dashboard = () => {
     const tzOffset = getTimezoneOffsetMs(tz);
     const todayParts = getDatePartsInTimezone(now, tz);
     
+    // Use Date.UTC to create UTC midnight, then subtract timezone offset
     const createStartOfDay = (year: number, month: number, day: number) => {
-      const localStart = new Date(year, month, day, 0, 0, 0, 0);
-      return new Date(localStart.getTime() - tzOffset);
+      const utcMidnight = Date.UTC(year, month, day, 0, 0, 0, 0);
+      return new Date(utcMidnight - tzOffset);
     };
 
     const createEndOfDay = (year: number, month: number, day: number) => {
-      const localEnd = new Date(year, month, day, 23, 59, 59, 999);
-      return new Date(localEnd.getTime() - tzOffset);
+      const utcEndOfDay = Date.UTC(year, month, day, 23, 59, 59, 999);
+      return new Date(utcEndOfDay - tzOffset);
     };
 
     return {
@@ -156,16 +157,16 @@ const Dashboard = () => {
     let start: Date;
     let end: Date;
 
-    // Create start of day in timezone, then convert to UTC
+    // Use Date.UTC to create UTC midnight, then subtract timezone offset to get correct UTC time
     const createStartOfDay = (year: number, month: number, day: number) => {
-      const localStart = new Date(year, month, day, 0, 0, 0, 0);
-      return new Date(localStart.getTime() - tzOffset);
+      const utcMidnight = Date.UTC(year, month, day, 0, 0, 0, 0);
+      return new Date(utcMidnight - tzOffset);
     };
 
-    // Create end of day in timezone, then convert to UTC
+    // Use Date.UTC to create UTC end of day, then subtract timezone offset
     const createEndOfDay = (year: number, month: number, day: number) => {
-      const localEnd = new Date(year, month, day, 23, 59, 59, 999);
-      return new Date(localEnd.getTime() - tzOffset);
+      const utcEndOfDay = Date.UTC(year, month, day, 23, 59, 59, 999);
+      return new Date(utcEndOfDay - tzOffset);
     };
 
     switch (dateRange) {
