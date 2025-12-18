@@ -251,15 +251,16 @@ const Dashboard = () => {
     if (saleIds.length > 0) {
       const { data: saleItems } = await supabase
         .from("sale_items")
-        .select("profit, purchase_price, quantity, unit_price, is_return")
-        .in("sale_id", saleIds);
+        .select("profit, purchase_price, quantity, unit_price, is_return, is_deleted")
+        .in("sale_id", saleIds)
+        .eq("is_deleted", false);
       
       // Filter out return items - they are tracking only
       const regularItems = saleItems?.filter(item => !item.is_return) || [];
       
       totalProfit = regularItems.reduce((sum, item) => sum + Number(item.profit), 0);
-      totalCost = regularItems.reduce((sum, item) => sum + (Number(item.purchase_price) * item.quantity), 0);
-      totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0);
+      totalCost = regularItems.reduce((sum, item) => sum + (Number(item.purchase_price) * Number(item.quantity)), 0);
+      totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * Number(item.quantity)), 0);
     }
 
     const { data: credits } = await supabase
