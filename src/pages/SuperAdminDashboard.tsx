@@ -18,11 +18,15 @@ import {
   ArrowUpRight,
   UserPlus,
   CheckCircle2,
+  Building2,
+  FileCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import SuperAdminAdmins from "@/components/super-admin/SuperAdminAdmins";
 import SuperAdminPlans from "@/components/super-admin/SuperAdminPlans";
 import SuperAdminPayments from "@/components/super-admin/SuperAdminPayments";
+import SuperAdminBankSettings from "@/components/super-admin/SuperAdminBankSettings";
+import SuperAdminPaymentRequests from "@/components/super-admin/SuperAdminPaymentRequests";
 
 interface AdminUser {
   id: string;
@@ -172,7 +176,7 @@ const SuperAdminDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm">
+          <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm flex-wrap h-auto">
             <TabsTrigger
               value="dashboard"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4"
@@ -200,6 +204,20 @@ const SuperAdminDashboard = () => {
             >
               <CreditCard className="w-4 h-4 mr-2" />
               Payments
+            </TabsTrigger>
+            <TabsTrigger
+              value="payment-requests"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4"
+            >
+              <FileCheck className="w-4 h-4 mr-2" />
+              Bank Transfers
+            </TabsTrigger>
+            <TabsTrigger
+              value="bank-settings"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4"
+            >
+              <Building2 className="w-4 h-4 mr-2" />
+              Bank Settings
             </TabsTrigger>
           </TabsList>
 
@@ -338,6 +356,16 @@ const SuperAdminDashboard = () => {
           {/* Payments Tab */}
           <TabsContent value="payments">
             <SuperAdminPayments />
+          </TabsContent>
+
+          {/* Payment Requests Tab */}
+          <TabsContent value="payment-requests">
+            <SuperAdminPaymentRequests />
+          </TabsContent>
+
+          {/* Bank Settings Tab */}
+          <TabsContent value="bank-settings">
+            <SuperAdminBankSettings />
           </TabsContent>
         </Tabs>
       </main>
