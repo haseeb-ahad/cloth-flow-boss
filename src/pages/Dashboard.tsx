@@ -227,6 +227,7 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id, final_amount")
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
     const totalSales = sales?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
@@ -238,6 +239,7 @@ const Dashboard = () => {
     const { data: todaySalesData } = await supabase
       .from("sales")
       .select("final_amount")
+      .is("deleted_at", null)
       .gte("created_at", todayRange.start.toISOString())
       .lte("created_at", todayRange.end.toISOString());
     const todaySales = todaySalesData?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
@@ -263,6 +265,7 @@ const Dashboard = () => {
     const { data: credits } = await supabase
       .from("credits")
       .select("remaining_amount, created_at")
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
     const totalCredit = credits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
@@ -283,6 +286,7 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id, created_at, final_amount")
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
@@ -336,6 +340,7 @@ const Dashboard = () => {
     const { data: credits } = await supabase
       .from("credits")
       .select("remaining_amount, created_at")
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
@@ -368,6 +373,7 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("created_at, final_amount")
+      .is("deleted_at", null)
       .gte("created_at", weekStartUTC.toISOString())
       .order("created_at", { ascending: true });
 
@@ -404,6 +410,7 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id")
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 
@@ -451,6 +458,7 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id, customer_name, final_amount")
+      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .not("customer_name", "is", null);
