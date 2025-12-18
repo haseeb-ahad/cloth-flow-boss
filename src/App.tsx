@@ -12,6 +12,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
+import UpdatePassword from "./pages/UpdatePassword";
 import Invoice from "./pages/Invoice";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/update-password" element={<UpdatePassword />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute adminOnly><Layout><Index /></Layout></ProtectedRoute>} />
