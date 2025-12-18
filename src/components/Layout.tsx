@@ -379,7 +379,7 @@ const Layout = ({ children }: LayoutProps) => {
                 </div>
               </div>
             )}
-            {userRole === "admin" && !subscriptionStatus?.is_expired && subscriptionStatus?.days_remaining !== null && subscriptionStatus.days_remaining <= 7 && (
+            {userRole === "admin" && subscriptionStatus && !subscriptionStatus.is_expired && subscriptionStatus.days_remaining !== null && subscriptionStatus.days_remaining <= 7 && (
               <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 animate-fade-in">
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                 <div className="flex-1">
