@@ -830,8 +830,9 @@ const Invoice = () => {
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
 
-    // Use actual current time for new invoices
-    const invoiceDateISO = new Date().toISOString();
+    // Use selected invoice date
+    const selectedDate = invoiceDate ? new Date(invoiceDate + "T12:00:00") : new Date();
+    const invoiceDateISO = selectedDate.toISOString();
 
     // Upload image if provided
     const uploadedImageUrl = await uploadImage();
@@ -1033,8 +1034,9 @@ const Invoice = () => {
       }
 
       // Step 2: Update sale record with accurate data
-      // Use current date and time when editing
-      const currentDateISO = new Date().toISOString();
+      // Use selected invoice date
+      const selectedDate = invoiceDate ? new Date(invoiceDate + "T12:00:00") : new Date();
+      const invoiceDateISO = selectedDate.toISOString();
       
       // Upload image if provided
       const uploadedImageUrl = await uploadImage();
@@ -1049,7 +1051,7 @@ const Invoice = () => {
         paid_amount: paid,
         status: paid >= finalAmount ? "completed" : "pending",
         payment_status: isFullPayment ? "paid" : "pending",
-        created_at: currentDateISO,
+        created_at: invoiceDateISO,
         description: description || null,
         image_url: uploadedImageUrl || null,
       }).eq("id", editSaleId);
@@ -1171,7 +1173,7 @@ const Invoice = () => {
             amount: newCreditAmount,
             remaining_amount: newCreditAmount,
             paid_amount: 0,
-            created_at: currentDateISO,
+            created_at: invoiceDateISO,
           }).eq("id", existingCredit.id);
           if (creditUpdateError) {
             console.error("Error updating credit:", creditUpdateError);
@@ -1188,7 +1190,7 @@ const Invoice = () => {
           remaining_amount: creditAmount,
           status: "pending",
           notes: `Partial payment for invoice ${invoiceNumber}`,
-          created_at: currentDateISO,
+          created_at: invoiceDateISO,
         });
         if (creditInsertError) {
           console.error("Error creating credit:", creditInsertError);
