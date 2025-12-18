@@ -558,6 +558,7 @@ export type Database = {
       plans: {
         Row: {
           created_at: string
+          daily_price: number
           description: string | null
           duration_months: number
           features: Json
@@ -572,6 +573,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          daily_price?: number
           description?: string | null
           duration_months?: number
           features?: Json
@@ -586,6 +588,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          daily_price?: number
           description?: string | null
           duration_months?: number
           features?: Json

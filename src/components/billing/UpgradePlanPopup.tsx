@@ -30,6 +30,7 @@ interface Plan {
   id: string;
   name: string;
   description: string | null;
+  daily_price: number;
   monthly_price: number;
   yearly_price: number;
   duration_months: number;
@@ -159,7 +160,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
       const { error: insertError } = await supabase.from("payment_requests").insert({
         admin_id: user.id,
         plan_id: selectedPlan.id,
-        amount: selectedPlan.monthly_price,
+        amount: getPlanPrice(selectedPlan),
         proof_url: urlData.publicUrl,
         status: "pending",
       });
@@ -185,6 +186,20 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
     }
     const days = Math.round(months * 30);
     return days === 1 ? "1 Day" : `${days} Days`;
+  };
+
+  const getPlanPrice = (plan: Plan): number => {
+    const months = plan.duration_months;
+    // If it's less than a month (days-based plan), use daily price
+    if (months < 1) {
+      return plan.daily_price || plan.monthly_price;
+    }
+    // If it's 12 months or more, use yearly price if available
+    if (months >= 12 && plan.yearly_price > 0) {
+      return plan.yearly_price;
+    }
+    // Otherwise use monthly price
+    return plan.monthly_price;
   };
 
   const renderContent = () => {
@@ -226,7 +241,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
               <Badge>{getDurationLabel(selectedPlan.duration_months)}</Badge>
             </div>
             <p className="text-2xl font-bold text-slate-900">
-              Rs {selectedPlan.monthly_price.toLocaleString()}
+              Rs {getPlanPrice(selectedPlan).toLocaleString()}
             </p>
             <p className="text-sm text-slate-500 mt-1">
               Your plan will activate after verification
@@ -421,7 +436,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold text-slate-900">
-                        Rs {plan.monthly_price.toLocaleString()}
+                        Rs {getPlanPrice(plan).toLocaleString()}
                       </p>
                       <Badge variant="secondary">
                         {getDurationLabel(plan.duration_months)}
