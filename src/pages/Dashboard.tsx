@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff, Crown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useAuth } from "@/contexts/AuthContext";
 import MiniSparkline from "@/components/dashboard/MiniSparkline";
 import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
 import DonutChart from "@/components/dashboard/DonutChart";
 import TopProductsList from "@/components/dashboard/TopProductsList";
 import TopCustomersList from "@/components/dashboard/TopCustomersList";
+import UpgradePlanPopup from "@/components/billing/UpgradePlanPopup";
 
 interface DashboardStats {
   totalSales: number;
@@ -57,6 +59,7 @@ interface WeeklyData {
 
 const Dashboard = () => {
   const { timezone } = useTimezone();
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalSales: 0,
     totalProfit: 0,
@@ -83,10 +86,37 @@ const Dashboard = () => {
     const saved = localStorage.getItem("dashboardValuesHidden");
     return saved === "true";
   });
+  const [isPlanExpired, setIsPlanExpired] = useState(false);
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
 
   useEffect(() => {
     handleRefresh();
+    checkSubscriptionStatus();
   }, [dateRange, startDate, endDate]);
+
+  const checkSubscriptionStatus = async () => {
+    if (!user) return;
+    try {
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("status, end_date")
+        .eq("admin_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (!subscription) {
+        setIsPlanExpired(true);
+        return;
+      }
+      
+      const isExpired = subscription.status === "expired" || 
+        (subscription.end_date && new Date(subscription.end_date) < new Date());
+      setIsPlanExpired(isExpired);
+    } catch (error) {
+      console.error("Error checking subscription:", error);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -579,6 +609,28 @@ const Dashboard = () => {
         </div>
       )}
       <div id="dashboard-content" className="space-y-6">
+        {/* Expired Plan Banner */}
+        {isPlanExpired && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <Crown className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-900">Your plan has expired</p>
+                <p className="text-sm text-amber-700">Upgrade now to continue using all features</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowUpgradePopup(true)}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade Plan
+            </Button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -586,6 +638,16 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your business performance</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
+            {isPlanExpired && (
+              <Button 
+                onClick={() => setShowUpgradePopup(true)}
+                size="sm"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+              >
+                <Crown className="w-4 h-4 mr-2" />
+                Upgrade
+              </Button>
+            )}
             <Button 
               onClick={toggleValuesVisibility} 
               variant="outline" 
@@ -739,6 +801,13 @@ const Dashboard = () => {
           />
         </div>
       </div>
+
+      {/* Upgrade Plan Popup */}
+      <UpgradePlanPopup 
+        open={showUpgradePopup} 
+        onOpenChange={setShowUpgradePopup}
+        onSuccess={checkSubscriptionStatus}
+      />
     </div>
   );
 };
