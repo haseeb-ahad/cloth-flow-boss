@@ -335,16 +335,38 @@ const SuperAdminPlans = () => {
                 <CardDescription>{plan.description || "No description"}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-slate-900">
-                    {plan.is_lifetime ? "Free" : `Rs ${plan.monthly_price.toLocaleString()}`}
-                  </span>
-                  {!plan.is_lifetime && <span className="text-slate-500">/month</span>}
-                </div>
-                {!plan.is_lifetime && plan.yearly_price > 0 && (
-                  <p className="text-sm text-slate-500">
-                    or Rs {plan.yearly_price.toLocaleString()}/year
-                  </p>
+                {plan.is_lifetime ? (
+                  <div className="text-3xl font-bold text-slate-900">Free</div>
+                ) : (
+                  <div className="space-y-1">
+                    {(plan.daily_price || 0) > 0 && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-slate-900">
+                          Rs {plan.daily_price.toLocaleString()}
+                        </span>
+                        <span className="text-slate-500 text-sm">/day</span>
+                      </div>
+                    )}
+                    {plan.monthly_price > 0 && (
+                      <div className="flex items-baseline gap-2">
+                        <span className={`font-bold text-slate-900 ${(plan.daily_price || 0) > 0 ? 'text-lg' : 'text-2xl'}`}>
+                          Rs {plan.monthly_price.toLocaleString()}
+                        </span>
+                        <span className="text-slate-500 text-sm">/month</span>
+                      </div>
+                    )}
+                    {plan.yearly_price > 0 && (
+                      <div className="flex items-baseline gap-2">
+                        <span className={`font-bold text-slate-900 ${(plan.daily_price || 0) > 0 || plan.monthly_price > 0 ? 'text-lg' : 'text-2xl'}`}>
+                          Rs {plan.yearly_price.toLocaleString()}
+                        </span>
+                        <span className="text-slate-500 text-sm">/year</span>
+                      </div>
+                    )}
+                    {(plan.daily_price || 0) === 0 && plan.monthly_price === 0 && plan.yearly_price === 0 && (
+                      <div className="text-2xl font-bold text-slate-900">Rs 0</div>
+                    )}
+                  </div>
                 )}
                 <div className="flex flex-wrap gap-2">
                   {/* Duration Badge */}
@@ -471,11 +493,14 @@ const SuperAdminPlans = () => {
                 </Label>
                 <Input
                   type="number"
+                  min="0"
+                  step="1"
                   value={formData.daily_price}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, daily_price: parseFloat(e.target.value) || 0 }))
                   }
                   disabled={formData.is_lifetime}
+                  placeholder="0"
                 />
               </div>
               <div className="space-y-2">
@@ -485,11 +510,14 @@ const SuperAdminPlans = () => {
                 </Label>
                 <Input
                   type="number"
+                  min="0"
+                  step="1"
                   value={formData.monthly_price}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, monthly_price: parseFloat(e.target.value) || 0 }))
                   }
                   disabled={formData.is_lifetime}
+                  placeholder="0"
                 />
               </div>
               <div className="space-y-2">
@@ -499,11 +527,14 @@ const SuperAdminPlans = () => {
                 </Label>
                 <Input
                   type="number"
+                  min="0"
+                  step="1"
                   value={formData.yearly_price}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, yearly_price: parseFloat(e.target.value) || 0 }))
                   }
                   disabled={formData.is_lifetime}
+                  placeholder="0"
                 />
               </div>
             </div>
