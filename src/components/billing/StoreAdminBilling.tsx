@@ -35,11 +35,14 @@ import {
   ArrowRight,
   Sparkles,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isPast } from "date-fns";
+import UpgradePlanPopup from "./UpgradePlanPopup";
+import UserPaymentStatus from "./UserPaymentStatus";
 
 interface Plan {
   id: string;
@@ -84,6 +87,7 @@ const StoreAdminBilling = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [upgradePopup, setUpgradePopup] = useState(false);
 
   // Purchase dialog state
   const [purchaseDialog, setPurchaseDialog] = useState(false);
@@ -93,6 +97,8 @@ const StoreAdminBilling = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+
+  const isExpired = subscription?.end_date && isPast(new Date(subscription.end_date));
 
   // Card form state
   const [cardNumber, setCardNumber] = useState("");
@@ -255,6 +261,35 @@ const StoreAdminBilling = () => {
 
   return (
     <div className="space-y-8">
+      {/* Expired Plan Warning */}
+      {isExpired && (
+        <Card className="border-0 shadow-sm bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-red-100">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-red-900">Your Plan Has Expired</p>
+                  <p className="text-sm text-red-700">Upgrade now to continue using all features</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setUpgradePopup(true)}
+                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Renew Plan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment Status */}
+      <UserPaymentStatus />
+
       {/* Current Plan Card */}
       <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 via-purple-50/50 to-pink-50/30">
         <CardHeader>
@@ -266,10 +301,15 @@ const StoreAdminBilling = () => {
               </CardTitle>
               <CardDescription>Your active subscription details</CardDescription>
             </div>
-            {subscription?.status === "active" && (
+            {subscription?.status === "active" && !isExpired ? (
               <Badge className="bg-emerald-100 text-emerald-700">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 Active
+              </Badge>
+            ) : (
+              <Badge className="bg-red-100 text-red-700">
+                <XCircle className="w-3 h-3 mr-1" />
+                Expired
               </Badge>
             )}
           </div>
@@ -292,8 +332,8 @@ const StoreAdminBilling = () => {
             <div className="flex items-center gap-6 p-4 rounded-xl bg-white/60">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-600">
-                  Expires: {format(new Date(subscription.end_date), "MMMM d, yyyy")}
+                <span className={`text-sm ${isExpired ? 'text-red-600' : 'text-slate-600'}`}>
+                  {isExpired ? 'Expired' : 'Expires'}: {format(new Date(subscription.end_date), "MMMM d, yyyy")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -308,21 +348,22 @@ const StoreAdminBilling = () => {
 
           <div className="flex gap-3">
             <Button
-              onClick={() => setPurchaseDialog(true)}
+              onClick={() => setUpgradePopup(true)}
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25"
             >
               <Zap className="w-4 h-4 mr-2" />
-              Upgrade Plan
+              {isExpired ? 'Renew Plan' : 'Upgrade Plan'}
             </Button>
-            {subscription && (
-              <Button variant="outline">
-                <ArrowRight className="w-4 h-4 mr-2" />
-                Renew
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Upgrade Plan Popup */}
+      <UpgradePlanPopup
+        open={upgradePopup}
+        onOpenChange={setUpgradePopup}
+        onSuccess={fetchData}
+      />
 
       {/* Available Plans */}
       <div className="space-y-4">

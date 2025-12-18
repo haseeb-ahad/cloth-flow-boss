@@ -107,6 +107,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_transfer_settings: {
+        Row: {
+          account_number: string
+          account_title: string
+          bank_name: string
+          branch_name: string | null
+          created_at: string
+          iban: string | null
+          id: string
+          instructions: string | null
+          phone_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          account_title: string
+          bank_name: string
+          branch_name?: string | null
+          created_at?: string
+          iban?: string | null
+          id?: string
+          instructions?: string | null
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          account_title?: string
+          bank_name?: string
+          branch_name?: string | null
+          created_at?: string
+          iban?: string | null
+          id?: string
+          instructions?: string | null
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -412,6 +451,59 @@ export type Database = {
           payment_date?: string
         }
         Relationships: []
+      }
+      payment_requests: {
+        Row: {
+          admin_id: string
+          amount: number
+          created_at: string
+          id: string
+          payment_method: string
+          plan_id: string | null
+          proof_url: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          admin_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          plan_id?: string | null
+          proof_url: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          admin_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          plan_id?: string | null
+          proof_url?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {

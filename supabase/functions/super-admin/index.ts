@@ -327,6 +327,202 @@ serve(async (req) => {
         });
       }
 
+      case "get_bank_settings": {
+        const { data: settings, error } = await supabase
+          .from("bank_transfer_settings")
+          .select("*")
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ settings }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "save_bank_settings": {
+        // Check if settings exist
+        const { data: existing } = await supabase
+          .from("bank_transfer_settings")
+          .select("id")
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from("bank_transfer_settings")
+            .update(data)
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("bank_transfer_settings")
+            .insert(data);
+          if (error) throw error;
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get_payment_requests": {
+        const { data: requests, error } = await supabase
+          .from("payment_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        // Get admin profiles and plans
+        const adminIds = [...new Set(requests?.map((r) => r.admin_id) || [])];
+        const planIds = [...new Set(requests?.map((r) => r.plan_id).filter(Boolean) || [])];
+
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, email, full_name")
+          .in("user_id", adminIds);
+
+        const { data: plans } = await supabase
+          .from("plans")
+          .select("id, name, duration_months")
+          .in("id", planIds);
+
+        const requestsWithDetails = requests?.map((request) => ({
+          ...request,
+          profile: profiles?.find((p) => p.user_id === request.admin_id),
+          plan: plans?.find((p) => p.id === request.plan_id),
+        }));
+
+        return new Response(JSON.stringify({ requests: requestsWithDetails }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "approve_payment_request": {
+        const { request_id } = data;
+
+        // Get the payment request
+        const { data: request, error: reqError } = await supabase
+          .from("payment_requests")
+          .select("*, plans(*)")
+          .eq("id", request_id)
+          .single();
+
+        if (reqError || !request) throw new Error("Payment request not found");
+
+        const plan = request.plans;
+        if (!plan) throw new Error("Plan not found");
+
+        // Calculate end date based on plan duration
+        let endDate = null;
+        let status = "active";
+
+        if (plan.is_lifetime) {
+          status = "free";
+          endDate = null;
+        } else {
+          const durationMs = plan.duration_months * 30 * 24 * 60 * 60 * 1000;
+          endDate = new Date(Date.now() + durationMs).toISOString();
+        }
+
+        // Check if subscription exists
+        const { data: existingSub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("admin_id", request.admin_id)
+          .maybeSingle();
+
+        if (existingSub) {
+          await supabase
+            .from("subscriptions")
+            .update({
+              plan_id: request.plan_id,
+              status,
+              start_date: new Date().toISOString(),
+              end_date: endDate,
+              amount_paid: request.amount,
+              billing_cycle: plan.is_lifetime ? "lifetime" : "monthly",
+            })
+            .eq("id", existingSub.id);
+        } else {
+          await supabase.from("subscriptions").insert({
+            admin_id: request.admin_id,
+            plan_id: request.plan_id,
+            status,
+            end_date: endDate,
+            amount_paid: request.amount,
+            billing_cycle: plan.is_lifetime ? "lifetime" : "monthly",
+          });
+        }
+
+        // Sync plan features to admin_feature_overrides
+        if (plan.features) {
+          await supabase
+            .from("admin_feature_overrides")
+            .delete()
+            .eq("admin_id", request.admin_id);
+
+          const features = plan.features as Record<string, any>;
+          const overrideRecords = Object.entries(features).map(([feature, perms]: [string, any]) => ({
+            admin_id: request.admin_id,
+            feature,
+            can_view: perms.view || false,
+            can_create: perms.create || false,
+            can_edit: perms.edit || false,
+            can_delete: perms.delete || false,
+          }));
+
+          if (overrideRecords.length > 0) {
+            await supabase.from("admin_feature_overrides").insert(overrideRecords);
+          }
+        }
+
+        // Update payment request status
+        await supabase
+          .from("payment_requests")
+          .update({
+            status: "approved",
+            verified_at: new Date().toISOString(),
+            verified_by: "super_admin",
+          })
+          .eq("id", request_id);
+
+        // Create payment record
+        await supabase.from("payments").insert({
+          admin_id: request.admin_id,
+          amount: request.amount,
+          payment_method: "bank_transfer",
+          status: "success",
+          transaction_id: `BT-${Date.now()}`,
+        });
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "reject_payment_request": {
+        const { request_id, rejection_reason } = data;
+
+        const { error } = await supabase
+          .from("payment_requests")
+          .update({
+            status: "rejected",
+            rejection_reason: rejection_reason || "Payment not verified",
+            verified_at: new Date().toISOString(),
+            verified_by: "super_admin",
+          })
+          .eq("id", request_id);
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "delete_admin": {
         const { admin_id } = data;
         
@@ -395,6 +591,7 @@ serve(async (req) => {
         await supabase.from("admin_feature_overrides").delete().eq("admin_id", admin_id);
         await supabase.from("store_info").delete().eq("admin_id", admin_id);
         await supabase.from("payments").delete().eq("admin_id", admin_id);
+        await supabase.from("payment_requests").delete().eq("admin_id", admin_id);
         await supabase.from("subscriptions").delete().eq("admin_id", admin_id);
 
         // 7. Delete user_roles (admin and their workers)
