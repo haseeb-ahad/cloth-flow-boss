@@ -175,7 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUserRole(null);
     setPermissions([]);
     setOwnerId(null);
-    navigate("/login");
+    navigate("/");
   };
 
   const hasPermission = (feature: string, action: "view" | "create" | "edit" | "delete"): boolean => {
