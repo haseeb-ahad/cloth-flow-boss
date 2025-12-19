@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload, PackageSearch, DollarSign, TrendingUp } from "lucide-react";
 import { exportInventoryToCSV, parseInventoryCSV } from "@/lib/csvExport";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Product {
   id: string;
@@ -349,10 +350,7 @@ const Inventory = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading inventory...</p>
-        </div>
+        <AnimatedLogoLoader size="lg" showMessage message="Loading inventory..." />
       </div>
     );
   }

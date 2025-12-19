@@ -13,6 +13,7 @@ import { Edit, Trash2, Search, RefreshCw, Download, Upload, FileText, ImageIcon 
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Sale {
   id: string;
@@ -277,10 +278,7 @@ const Sales = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading sales data...</p>
-        </div>
+        <AnimatedLogoLoader size="lg" showMessage message="Loading sales data..." />
       </div>
     );
   }
