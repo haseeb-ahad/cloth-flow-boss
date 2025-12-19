@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Star,
   ArrowRight,
-  Sparkles,
   Zap,
   Shield,
   Clock,
@@ -28,6 +27,7 @@ import testimonialHaseeb from "@/assets/testimonial-haseeb.jpeg";
 import testimonialAmeer from "@/assets/testimonial-ameer.jpeg";
 import testimonial4th from "@/assets/testimonial-4th.jpeg";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
+import invoxaLogo from "@/assets/invoxa-logo.png";
 
 const heroAvatars = [
   testimonialSalman,
@@ -180,9 +180,7 @@ const Landing = () => {
             whileHover={{ scale: 1.05 }}
             className="flex items-center gap-2"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            <img src={invoxaLogo} alt="Invoxa" className="w-10 h-10 rounded-xl" />
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Invoxa
             </span>
@@ -539,9 +537,7 @@ const Landing = () => {
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
+                <img src={invoxaLogo} alt="Invoxa" className="w-10 h-10 rounded-xl" />
                 <span className="text-2xl font-bold">Invoxa</span>
               </div>
               <p className="text-slate-400">
