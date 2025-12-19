@@ -220,7 +220,7 @@ const Landing = () => {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-slate-600 hover:text-slate-900 transition-colors">Features</a>
             <a href="#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors">Testimonials</a>
-            <a href="#pricing" className="text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
+            <Link to="/pricing" className="text-slate-600 hover:text-slate-900 transition-colors">Pricing</Link>
           </div>
 
           <div className="flex items-center gap-3">

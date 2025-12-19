@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
 
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/reset-password" element={<ResetPassword />} />
