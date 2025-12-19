@@ -19,6 +19,14 @@ import { Button } from "@/components/ui/button";
 import testimonialSalman from "@/assets/testimonial-salman.png";
 import testimonialHaseeb from "@/assets/testimonial-haseeb.jpeg";
 import testimonialAmeer from "@/assets/testimonial-ameer.jpeg";
+import testimonial4th from "@/assets/testimonial-4th.jpeg";
+
+const heroAvatars = [
+  testimonialSalman,
+  testimonialHaseeb,
+  testimonialAmeer,
+  testimonial4th
+];
 
 const fadeInUp = {
   initial: { opacity: 0, y: 60 },
@@ -257,13 +265,13 @@ const Landing = () => {
               
               <div className="flex items-center gap-6 pt-4">
                 <div className="flex -space-x-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br ${
-                      i === 1 ? 'from-blue-400 to-blue-600' :
-                      i === 2 ? 'from-purple-400 to-purple-600' :
-                      i === 3 ? 'from-pink-400 to-pink-600' :
-                      'from-orange-400 to-orange-600'
-                    }`} />
+                  {heroAvatars.map((img, i) => (
+                    <img 
+                      key={i} 
+                      src={img} 
+                      alt={`User ${i + 1}`}
+                      className="w-10 h-10 rounded-full border-2 border-white object-cover object-[center_15%]"
+                    />
                   ))}
                 </div>
                 <div className="text-sm text-slate-600">
