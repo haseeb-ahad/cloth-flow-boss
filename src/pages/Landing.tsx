@@ -270,7 +270,7 @@ const Landing = () => {
                       key={i} 
                       src={img} 
                       alt={`User ${i + 1}`}
-                      className="w-10 h-10 rounded-full border-2 border-white object-cover object-[center_15%]"
+                      className={`w-10 h-10 rounded-full border-2 border-white object-cover ${i === 3 ? 'object-[center_30%]' : 'object-[center_15%]'}`}
                     />
                   ))}
                 </div>
