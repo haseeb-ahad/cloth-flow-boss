@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Plan {
   id: string;
@@ -206,7 +207,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
     if (isLoading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <AnimatedLogoLoader size="sm" />
         </div>
       );
     }
