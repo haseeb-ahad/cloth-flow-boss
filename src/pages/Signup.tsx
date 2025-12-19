@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Lock, Mail, Phone, User } from "lucide-react";
+import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
 const signupSchema = z.object({
@@ -23,6 +23,8 @@ const signupSchema = z.object({
 export default function Signup() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     phoneNumber: "",
@@ -142,13 +144,20 @@ export default function Signup() {
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Create a password"
-                className="pl-10"
+                className="pl-10 pr-10"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 disabled={loading}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
             {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
           </div>
@@ -159,13 +168,20 @@ export default function Signup() {
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="confirmPassword"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your password"
-                className="pl-10"
+                className="pl-10 pr-10"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 disabled={loading}
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
             {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
           </div>
