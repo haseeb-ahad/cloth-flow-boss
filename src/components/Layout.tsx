@@ -194,8 +194,58 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
           </nav>
 
-          {/* Sidebar Footer - Collapse Toggle */}
-          <div className="border-t border-border/50 p-3">
+          {/* Sidebar Footer - User Info & Logout */}
+          <div className="border-t border-border/50 p-3 space-y-2">
+            {/* User Info */}
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex items-center gap-3 rounded-lg px-2 py-2 bg-sidebar-accent/50",
+                  sidebarCollapsed && "justify-center"
+                )}>
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md shrink-0">
+                    {user?.email?.charAt(0).toUpperCase()}
+                  </div>
+                  {!sidebarCollapsed && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{user?.email?.split('@')[0]}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              {sidebarCollapsed && (
+                <TooltipContent side="right" className="font-medium">
+                  <p>{user?.email}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+
+            {/* Logout Button */}
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={signOut}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-full text-sidebar-muted hover:text-destructive hover:bg-destructive/10",
+                    sidebarCollapsed ? "justify-center px-2" : "justify-start"
+                  )}
+                >
+                  <LogOut className="h-4 w-4" />
+                  {!sidebarCollapsed && <span className="ml-2 text-xs">Logout</span>}
+                </Button>
+              </TooltipTrigger>
+              {sidebarCollapsed && (
+                <TooltipContent side="right" className="font-medium">
+                  Logout
+                </TooltipContent>
+              )}
+            </Tooltip>
+
+            {/* Collapse Toggle */}
             <Button
               variant="ghost"
               size="sm"
@@ -282,6 +332,28 @@ const Layout = ({ children }: LayoutProps) => {
                   })}
                 </div>
               </nav>
+
+              {/* Mobile Sidebar Footer - User Info & Logout */}
+              <div className="border-t border-border/50 p-3 space-y-2">
+                <div className="flex items-center gap-3 rounded-lg px-2 py-2 bg-sidebar-accent/50">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md">
+                    {user?.email?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{user?.email?.split('@')[0]}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => { signOut(); setMobileMenuOpen(false); }}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-sidebar-muted hover:text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span className="text-xs">Logout</span>
+                </Button>
+              </div>
             </aside>
           </div>
         )}
