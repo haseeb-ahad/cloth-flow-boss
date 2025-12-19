@@ -598,40 +598,54 @@ const SuperAdminPlans = () => {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-gradient-to-r from-blue-500 to-purple-600"
-            >
-              {isSaving ? "Saving..." : selectedPlan ? "Update Plan" : "Create Plan"}
-            </Button>
-          </DialogFooter>
+          {isSaving ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <AnimatedLogoLoader size="md" />
+              <p className="text-muted-foreground mt-4">{selectedPlan ? "Updating plan..." : "Creating plan..."}</p>
+            </div>
+          ) : (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                className="bg-gradient-to-r from-blue-500 to-purple-600"
+              >
+                {selectedPlan ? "Update Plan" : "Create Plan"}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+      <AlertDialog open={deleteDialog} onOpenChange={(open) => !isSaving && setDeleteDialog(open)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Plan</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{selectedPlan?.name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-500 hover:bg-red-600"
-              disabled={isSaving}
-            >
-              {isSaving ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          {isSaving ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <AnimatedLogoLoader size="md" />
+              <p className="text-muted-foreground mt-4">Deleting plan...</p>
+            </div>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Plan</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{selectedPlan?.name}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </div>
