@@ -503,7 +503,7 @@ const Landing = () => {
                   <img 
                     src={testimonial.image} 
                     alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover object-top"
+                    className="w-14 h-14 rounded-full object-cover object-[center_15%]"
                   />
                   <div>
                     <div className="font-semibold text-slate-900">{testimonial.name}</div>
