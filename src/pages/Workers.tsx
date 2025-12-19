@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Users, Trash2, Edit, Plus, Mail, Phone, User, Lock } from "lucide-react";
+import { Loader2, Users, Trash2, Edit, Plus, Mail, Phone, User, Lock, Eye, EyeOff } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -77,6 +77,7 @@ export default function Workers() {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [creatingWorker, setCreatingWorker] = useState(false);
+  const [showWorkerPassword, setShowWorkerPassword] = useState(false);
 
   useEffect(() => {
     if (userRole === "admin") {
@@ -392,13 +393,20 @@ export default function Workers() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="workerPassword"
-                    type="password"
+                    type={showWorkerPassword ? "text" : "password"}
                     placeholder="Create a password"
-                    className="pl-10"
+                    className="pl-10 pr-10"
                     value={newWorker.password}
                     onChange={(e) => setNewWorker({ ...newWorker, password: e.target.value })}
                     disabled={creatingWorker}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowWorkerPassword(!showWorkerPassword)}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  >
+                    {showWorkerPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 {formErrors.password && <p className="text-sm text-destructive">{formErrors.password}</p>}
               </div>
