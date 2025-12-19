@@ -246,8 +246,8 @@ const Landing = () => {
         </div>
       </motion.nav>
 
-      {/* Hero Section */}
-      <section className="relative z-10 px-6 pt-16 pb-32 lg:px-12">
+      {/* Hero Section with Purple Gradient */}
+      <section className="relative z-10 px-6 pt-8 pb-32 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -317,98 +317,208 @@ const Landing = () => {
               </div>
             </motion.div>
 
-            {/* Dashboard Mockup */}
+            {/* Laptop Mockup with Dashboard */}
             <motion.div
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
+              {/* Purple Gradient Background Behind Laptop */}
+              <div className="absolute inset-0 -top-20 -right-20 -bottom-20 -left-10 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-[3rem] blur-sm opacity-90" />
+              
+              {/* Floating Widgets - Top Left */}
               <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
                 {...floatingAnimation}
-                className="relative z-10"
+                className="absolute -top-8 left-4 z-30 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl p-4 shadow-xl"
               >
-                <div className="bg-white rounded-2xl shadow-2xl shadow-slate-200/50 p-6 border border-slate-100">
-                  {/* Mock Dashboard Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-red-400" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                      <div className="w-3 h-3 rounded-full bg-green-400" />
-                    </div>
-                    <div className="h-6 w-32 bg-slate-100 rounded-full" />
-                  </div>
-                  
-                  {/* Mock Stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    {[
-                      { label: "Revenue", value: "PKR 125,000", color: "from-blue-500 to-cyan-400" },
-                      { label: "Profit", value: "PKR 45,000", color: "from-green-500 to-emerald-400" },
-                      { label: "Credits", value: "PKR 23,000", color: "from-purple-500 to-pink-400" }
-                    ].map((stat, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 + i * 0.1 }}
-                        className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4"
-                      >
-                        <div className={`text-xs font-medium bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-                          {stat.label}
-                        </div>
-                        <div className="text-lg font-bold text-slate-900 mt-1">{stat.value}</div>
-                      </motion.div>
-                    ))}
-                  </div>
-                  
-                  {/* Mock Chart */}
-                  <div className="h-40 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl flex items-end justify-around px-4 pb-4">
-                    {[40, 65, 45, 80, 55, 70, 90].map((h, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ height: 0 }}
-                        animate={{ height: `${h}%` }}
-                        transition={{ delay: 0.8 + i * 0.1, duration: 0.5, ease: "easeOut" }}
-                        className="w-6 rounded-t-md bg-gradient-to-t from-blue-600 to-purple-500"
-                      />
-                    ))}
+                <div className="text-white/80 text-xs font-medium">Business Categories</div>
+                <div className="flex items-center justify-between gap-4 mt-1">
+                  <span className="text-3xl font-bold text-white">8</span>
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <LayoutDashboard className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </motion.div>
-              
-              {/* Floating Cards */}
+
+              {/* Floating Widget - Top Right */}
               <motion.div
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
-                className="absolute -left-8 top-1/4 bg-white rounded-xl shadow-lg p-4 border border-slate-100"
+                {...floatingAnimation}
+                className="absolute -top-4 -right-4 z-30 bg-white rounded-2xl p-4 shadow-xl border border-slate-100"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
+                    <Package className="w-6 h-6 text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-slate-500">Payment Received</div>
-                    <div className="text-sm font-semibold text-slate-900">+PKR 15,000</div>
+                    <div className="text-xs text-slate-500">Product</div>
+                    <div className="text-sm font-bold text-slate-900">Management</div>
                   </div>
                 </div>
               </motion.div>
-              
+
+              {/* Floating Widget - Left Side - Daily Traffic */}
               <motion.div
-                initial={{ opacity: 0, x: 40 }}
+                initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.2 }}
-                className="absolute -right-4 bottom-1/4 bg-white rounded-xl shadow-lg p-4 border border-slate-100"
+                className="absolute left-0 top-1/3 -translate-x-1/2 z-30 bg-white rounded-2xl p-4 shadow-xl border border-slate-100"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">New Invoice</div>
-                    <div className="text-sm font-semibold text-slate-900">#INV-2024</div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-500">Daily Traffic</span>
+                  <span className="text-xs text-green-500 font-medium">+3.48%</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-900">2,579</div>
+                <div className="text-xs text-slate-400">Visitors</div>
+                <div className="flex items-end gap-1 mt-3 h-12">
+                  {[30, 50, 35, 60, 45, 70, 55, 80, 65].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ height: 0 }}
+                      animate={{ height: `${h}%` }}
+                      transition={{ delay: 1.4 + i * 0.05 }}
+                      className={`w-2 rounded-sm ${i < 7 ? 'bg-blue-500' : 'bg-purple-500'}`}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Floating Widget - Right Side - Pie Chart */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.4 }}
+                className="absolute -right-8 top-1/2 z-30 bg-white rounded-2xl p-4 shadow-xl border border-slate-100"
+              >
+                <div className="relative w-24 h-24">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#e2e8f0" strokeWidth="20" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#06b6d4" strokeWidth="20" strokeDasharray="140 251" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#8b5cf6" strokeWidth="20" strokeDasharray="75 251" strokeDashoffset="-140" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f472b6" strokeWidth="20" strokeDasharray="36 251" strokeDashoffset="-215" />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold text-slate-900">56%</span>
+                    <span className="text-[10px] text-slate-500">Mobile</span>
                   </div>
                 </div>
+              </motion.div>
+
+              {/* Floating Widget - Bottom Center */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.6 }}
+                className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-30 bg-white rounded-2xl p-4 shadow-xl border border-slate-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500" />
+                    <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-xs font-bold text-cyan-500">56%</div>
+                        <div className="text-[8px] text-slate-400">Mobile App</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500" />
+                      <span className="text-xs text-slate-600">Website <span className="font-bold text-purple-600">30%</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-pink-500" />
+                      <span className="text-xs text-slate-600">WhatsApp <span className="font-bold text-pink-500">14%</span></span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Laptop Frame */}
+              <motion.div
+                {...floatingAnimation}
+                className="relative z-10 mx-8 mt-8"
+              >
+                {/* Screen */}
+                <div className="bg-slate-800 rounded-t-xl p-2">
+                  <div className="bg-white rounded-lg overflow-hidden">
+                    {/* Browser Bar */}
+                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 border-b">
+                      <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-400" />
+                        <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                        <div className="w-3 h-3 rounded-full bg-green-400" />
+                      </div>
+                      <div className="flex-1 flex justify-center">
+                        <div className="bg-white rounded-full px-4 py-1 text-xs text-slate-400 border">
+                          invoxa.app/dashboard
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Dashboard Content */}
+                    <div className="flex">
+                      {/* Sidebar */}
+                      <div className="w-40 bg-white border-r p-3 hidden sm:block">
+                        <div className="flex items-center gap-2 bg-blue-500 text-white rounded-lg px-3 py-2 text-xs font-medium mb-3">
+                          <LayoutDashboard className="w-4 h-4" />
+                          Dashboard
+                        </div>
+                        {['New Invoice', 'Inventory', 'Sales History', 'Credits', 'Customers'].map((item, i) => (
+                          <div key={i} className="flex items-center gap-2 text-slate-500 px-3 py-1.5 text-xs">
+                            <div className="w-4 h-4 rounded bg-slate-100" />
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Main Content */}
+                      <div className="flex-1 p-4 bg-slate-50">
+                        <div className="text-sm font-bold text-slate-900 mb-3">Dashboard</div>
+                        
+                        {/* Stats Row */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          {[
+                            { label: "Revenue", value: "PKR 125,000", color: "text-blue-600" },
+                            { label: "Profit", value: "PKR 45,000", color: "text-green-600" },
+                            { label: "Credits", value: "PKR 23,000", color: "text-purple-600" }
+                          ].map((stat, i) => (
+                            <div key={i} className="bg-white rounded-lg p-2 shadow-sm">
+                              <div className={`text-[10px] font-medium ${stat.color}`}>{stat.label}</div>
+                              <div className="text-xs font-bold text-slate-900">{stat.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Chart Area */}
+                        <div className="bg-white rounded-lg p-3 shadow-sm">
+                          <div className="text-[10px] text-slate-500 mb-2">Sales Overview</div>
+                          <div className="flex items-end gap-1 h-20">
+                            {[35, 55, 40, 70, 50, 65, 85].map((h, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ height: 0 }}
+                                animate={{ height: `${h}%` }}
+                                transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+                                className="flex-1 rounded-t bg-gradient-to-t from-blue-600 to-purple-500"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Laptop Base */}
+                <div className="bg-gradient-to-b from-slate-700 to-slate-800 h-4 rounded-b-xl mx-auto" />
+                <div className="bg-gradient-to-b from-slate-600 to-slate-700 h-2 rounded-b-lg mx-12" />
               </motion.div>
             </motion.div>
           </div>
