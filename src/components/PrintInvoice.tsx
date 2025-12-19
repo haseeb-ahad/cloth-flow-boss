@@ -89,6 +89,10 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
               .no-print {
                 display: none !important;
               }
+              
+              .watermark {
+                visibility: visible !important;
+              }
             }
             
             .print-invoice-container {
@@ -99,6 +103,27 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
               margin: 0 auto;
               font-size: 12px;
               color: #333;
+              position: relative;
+              overflow: hidden;
+            }
+            
+            .watermark {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-30deg);
+              font-size: 40px;
+              font-weight: bold;
+              color: rgba(0, 0, 0, 0.06);
+              pointer-events: none;
+              z-index: 0;
+              white-space: nowrap;
+              letter-spacing: 8px;
+            }
+            
+            .receipt-content {
+              position: relative;
+              z-index: 1;
             }
             
             .receipt-header {
@@ -225,77 +250,83 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
           `}
         </style>
 
-        {/* Header with Logo */}
-        <div className="receipt-header">
-          {logoUrl && (
-            <img src={logoUrl} alt="Business Logo" className="receipt-logo" />
-          )}
-          <div className="shop-name">{shopName}</div>
-          <div className="shop-address">{shopAddress}</div>
-          {ownerNames.map((name, index) => (
-            <div key={`name-${index}`} className="shop-phone" style={{ fontWeight: 500 }}>{name}</div>
+        {/* Watermark */}
+        <div className="watermark">INVOXA</div>
+
+        {/* Receipt Content */}
+        <div className="receipt-content">
+          {/* Header with Logo */}
+          <div className="receipt-header">
+            {logoUrl && (
+              <img src={logoUrl} alt="Business Logo" className="receipt-logo" />
+            )}
+            <div className="shop-name">{shopName}</div>
+            <div className="shop-address">{shopAddress}</div>
+            {ownerNames.map((name, index) => (
+              <div key={`name-${index}`} className="shop-phone" style={{ fontWeight: 500 }}>{name}</div>
+            ))}
+          </div>
+
+          <div className="divider" />
+
+          {/* Bill Info */}
+          <div className="bill-info">
+            <div>Bill No: {invoiceNumber}</div>
+            <div>Date: {formatDateTime(invoiceDate)}</div>
+            {customerName && <div>Customer: {customerName}</div>}
+            {workerName && (
+              <div>Served By: {workerName}{workerPhone ? ` (${workerPhone})` : ""}</div>
+            )}
+          </div>
+
+          <div className="divider" />
+
+          {/* Items Header */}
+          <div className="items-header">
+            <span>Item</span>
+            <span>Qty x Price = Total</span>
+          </div>
+
+          {/* Items */}
+          {items.filter(item => item.product_name && item.quantity > 0).map((item, index) => (
+            <div key={index} className="item-row">
+              <div className="item-name">{item.product_name}</div>
+              <div className="item-details">
+                {item.quantity} x PKR {item.unit_price.toLocaleString()} = PKR {item.total_price.toLocaleString()}
+              </div>
+            </div>
           ))}
-        </div>
 
-        <div className="divider" />
-
-        {/* Bill Info */}
-        <div className="bill-info">
-          <div>Bill No: {invoiceNumber}</div>
-          <div>Date: {formatDateTime(invoiceDate)}</div>
-          {customerName && <div>Customer: {customerName}</div>}
-          {workerName && (
-            <div>Served By: {workerName}{workerPhone ? ` (${workerPhone})` : ""}</div>
-          )}
-        </div>
-
-        <div className="divider" />
-
-        {/* Items Header */}
-        <div className="items-header">
-          <span>Item</span>
-          <span>Qty x Price = Total</span>
-        </div>
-
-        {/* Items */}
-        {items.filter(item => item.product_name && item.quantity > 0).map((item, index) => (
-          <div key={index} className="item-row">
-            <div className="item-name">{item.product_name}</div>
-            <div className="item-details">
-              {item.quantity} x PKR {item.unit_price.toLocaleString()} = PKR {item.total_price.toLocaleString()}
-            </div>
-          </div>
-        ))}
-
-        {/* Totals Section */}
-        <div className="totals-section">
-          <div className="total-row">
-            <span>Subtotal:</span>
-            <span>PKR {subtotal.toLocaleString()}</span>
-          </div>
-          {discount > 0 && (
+          {/* Totals Section */}
+          <div className="totals-section">
             <div className="total-row">
-              <span>Discount:</span>
-              <span>- PKR {discount.toLocaleString()}</span>
+              <span>Subtotal:</span>
+              <span>PKR {subtotal.toLocaleString()}</span>
             </div>
-          )}
-        </div>
+            {discount > 0 && (
+              <div className="total-row">
+                <span>Discount:</span>
+                <span>- PKR {discount.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
 
-        {/* Grand Total */}
-        <div className="grand-total">
-          Total: PKR {finalAmount.toLocaleString()}
-        </div>
+          {/* Grand Total */}
+          <div className="grand-total">
+            Total: PKR {finalAmount.toLocaleString()}
+          </div>
 
-        {/* Payment Info */}
-        <div className="payment-info">
-          <div>Paid: PKR {(paidAmount || 0).toLocaleString()}</div>
-          <div>Due: PKR {dueAmount.toLocaleString()}</div>
-        </div>
+          {/* Payment Info */}
+          <div className="payment-info">
+            <div>Paid: PKR {(paidAmount || 0).toLocaleString()}</div>
+            <div>Due: PKR {dueAmount.toLocaleString()}</div>
+          </div>
 
-        {/* Footer */}
-        <div className="footer-section">
-          <div className="thank-you">{thankYouMessage}</div>
-          <div className="footer-message">{footerMessage}</div>
+          {/* Footer */}
+          <div className="footer-section">
+            <div className="thank-you">{thankYouMessage}</div>
+            <div className="footer-message">{footerMessage}</div>
+          </div>
         </div>
       </div>
     );
