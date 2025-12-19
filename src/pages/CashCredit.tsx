@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Banknote, Loader2, Search } from "lucide-react";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Customer {
   name: string;
@@ -154,6 +155,11 @@ const CashCredit = () => {
 
   return (
     <div className="space-y-6">
+      {isLoading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <AnimatedLogoLoader size="lg" showMessage message="Saving..." />
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Cash Credit (Udhar Diya)</h1>
         <p className="text-muted-foreground">Record cash given as credit to any person</p>

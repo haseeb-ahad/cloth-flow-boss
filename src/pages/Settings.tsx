@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
 import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X, Receipt, Plus, Trash2, Clock } from "lucide-react";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 export default function Settings() {
   const { user, userRole } = useAuth();
@@ -258,6 +259,11 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
+      {loading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <AnimatedLogoLoader size="lg" showMessage message="Saving settings..." />
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <SettingsIcon className="h-8 w-8 text-primary" />
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>

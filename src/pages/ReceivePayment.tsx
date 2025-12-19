@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Banknote, RefreshCw, Calendar, User, Download, Upload, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { exportPaymentsToCSV, parsePaymentsCSV } from "@/lib/csvExport";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Customer {
   name: string;
@@ -397,6 +398,11 @@ const ReceivePayment = () => {
 
   return (
     <div className="space-y-6">
+      {(isLoading || isSubmitting) && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <AnimatedLogoLoader size="lg" showMessage message={isSubmitting ? "Processing payment..." : "Loading..."} />
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-foreground tracking-tight flex items-center gap-3">
