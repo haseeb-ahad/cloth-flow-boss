@@ -565,6 +565,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_lifetime: boolean | null
+          lifetime_price: number
           monthly_price: number
           name: string
           trial_days: number | null
@@ -580,6 +581,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_lifetime?: boolean | null
+          lifetime_price?: number
           monthly_price?: number
           name: string
           trial_days?: number | null
@@ -595,6 +597,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_lifetime?: boolean | null
+          lifetime_price?: number
           monthly_price?: number
           name?: string
           trial_days?: number | null
