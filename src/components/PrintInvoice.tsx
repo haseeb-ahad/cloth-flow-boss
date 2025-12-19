@@ -111,10 +111,10 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
               position: absolute;
               top: 50%;
               left: 50%;
-              transform: translate(-50%, -50%);
+              transform: translate(-50%, -50%) rotate(-25deg) skewX(-5deg);
               pointer-events: none;
               z-index: 0;
-              opacity: 0.06;
+              opacity: 0.07;
               display: flex;
               flex-direction: column;
               align-items: center;
@@ -122,14 +122,14 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
             }
             
             .watermark-svg {
-              width: 80px;
-              height: 100px;
+              width: 70px;
+              height: 90px;
             }
             
             .watermark-text {
-              font-size: 24px;
+              font-size: 22px;
               font-weight: bold;
-              letter-spacing: 6px;
+              letter-spacing: 5px;
               color: #000;
             }
             
