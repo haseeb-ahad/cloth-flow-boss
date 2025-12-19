@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   Building2,
   FileCheck,
+  Type,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import SuperAdminAdmins from "@/components/super-admin/SuperAdminAdmins";
@@ -27,6 +28,8 @@ import SuperAdminPlans from "@/components/super-admin/SuperAdminPlans";
 import SuperAdminPayments from "@/components/super-admin/SuperAdminPayments";
 import SuperAdminBankSettings from "@/components/super-admin/SuperAdminBankSettings";
 import SuperAdminPaymentRequests from "@/components/super-admin/SuperAdminPaymentRequests";
+import SuperAdminLoaderSettings from "@/components/super-admin/SuperAdminLoaderSettings";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface AdminUser {
   id: string;
@@ -219,6 +222,13 @@ const SuperAdminDashboard = () => {
               <Building2 className="w-4 h-4 mr-2" />
               Bank Settings
             </TabsTrigger>
+            <TabsTrigger
+              value="loader-settings"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4"
+            >
+              <Type className="w-4 h-4 mr-2" />
+              Loader Logo
+            </TabsTrigger>
           </TabsList>
 
           {/* Dashboard Tab */}
@@ -306,7 +316,7 @@ const SuperAdminDashboard = () => {
                   </div>
                   {isLoading ? (
                     <div className="flex items-center justify-center py-8">
-                      <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                      <AnimatedLogoLoader size="sm" />
                     </div>
                   ) : admins.length === 0 ? (
                     <div className="text-center py-8 text-slate-500">
@@ -366,6 +376,11 @@ const SuperAdminDashboard = () => {
           {/* Bank Settings Tab */}
           <TabsContent value="bank-settings">
             <SuperAdminBankSettings />
+          </TabsContent>
+
+          {/* Loader Settings Tab */}
+          <TabsContent value="loader-settings">
+            <SuperAdminLoaderSettings />
           </TabsContent>
         </Tabs>
       </main>

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Building2, Save, Phone, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface BankSettings {
   id?: string;
@@ -78,7 +79,7 @@ const SuperAdminBankSettings = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <AnimatedLogoLoader size="md" />
       </div>
     );
   }
