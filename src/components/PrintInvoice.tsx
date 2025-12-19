@@ -111,14 +111,26 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
               position: absolute;
               top: 50%;
               left: 50%;
-              transform: translate(-50%, -50%) rotate(-30deg);
-              font-size: 40px;
-              font-weight: bold;
-              color: rgba(0, 0, 0, 0.06);
+              transform: translate(-50%, -50%);
               pointer-events: none;
               z-index: 0;
-              white-space: nowrap;
-              letter-spacing: 8px;
+              opacity: 0.06;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 4px;
+            }
+            
+            .watermark-svg {
+              width: 80px;
+              height: 100px;
+            }
+            
+            .watermark-text {
+              font-size: 24px;
+              font-weight: bold;
+              letter-spacing: 6px;
+              color: #000;
             }
             
             .receipt-content {
@@ -250,8 +262,20 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
           `}
         </style>
 
-        {/* Watermark */}
-        <div className="watermark">INVOXA</div>
+        {/* Watermark with SVG Logo */}
+        <div className="watermark">
+          <svg
+            viewBox="0 0 50 120"
+            className="watermark-svg"
+            fill="currentColor"
+          >
+            {/* The "i" dot */}
+            <rect x="8" y="0" width="34" height="34" rx="2" />
+            {/* The "i" body with curved bottom */}
+            <path d="M42 45 L42 120 L42 120 C28 120 17 109 17 95 L17 65 L2 65 L2 65 C2 51 13 40 27 40 L42 40 L42 45 Z" />
+          </svg>
+          <span className="watermark-text">INVOXA</span>
+        </div>
 
         {/* Receipt Content */}
         <div className="receipt-content">
