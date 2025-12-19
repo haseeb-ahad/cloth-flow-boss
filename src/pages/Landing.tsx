@@ -69,37 +69,37 @@ const features = [
     icon: FileText,
     title: "Create Invoice",
     description: "Generate professional invoices instantly with customizable templates and automatic calculations.",
-    color: "from-blue-500 to-cyan-400"
+    bgColor: "bg-gradient-to-br from-cyan-400 to-teal-500"
   },
   {
     icon: Package,
     title: "Inventory Management",
     description: "Track stock levels dynamically with real-time updates and low-stock alerts.",
-    color: "from-purple-500 to-pink-400"
+    bgColor: "bg-gradient-to-br from-pink-400 to-purple-500"
   },
   {
     icon: BarChart3,
     title: "Sales & Analytics",
     description: "Visualize your business performance with interactive charts and detailed reports.",
-    color: "from-orange-500 to-amber-400"
+    bgColor: "bg-gradient-to-br from-orange-400 to-amber-500"
   },
   {
     icon: CreditCard,
     title: "Credits & Payments",
     description: "Seamlessly track customer credits and payment history with FIFO allocation.",
-    color: "from-green-500 to-emerald-400"
+    bgColor: "bg-gradient-to-br from-emerald-400 to-teal-500"
   },
   {
     icon: Wallet,
     title: "Expense Management",
     description: "Monitor and categorize expenses with real-time profit calculations.",
-    color: "from-rose-500 to-pink-400"
+    bgColor: "bg-gradient-to-br from-rose-400 to-pink-500"
   },
   {
     icon: Users,
     title: "Team Management",
     description: "Manage workers with granular permissions and role-based access control.",
-    color: "from-indigo-500 to-violet-400"
+    bgColor: "bg-gradient-to-br from-violet-400 to-purple-500"
   }
 ];
 
@@ -415,19 +415,18 @@ const Landing = () => {
               <motion.div
                 key={index}
                 variants={fadeInUp}
-                whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)" }}
-                className="group bg-white rounded-2xl p-8 border border-slate-100 shadow-lg shadow-slate-100/50 transition-all duration-300"
+                whileHover={{ y: -4, boxShadow: "0 10px 40px -10px rgba(0, 0, 0, 0.1)" }}
+                className="group bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg`}
+                <div
+                  className={`w-14 h-14 rounded-2xl ${feature.bgColor} flex items-center justify-center mb-5 shadow-lg`}
                 >
                   <feature.icon className="w-7 h-7 text-white" />
-                </motion.div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-500 text-sm leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
