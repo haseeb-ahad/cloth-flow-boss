@@ -17,6 +17,7 @@ import DonutChart from "@/components/dashboard/DonutChart";
 import TopProductsList from "@/components/dashboard/TopProductsList";
 import TopCustomersList from "@/components/dashboard/TopCustomersList";
 import UpgradePlanPopup from "@/components/billing/UpgradePlanPopup";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface DashboardStats {
   totalSales: number;
@@ -602,10 +603,7 @@ const Dashboard = () => {
     <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-6 space-y-6">
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto"></div>
-            <p className="text-muted-foreground text-lg">Loading dashboard...</p>
-          </div>
+          <AnimatedLogoLoader size="lg" showMessage message="Loading dashboard..." />
         </div>
       )}
       <div id="dashboard-content" className="space-y-6">

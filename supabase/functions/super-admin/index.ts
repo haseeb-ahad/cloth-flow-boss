@@ -523,10 +523,53 @@ serve(async (req) => {
         });
       }
 
+      case "get_loader_settings": {
+        const { data: settings, error } = await supabase
+          .from("system_settings")
+          .select("*")
+          .eq("setting_key", "loader_text")
+          .maybeSingle();
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ 
+          loader_text: settings?.setting_value || "INVOICE" 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "update_loader_settings": {
+        const { loader_text } = data;
+
+        // Upsert the loader text setting
+        const { data: existing } = await supabase
+          .from("system_settings")
+          .select("id")
+          .eq("setting_key", "loader_text")
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from("system_settings")
+            .update({ setting_value: loader_text })
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("system_settings")
+            .insert({ setting_key: "loader_text", setting_value: loader_text });
+          if (error) throw error;
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "delete_admin": {
         const { admin_id } = data;
         
-        console.log("Deleting admin:", admin_id);
 
         // Delete all related data in order (respecting foreign keys)
         
