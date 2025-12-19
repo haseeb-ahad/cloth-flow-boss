@@ -99,7 +99,7 @@ const DEFAULT_FEATURES = FEATURES.reduce((acc, feature) => {
   return acc;
 }, {} as Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>);
 
-type DurationType = "days" | "months";
+type DurationType = "days" | "months" | "years" | "lifetime";
 
 const SuperAdminPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -116,6 +116,7 @@ const SuperAdminPlans = () => {
     daily_price: 0,
     monthly_price: 0,
     yearly_price: 0,
+    lifetime_price: 0,
     duration_value: 1,
     duration_type: "months" as DurationType,
     is_lifetime: false,
@@ -143,11 +144,19 @@ const SuperAdminPlans = () => {
   };
 
   // Helper to convert duration_months to value and type
-  const getDurationFromMonths = (months: number): { value: number; type: DurationType } => {
+  const getDurationFromMonths = (months: number, isLifetime: boolean): { value: number; type: DurationType } => {
+    // If lifetime plan
+    if (isLifetime) {
+      return { value: 1, type: "lifetime" };
+    }
     // If less than 1 month (stored as decimal), treat as days
     if (months < 1) {
       const days = Math.round(months * 30);
       return { value: days || 1, type: "days" };
+    }
+    // If 12 months or more, convert to years
+    if (months >= 12 && months % 12 === 0) {
+      return { value: months / 12, type: "years" };
     }
     return { value: months, type: "months" };
   };
@@ -156,6 +165,12 @@ const SuperAdminPlans = () => {
   const getDurationMonths = (value: number, type: DurationType): number => {
     if (type === "days") {
       return value / 30; // Store as fraction of month
+    }
+    if (type === "years") {
+      return value * 12; // Convert years to months
+    }
+    if (type === "lifetime") {
+      return 0; // Lifetime has no duration
     }
     return value;
   };
@@ -168,6 +183,7 @@ const SuperAdminPlans = () => {
       daily_price: 0,
       monthly_price: 0,
       yearly_price: 0,
+      lifetime_price: 0,
       duration_value: 1,
       duration_type: "months",
       is_lifetime: false,
@@ -179,13 +195,14 @@ const SuperAdminPlans = () => {
 
   const handleOpenEdit = (plan: Plan) => {
     setSelectedPlan(plan);
-    const { value, type } = getDurationFromMonths(plan.duration_months);
+    const { value, type } = getDurationFromMonths(plan.duration_months, plan.is_lifetime || false);
     setFormData({
       name: plan.name,
       description: plan.description || "",
       daily_price: plan.daily_price || 0,
       monthly_price: plan.monthly_price,
       yearly_price: plan.yearly_price,
+      lifetime_price: (plan as any).lifetime_price || 0,
       duration_value: value,
       duration_type: type,
       is_lifetime: plan.is_lifetime || false,
@@ -203,6 +220,7 @@ const SuperAdminPlans = () => {
 
     setIsSaving(true);
     try {
+      const isLifetimeDuration = formData.duration_type === "lifetime";
       const duration_months = getDurationMonths(formData.duration_value, formData.duration_type);
       const payload = {
         name: formData.name,
@@ -210,8 +228,9 @@ const SuperAdminPlans = () => {
         daily_price: formData.daily_price,
         monthly_price: formData.monthly_price,
         yearly_price: formData.yearly_price,
+        lifetime_price: formData.lifetime_price,
         duration_months,
-        is_lifetime: formData.is_lifetime,
+        is_lifetime: isLifetimeDuration || formData.is_lifetime,
         is_active: formData.is_active,
         features: formData.features,
       };
@@ -372,9 +391,13 @@ const SuperAdminPlans = () => {
                 <div className="flex flex-wrap gap-2">
                   {/* Duration Badge */}
                   <Badge className="bg-purple-100 text-purple-700">
-                    {plan.duration_months < 1 
-                      ? `${Math.round(plan.duration_months * 30)} Days` 
-                      : `${plan.duration_months} ${plan.duration_months === 1 ? 'Month' : 'Months'}`}
+                    {plan.is_lifetime 
+                      ? 'Lifetime'
+                      : plan.duration_months < 1 
+                        ? `${Math.round(plan.duration_months * 30)} Days` 
+                        : plan.duration_months >= 12 && plan.duration_months % 12 === 0
+                          ? `${plan.duration_months / 12} ${plan.duration_months / 12 === 1 ? 'Year' : 'Years'}`
+                          : `${plan.duration_months} ${plan.duration_months === 1 ? 'Month' : 'Months'}`}
                   </Badge>
                 </div>
 
@@ -447,32 +470,41 @@ const SuperAdminPlans = () => {
             <div className="space-y-2">
               <Label>Plan Duration</Label>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  value={formData.duration_value}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, duration_value: parseInt(e.target.value) || 1 }))
-                  }
-                  className="flex-1"
-                  placeholder="e.g., 1, 7, 30"
-                />
+                {formData.duration_type !== "lifetime" && (
+                  <Input
+                    type="number"
+                    min={1}
+                    value={formData.duration_value}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, duration_value: parseInt(e.target.value) || 1 }))
+                    }
+                    className="flex-1"
+                    placeholder="e.g., 1, 7, 30"
+                  />
+                )}
                 <Select
                   value={formData.duration_type}
                   onValueChange={(value: DurationType) =>
-                    setFormData((prev) => ({ ...prev, duration_type: value }))
+                    setFormData((prev) => ({ 
+                      ...prev, 
+                      duration_type: value,
+                      is_lifetime: value === "lifetime",
+                      duration_value: value === "lifetime" ? 1 : prev.duration_value,
+                    }))
                   }
                 >
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className={formData.duration_type === "lifetime" ? "flex-1" : "w-[120px]"}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="days">Days</SelectItem>
                     <SelectItem value="months">Months</SelectItem>
+                    <SelectItem value="years">Years</SelectItem>
+                    <SelectItem value="lifetime">Lifetime</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-slate-500">Set plan duration in days or months (e.g., 1 day, 7 days, 1 month)</p>
+              <p className="text-xs text-slate-500">Set plan duration (e.g., 1 day, 7 days, 1 month, 1 year, or lifetime)</p>
             </div>
 
             <div className="space-y-2">
@@ -486,7 +518,7 @@ const SuperAdminPlans = () => {
             </div>
 
             {/* Pricing */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
@@ -500,7 +532,7 @@ const SuperAdminPlans = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, daily_price: parseFloat(e.target.value) || 0 }))
                   }
-                  disabled={formData.is_lifetime}
+                  disabled={formData.duration_type === "lifetime"}
                   placeholder="0"
                 />
               </div>
@@ -517,7 +549,7 @@ const SuperAdminPlans = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, monthly_price: parseFloat(e.target.value) || 0 }))
                   }
-                  disabled={formData.is_lifetime}
+                  disabled={formData.duration_type === "lifetime"}
                   placeholder="0"
                 />
               </div>
@@ -534,7 +566,23 @@ const SuperAdminPlans = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, yearly_price: parseFloat(e.target.value) || 0 }))
                   }
-                  disabled={formData.is_lifetime}
+                  disabled={formData.duration_type === "lifetime"}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Crown className="w-4 h-4" />
+                  Lifetime Price (Rs)
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.lifetime_price}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, lifetime_price: parseFloat(e.target.value) || 0 }))
+                  }
                   placeholder="0"
                 />
               </div>
@@ -542,18 +590,6 @@ const SuperAdminPlans = () => {
 
             {/* Toggles */}
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={formData.is_lifetime}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ 
-                    ...prev, 
-                    is_lifetime: checked,
-                    monthly_price: checked ? 0 : prev.monthly_price,
-                    yearly_price: checked ? 0 : prev.yearly_price,
-                  }))}
-                />
-                <Label>Lifetime Free Plan</Label>
-              </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={formData.is_active}
