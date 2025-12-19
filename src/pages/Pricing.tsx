@@ -27,11 +27,48 @@ interface Plan {
   monthly_price: number;
   yearly_price: number;
   daily_price: number;
+  lifetime_price: number;
   duration_months: number;
   is_lifetime: boolean | null;
   features: Record<string, { view?: boolean; create?: boolean; edit?: boolean; delete?: boolean }>;
   trial_days: number | null;
 }
+
+const getPlanPrice = (plan: Plan) => {
+  if (plan.is_lifetime) {
+    return { price: plan.lifetime_price, period: 'lifetime' };
+  }
+  
+  const months = plan.duration_months;
+  
+  // Check for yearly (12 months or more)
+  if (months >= 12 && plan.yearly_price > 0) {
+    return { price: plan.yearly_price, period: 'year' };
+  }
+  
+  // Check for monthly
+  if (months >= 1 && plan.monthly_price > 0) {
+    return { price: plan.monthly_price, period: 'month' };
+  }
+  
+  // Check for daily
+  if (plan.daily_price > 0) {
+    return { price: plan.daily_price, period: 'day' };
+  }
+  
+  // Fallback to monthly
+  return { price: plan.monthly_price, period: 'month' };
+};
+
+const getDurationLabel = (plan: Plan) => {
+  if (plan.is_lifetime) return 'Lifetime';
+  const months = plan.duration_months;
+  if (months >= 12) {
+    const years = Math.floor(months / 12);
+    return years === 1 ? '1 Year' : `${years} Years`;
+  }
+  return months === 1 ? '1 Month' : `${months} Months`;
+};
 
 const Pricing = () => {
   const { data: plans, isLoading } = useQuery({
@@ -181,6 +218,8 @@ const Pricing = () => {
                 const colorGradient = getPlanColor(index);
                 const featureList = getFeatureList(plan.features);
                 const isPopular = index === 1;
+                const { price, period } = getPlanPrice(plan);
+                const durationLabel = getDurationLabel(plan);
 
                 return (
                   <motion.div
@@ -202,18 +241,21 @@ const Pricing = () => {
                     </div>
 
                     <h3 className="text-2xl font-bold text-slate-900 mb-2">{plan.name}</h3>
-                    <p className="text-slate-500 text-sm mb-6">{plan.description || "Perfect for growing businesses"}</p>
+                    <p className="text-slate-500 text-sm mb-4">{plan.description || "Perfect for growing businesses"}</p>
+                    
+                    <div className="inline-block px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium mb-4">
+                      {durationLabel}
+                    </div>
 
                     <div className="mb-6">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-slate-900">PKR {plan.monthly_price.toLocaleString()}</span>
-                        <span className="text-slate-500">/month</span>
+                        <span className="text-4xl font-bold text-slate-900">
+                          PKR {price.toLocaleString()}
+                        </span>
+                        {period !== 'lifetime' && (
+                          <span className="text-slate-500">/{period}</span>
+                        )}
                       </div>
-                      {plan.yearly_price > 0 && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Save PKR {((plan.monthly_price * 12) - plan.yearly_price).toLocaleString()}/year with annual billing
-                        </p>
-                      )}
                       {plan.trial_days && plan.trial_days > 0 && (
                         <p className="text-sm text-blue-600 mt-1">
                           {plan.trial_days} days free trial included
