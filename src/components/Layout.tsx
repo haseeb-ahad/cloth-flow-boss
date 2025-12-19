@@ -77,6 +77,7 @@ const Layout = ({ children }: LayoutProps) => {
       { path: "/expenses", icon: Receipt, label: "Expenses", feature: "expenses", adminOnly: false },
       { path: "/customers", icon: Users, label: "Customers", feature: "customers", adminOnly: false },
       { path: "/workers", icon: UserCog, label: "Manage Workers", feature: null, adminOnly: true },
+      { path: "/settings", icon: Settings, label: "Settings", feature: null, adminOnly: false },
     ];
 
     return allItems.filter(item => {
@@ -221,30 +222,6 @@ const Layout = ({ children }: LayoutProps) => {
               )}
             </Tooltip>
 
-            {/* Settings Button */}
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Link
-                  to="/settings"
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-                    sidebarCollapsed && "justify-center px-2",
-                    location.pathname === "/settings"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25"
-                      : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <Settings className="h-4 w-4" />
-                  {!sidebarCollapsed && <span>Settings</span>}
-                </Link>
-              </TooltipTrigger>
-              {sidebarCollapsed && (
-                <TooltipContent side="right" className="font-medium">
-                  Settings
-                </TooltipContent>
-              )}
-            </Tooltip>
-
             {/* Logout Button */}
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
@@ -367,19 +344,6 @@ const Layout = ({ children }: LayoutProps) => {
                     <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
                   </div>
                 </div>
-                <Link
-                  to="/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-                    location.pathname === "/settings"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25"
-                      : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
                 <Button
                   onClick={() => { signOut(); setMobileMenuOpen(false); }}
                   variant="ghost"
