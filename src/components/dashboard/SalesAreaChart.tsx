@@ -52,11 +52,11 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
           </div>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
               <span className="text-muted-foreground">Sales</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
+              <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
               <span className="text-muted-foreground">Profit</span>
             </div>
           </div>
@@ -75,12 +75,12 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
             >
               <defs>
                 <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.3}/>
-                  <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.02}/>
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02}/>
                 </linearGradient>
                 <linearGradient id="profitAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.18}/>
-                  <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.02}/>
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.25}/>
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.02}/>
                 </linearGradient>
               </defs>
               <XAxis 
@@ -108,7 +108,7 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
               <Area
                 type="monotone"
                 dataKey="profit"
-                stroke="hsl(var(--success))"
+                stroke="#8b5cf6"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 fill="url(#profitAreaGradient)"
@@ -119,7 +119,7 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
               <Area
                 type="monotone"
                 dataKey="sales"
-                stroke="hsl(var(--success))"
+                stroke="#3b82f6"
                 strokeWidth={2.5}
                 fill="url(#salesAreaGradient)"
                 animationDuration={1500}
