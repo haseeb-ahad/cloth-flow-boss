@@ -13,7 +13,14 @@ import {
   Sparkles,
   Zap,
   Shield,
-  Clock
+  Clock,
+  LayoutDashboard,
+  Receipt,
+  History,
+  Banknote,
+  HandCoins,
+  UserCog,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import testimonialSalman from "@/assets/testimonial-salman.png";
@@ -66,40 +73,70 @@ const pulseAnimation = {
 
 const features = [
   {
+    icon: LayoutDashboard,
+    title: "Dashboard",
+    description: "Get a complete overview of your business with real-time analytics and insights.",
+    bgColor: "bg-gradient-to-br from-blue-500 to-indigo-600"
+  },
+  {
     icon: FileText,
-    title: "Create Invoice",
-    description: "Generate professional invoices instantly with customizable templates and automatic calculations.",
+    title: "New Invoice",
+    description: "Generate professional invoices instantly with customizable templates.",
     bgColor: "bg-gradient-to-br from-cyan-400 to-teal-500"
   },
   {
     icon: Package,
-    title: "Inventory Management",
+    title: "Inventory",
     description: "Track stock levels dynamically with real-time updates and low-stock alerts.",
     bgColor: "bg-gradient-to-br from-pink-400 to-purple-500"
   },
   {
-    icon: BarChart3,
-    title: "Sales & Analytics",
-    description: "Visualize your business performance with interactive charts and detailed reports.",
+    icon: History,
+    title: "Sales History",
+    description: "View complete sales records with detailed transaction history.",
     bgColor: "bg-gradient-to-br from-orange-400 to-amber-500"
   },
   {
     icon: CreditCard,
-    title: "Credits & Payments",
-    description: "Seamlessly track customer credits and payment history with FIFO allocation.",
+    title: "Credits",
+    description: "Manage customer credits with automatic FIFO allocation tracking.",
     bgColor: "bg-gradient-to-br from-emerald-400 to-teal-500"
   },
   {
+    icon: Banknote,
+    title: "Cash Credit",
+    description: "Handle cash credit transactions with real-time balance updates.",
+    bgColor: "bg-gradient-to-br from-yellow-400 to-orange-500"
+  },
+  {
+    icon: HandCoins,
+    title: "Receive Payment",
+    description: "Record payments easily and track outstanding balances.",
+    bgColor: "bg-gradient-to-br from-green-400 to-emerald-500"
+  },
+  {
     icon: Wallet,
-    title: "Expense Management",
+    title: "Expenses",
     description: "Monitor and categorize expenses with real-time profit calculations.",
     bgColor: "bg-gradient-to-br from-rose-400 to-pink-500"
   },
   {
     icon: Users,
-    title: "Team Management",
-    description: "Manage workers with granular permissions and role-based access control.",
+    title: "Customers",
+    description: "Manage customer profiles and track their purchase history.",
     bgColor: "bg-gradient-to-br from-violet-400 to-purple-500"
+  },
+  {
+    icon: UserCog,
+    title: "Manage Workers",
+    description: "Assign roles and manage workers with granular permissions.",
+    bgColor: "bg-gradient-to-br from-sky-400 to-blue-500"
+  },
+  {
+    icon: Settings,
+    title: "Settings",
+    description: "Customize your store settings and preferences.",
+    bgColor: "bg-gradient-to-br from-slate-400 to-gray-500"
   }
 ];
 
@@ -409,7 +446,7 @@ const Landing = () => {
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"
           >
             {features.map((feature, index) => (
               <motion.div
