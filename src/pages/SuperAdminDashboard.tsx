@@ -159,10 +159,6 @@ const SuperAdminDashboard = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="text-slate-600">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
