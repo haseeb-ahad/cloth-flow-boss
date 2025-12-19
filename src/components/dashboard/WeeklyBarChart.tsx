@@ -78,7 +78,7 @@ const WeeklyBarChart = ({ data, title, subtitle, valuesHidden }: WeeklyBarChartP
                 {data.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.value === maxValue ? "#10b981" : "#34d399"}
+                    fill={entry.value === maxValue ? "#8b5cf6" : "#3b82f6"}
                     opacity={entry.value === maxValue ? 1 : 0.7}
                   />
                 ))}

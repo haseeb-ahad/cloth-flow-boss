@@ -163,7 +163,7 @@ const Layout = ({ children }: LayoutProps) => {
                           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 animate-fade-in group",
                           sidebarCollapsed && "justify-center px-2",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-md"
+                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25"
                             : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
@@ -203,7 +203,7 @@ const Layout = ({ children }: LayoutProps) => {
                   "flex items-center gap-3 rounded-lg px-2 py-2 bg-sidebar-accent/50",
                   sidebarCollapsed && "justify-center"
                 )}>
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md shrink-0">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-md shrink-0">
                     {user?.email?.charAt(0).toUpperCase()}
                   </div>
                   {!sidebarCollapsed && (
@@ -321,7 +321,7 @@ const Layout = ({ children }: LayoutProps) => {
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-md"
+                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25"
                             : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
@@ -336,7 +336,7 @@ const Layout = ({ children }: LayoutProps) => {
               {/* Mobile Sidebar Footer - User Info & Logout */}
               <div className="border-t border-border/50 p-3 space-y-2">
                 <div className="flex items-center gap-3 rounded-lg px-2 py-2 bg-sidebar-accent/50">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-md">
                     {user?.email?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -377,7 +377,7 @@ const Layout = ({ children }: LayoutProps) => {
                       ? "bg-red-100 text-red-700 border border-red-200"
                       : subscriptionStatus.days_remaining !== null && subscriptionStatus.days_remaining <= 7
                         ? "bg-amber-100 text-amber-700 border border-amber-200"
-                        : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        : "bg-blue-100 text-blue-700 border border-blue-200"
                   )}>
                     <span className={cn(
                       "h-2 w-2 rounded-full",
@@ -385,7 +385,7 @@ const Layout = ({ children }: LayoutProps) => {
                         ? "bg-red-500"
                         : subscriptionStatus.days_remaining !== null && subscriptionStatus.days_remaining <= 7
                           ? "bg-amber-500 animate-pulse"
-                          : "bg-emerald-500"
+                          : "bg-blue-500"
                     )} />
                     {subscriptionStatus.is_expired 
                       ? "Expired"
@@ -405,7 +405,7 @@ const Layout = ({ children }: LayoutProps) => {
                 {/* Notifications */}
                 <Button variant="ghost" size="icon" className="relative h-9 w-9">
                   <Bell className="h-4 w-4 text-muted-foreground" />
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
                 </Button>
 
               </div>

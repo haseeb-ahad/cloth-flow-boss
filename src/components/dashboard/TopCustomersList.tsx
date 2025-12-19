@@ -34,20 +34,21 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+// Blue to purple gradient colors
 const AVATAR_COLORS = [
-  "bg-emerald-500",
-  "bg-teal-500",
-  "bg-cyan-500",
-  "bg-green-500",
-  "bg-lime-500",
+  "bg-blue-500",
+  "bg-indigo-500",
+  "bg-purple-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
 ];
 
 const CHART_COLORS = [
-  "#10b981",
-  "#14b8a6",
-  "#06b6d4",
-  "#22c55e",
-  "#84cc16",
+  "#3b82f6",
+  "#6366f1",
+  "#8b5cf6",
+  "#a855f7",
+  "#d946ef",
 ];
 
 // Mini sparkline component for customer trends
@@ -102,8 +103,8 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
               <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
               <p className="text-sm text-muted-foreground">{subtitle}</p>
             </div>
-            <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <Users className="h-5 w-5 text-emerald-500" />
+            <div className="h-9 w-9 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Users className="h-5 w-5 text-purple-500" />
             </div>
           </div>
         </CardHeader>
@@ -122,8 +123,8 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
             <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
-          <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <Users className="h-5 w-5 text-emerald-500" />
+          <div className="h-9 w-9 rounded-lg bg-purple-50 flex items-center justify-center">
+            <Users className="h-5 w-5 text-purple-500" />
           </div>
         </div>
       </CardHeader>
@@ -156,7 +157,7 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
               <p className="text-sm font-semibold text-foreground">
                 {valuesHidden ? "••••••" : formatCurrency(customer.totalSpent)}
               </p>
-              <p className="text-xs text-emerald-500 font-medium">
+              <p className="text-xs text-purple-500 font-medium">
                 {valuesHidden ? "••••" : formatCurrency(customer.profit)} profit
               </p>
             </div>
