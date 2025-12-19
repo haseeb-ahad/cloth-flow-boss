@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface SuperAdminRouteProps {
   children: ReactNode;
@@ -17,7 +18,7 @@ const SuperAdminRoute = ({ children }: SuperAdminRouteProps) => {
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <AnimatedLogoLoader size="md" />
       </div>
     );
   }

@@ -17,6 +17,7 @@ import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 // Credit now represents a sale/invoice with remaining balance
 interface Credit {
@@ -919,10 +920,7 @@ const Credits = () => {
     <div className="space-y-6">
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground text-lg">Loading credits...</p>
-          </div>
+          <AnimatedLogoLoader size="lg" showMessage message="Loading credits..." />
         </div>
       )}
       <div className="flex items-center justify-between">

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, RefreshCw, Users, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { exportCustomersToCSV, parseCustomersCSV } from "@/lib/csvExport";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface CustomerWithTotals {
   name: string;
@@ -197,10 +198,7 @@ const Customers = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Loading customers...</p>
-          </div>
+          <AnimatedLogoLoader size="lg" showMessage message="Loading customers..." />
         </div>
       ) : (
         <>
