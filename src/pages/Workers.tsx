@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { z } from "zod";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Worker {
   id: string;
@@ -312,6 +313,11 @@ export default function Workers() {
 
   return (
     <div className="space-y-6">
+      {loading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <AnimatedLogoLoader size="lg" showMessage message="Loading workers..." />
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" />

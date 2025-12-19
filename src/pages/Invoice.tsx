@@ -19,6 +19,7 @@ import ItemStatusIcon from "@/components/ItemStatusIcon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import PrintInvoice from "@/components/PrintInvoice";
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 // DEBUG FLAG - Set to false after confirming fix
 const DEBUG_MODE = true;
@@ -1291,6 +1292,11 @@ const Invoice = () => {
 
   return (
     <div className="space-y-6">
+      {(isLoading || isSaving || isLoadingItems) && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <AnimatedLogoLoader size="lg" showMessage message={isSaving ? "Saving invoice..." : "Loading..."} />
+        </div>
+      )}
 
       <div className="flex items-center gap-4">
         {editSaleId && (
