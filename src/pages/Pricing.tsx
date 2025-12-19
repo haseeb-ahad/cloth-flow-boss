@@ -256,7 +256,7 @@ const Pricing = () => {
                           <span className="text-slate-500">/{period}</span>
                         )}
                       </div>
-                      {plan.trial_days && plan.trial_days > 0 && (
+                      {plan.trial_days != null && plan.trial_days > 0 && (
                         <p className="text-sm text-blue-600 mt-1">
                           {plan.trial_days} days free trial included
                         </p>
