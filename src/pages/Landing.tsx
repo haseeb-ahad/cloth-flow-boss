@@ -13,13 +13,7 @@ import {
   Sparkles,
   Zap,
   Shield,
-  Clock,
-  LayoutDashboard,
-  UserCheck,
-  Banknote,
-  Receipt,
-  Settings,
-  TrendingUp
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import testimonialSalman from "@/assets/testimonial-salman.png";
@@ -72,12 +66,6 @@ const pulseAnimation = {
 
 const features = [
   {
-    icon: LayoutDashboard,
-    title: "Smart Dashboard",
-    description: "Get real-time insights with interactive charts, sales analytics, and business performance metrics.",
-    color: "from-slate-600 to-slate-500"
-  },
-  {
     icon: FileText,
     title: "Create Invoice",
     description: "Generate professional invoices instantly with customizable templates and automatic calculations.",
@@ -102,24 +90,6 @@ const features = [
     color: "from-green-500 to-emerald-400"
   },
   {
-    icon: Banknote,
-    title: "Cash/Credit Sales",
-    description: "Record sales with flexible payment options - cash, credit, or partial payments.",
-    color: "from-teal-500 to-cyan-400"
-  },
-  {
-    icon: Receipt,
-    title: "Receive Payments",
-    description: "Manage customer payments efficiently with automatic balance updates and receipts.",
-    color: "from-amber-500 to-yellow-400"
-  },
-  {
-    icon: UserCheck,
-    title: "Customer Management",
-    description: "Track customer information, purchase history, and outstanding balances in one place.",
-    color: "from-sky-500 to-blue-400"
-  },
-  {
     icon: Wallet,
     title: "Expense Management",
     description: "Monitor and categorize expenses with real-time profit calculations.",
@@ -130,18 +100,6 @@ const features = [
     title: "Team Management",
     description: "Manage workers with granular permissions and role-based access control.",
     color: "from-indigo-500 to-violet-400"
-  },
-  {
-    icon: TrendingUp,
-    title: "Profit Tracking",
-    description: "Real-time profit calculations with detailed expense and revenue breakdowns.",
-    color: "from-emerald-500 to-green-400"
-  },
-  {
-    icon: Settings,
-    title: "Custom Settings",
-    description: "Personalize your shop details, invoice templates, and business preferences.",
-    color: "from-gray-500 to-slate-400"
   }
 ];
 
@@ -451,7 +409,7 @@ const Landing = () => {
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {features.map((feature, index) => (
               <motion.div
