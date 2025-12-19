@@ -16,6 +16,9 @@ import {
   Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import testimonialSalman from "@/assets/testimonial-salman.png";
+import testimonialHaseeb from "@/assets/testimonial-haseeb.jpeg";
+import testimonialAmeer from "@/assets/testimonial-ameer.jpeg";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 60 },
@@ -94,22 +97,25 @@ const features = [
 
 const testimonials = [
   {
-    name: "Ahmed Khan",
+    name: "Muhammad Salman Mehmood",
     role: "Retail Store Owner",
     content: "Invoxa transformed how we manage our inventory. The real-time tracking and automated invoicing save us hours every week.",
-    rating: 5
+    rating: 5,
+    image: testimonialSalman
   },
   {
-    name: "Sarah Ali",
+    name: "Abdul Haseeb",
     role: "Wholesale Business",
     content: "The credit management feature is a game-changer. We can now track customer balances effortlessly.",
-    rating: 5
+    rating: 5,
+    image: testimonialHaseeb
   },
   {
-    name: "Muhammad Raza",
+    name: "Ameer Hamza Sadiq",
     role: "Textile Shop Owner",
     content: "Best investment for our business. The analytics help us make better decisions every day.",
-    rating: 5
+    rating: 5,
+    image: testimonialAmeer
   }
 ];
 
@@ -494,7 +500,11 @@ const Landing = () => {
                 </div>
                 <p className="text-slate-600 mb-6 leading-relaxed">"{testimonial.content}"</p>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
+                  <img 
+                    src={testimonial.image} 
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
                   <div>
                     <div className="font-semibold text-slate-900">{testimonial.name}</div>
                     <div className="text-sm text-slate-500">{testimonial.role}</div>
