@@ -408,33 +408,6 @@ const Layout = ({ children }: LayoutProps) => {
                   <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent animate-pulse" />
                 </Button>
 
-                {/* User Info */}
-                <div className="flex items-center gap-3 pl-3 border-l border-border/50">
-                  <div className="hidden sm:block text-right">
-                    <p className="text-sm font-medium text-foreground leading-none">{user?.email?.split('@')[0]}</p>
-                    <p className="text-xs text-muted-foreground capitalize mt-0.5">{userRole}</p>
-                  </div>
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md">
-                    {user?.email?.charAt(0).toUpperCase()}
-                  </div>
-                </div>
-
-                {/* Logout */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={signOut} 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <LogOut className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Logout</p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
             </div>
           </header>
