@@ -111,6 +111,19 @@ serve(async (req) => {
       }
 
       case "delete_plan": {
+        // First, set plan_id to NULL in related payment_requests to avoid foreign key constraint
+        await supabase
+          .from("payment_requests")
+          .update({ plan_id: null })
+          .eq("plan_id", data.id);
+
+        // Also set plan_id to NULL in subscriptions
+        await supabase
+          .from("subscriptions")
+          .update({ plan_id: null })
+          .eq("plan_id", data.id);
+
+        // Now delete the plan
         const { error } = await supabase
           .from("plans")
           .delete()
