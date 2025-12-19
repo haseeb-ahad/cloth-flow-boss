@@ -14,7 +14,8 @@ const AnimatedLogoLoader = ({
   showMessage = false,
   message = "Loading...",
 }: AnimatedLogoLoaderProps) => {
-  const [loaderText, setLoaderText] = useState(text || "INVOICE");
+  const [loaderText, setLoaderText] = useState(text || "");
+  const [isLoading, setIsLoading] = useState(!text);
 
   useEffect(() => {
     if (!text) {
@@ -29,9 +30,15 @@ const AnimatedLogoLoader = ({
 
           if (!error && data?.setting_value) {
             setLoaderText(data.setting_value);
+          } else {
+            // Fallback only if database has no value
+            setLoaderText("LOADING");
           }
         } catch (error) {
           console.error("Error fetching loader text:", error);
+          setLoaderText("LOADING");
+        } finally {
+          setIsLoading(false);
         }
       };
       fetchLoaderText();
@@ -45,6 +52,30 @@ const AnimatedLogoLoader = ({
   };
 
   const currentSize = sizeClasses[size];
+  
+  // Don't render text until loaded from database
+  if (isLoading && !text) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div className={`flex items-center ${currentSize.gap}`}>
+          <div className="relative">
+            <svg
+              viewBox="0 0 50 120"
+              className={`${currentSize.icon} text-primary animate-pulse`}
+              fill="currentColor"
+            >
+              <rect x="8" y="0" width="34" height="34" rx="2" />
+              <path d="M42 45 L42 120 L42 120 C28 120 17 109 17 95 L17 65 L2 65 L2 65 C2 51 13 40 27 40 L42 40 L42 45 Z" />
+            </svg>
+          </div>
+        </div>
+        {showMessage && (
+          <p className="text-muted-foreground text-sm animate-pulse">{message}</p>
+        )}
+      </div>
+    );
+  }
+  
   const letters = loaderText.split("");
 
   return (
