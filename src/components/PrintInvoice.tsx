@@ -122,14 +122,14 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
             }
             
             .watermark-svg {
-              width: 70px;
-              height: 90px;
+              width: 100px;
+              height: 130px;
             }
             
             .watermark-text {
-              font-size: 22px;
+              font-size: 28px;
               font-weight: bold;
-              letter-spacing: 5px;
+              letter-spacing: 6px;
               color: #000;
             }
             
