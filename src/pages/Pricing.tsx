@@ -142,6 +142,9 @@ const Pricing = () => {
           <Link to="/">
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
               <img src={invoxaLogo} alt="Invoxa Logo" className="h-10 w-auto" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Invoxa
+              </span>
             </motion.div>
           </Link>
           
