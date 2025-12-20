@@ -187,9 +187,9 @@ const Landing = () => {
           </motion.div>
           
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-slate-600 hover:text-slate-900 transition-colors">Features</a>
-            <a href="#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors">Testimonials</a>
-            <Link to="/pricing" className="text-slate-600 hover:text-slate-900 transition-colors">Pricing</Link>
+            <a href="#features" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Features</a>
+            <a href="#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Testimonials</a>
+            <Link to="/pricing" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Pricing</Link>
           </div>
 
           <div className="flex items-center gap-3">
