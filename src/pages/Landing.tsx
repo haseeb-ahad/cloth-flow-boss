@@ -192,10 +192,10 @@ const Landing = () => {
             <Link to="/pricing" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Pricing</Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             <Link to="/login">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" className="text-slate-700 hover:text-slate-900">
+                <Button variant="ghost" className="text-slate-700 hover:text-slate-900 px-2 sm:px-4">
                   Login
                 </Button>
               </motion.div>
@@ -205,9 +205,9 @@ const Landing = () => {
                 whileHover={{ scale: 1.05, boxShadow: "0 10px 40px -10px rgba(99, 102, 241, 0.4)" }} 
                 whileTap={{ scale: 0.95 }}
               >
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 text-xs sm:text-sm px-2 sm:px-4">
                   Get Started
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                 </Button>
               </motion.div>
             </Link>
