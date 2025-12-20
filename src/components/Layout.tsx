@@ -267,15 +267,33 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </aside>
 
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="fixed top-4 left-4 z-50 lg:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        {/* Mobile Header with Menu Button */}
+        <div className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center gap-3 px-4 lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="shrink-0"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-2">
+            {appSettings.logo_url ? (
+              <img 
+                src={appSettings.logo_url} 
+                alt="Logo" 
+                className="max-w-[120px] max-h-8 object-contain"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary shadow-glow">
+                <Store className="h-4 w-4 text-primary-foreground" />
+              </div>
+            )}
+            <span className="text-sm font-semibold text-foreground truncate">
+              {appSettings.app_name || "Business Manager"}
+            </span>
+          </div>
+        </div>
 
         {/* Mobile Sidebar Overlay */}
         {mobileMenuOpen && (
@@ -360,7 +378,7 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* Main Content Area */}
         <div className={cn(
-          "flex-1 transition-all duration-300 ease-smooth",
+          "flex-1 transition-all duration-300 ease-smooth lg:mt-0 mt-16",
           sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
         )}>
           {/* Modern Top Bar */}
