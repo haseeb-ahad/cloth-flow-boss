@@ -215,46 +215,50 @@ const Credits = () => {
   const fetchCredits = async () => {
     setIsLoading(true);
     try {
-      // Fetch from sales table - this is the source of truth updated by Receive Payment
+      // Fetch from sales table - only unpaid/partial paid invoices (remaining > 0)
       const { data: salesData } = await supabase
         .from("sales")
         .select("*")
         .not("customer_name", "is", null)
+        .neq("payment_status", "paid")
         .order("created_at", { ascending: true }); // Oldest first for FIFO display
 
-      // Fetch from credits table for cash credits
+      // Fetch from credits table for cash credits - only with remaining > 0
       const { data: cashCreditsData } = await supabase
         .from("credits")
         .select("*")
         .eq("credit_type", "cash")
+        .gt("remaining_amount", 0)
         .order("created_at", { ascending: true });
 
       let allCredits: Credit[] = [];
 
       if (salesData) {
-        // Map sales to credit format - only read values, no recalculation
-        const creditsFromSales: Credit[] = salesData.map(sale => ({
-          id: sale.id,
-          customer_name: sale.customer_name || "",
-          customer_phone: sale.customer_phone || null,
-          amount: sale.final_amount, // Total invoice amount
-          paid_amount: sale.paid_amount || 0, // Exact value from sales table
-          remaining_amount: sale.final_amount - (sale.paid_amount || 0), // Calculated from sales table values
-          due_date: null,
-          status: sale.payment_status || "pending", // Exact status from sales table
-          notes: null,
-          created_at: sale.created_at || "",
-          invoice_number: sale.invoice_number,
-          description: sale.description || null,
-          image_url: sale.image_url || null,
-          credit_type: "invoice",
-          person_type: "customer",
-        }));
+        // Map sales to credit format - only include those with remaining amount > 0
+        const creditsFromSales: Credit[] = salesData
+          .filter(sale => (sale.final_amount - (sale.paid_amount || 0)) > 0)
+          .map(sale => ({
+            id: sale.id,
+            customer_name: sale.customer_name || "",
+            customer_phone: sale.customer_phone || null,
+            amount: sale.final_amount, // Total invoice amount
+            paid_amount: sale.paid_amount || 0, // Exact value from sales table
+            remaining_amount: sale.final_amount - (sale.paid_amount || 0), // Calculated from sales table values
+            due_date: null,
+            status: sale.payment_status || "pending", // Exact status from sales table
+            notes: null,
+            created_at: sale.created_at || "",
+            invoice_number: sale.invoice_number,
+            description: sale.description || null,
+            image_url: sale.image_url || null,
+            credit_type: "invoice",
+            person_type: "customer",
+          }));
         allCredits = [...allCredits, ...creditsFromSales];
       }
 
       if (cashCreditsData) {
-        // Map cash credits
+        // Map cash credits - only those with remaining > 0 (already filtered in query)
         const cashCredits: Credit[] = cashCreditsData.map(credit => ({
           id: credit.id,
           customer_name: credit.customer_name || "",
