@@ -340,13 +340,29 @@ const Dashboard = () => {
       totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * Number(item.quantity)), 0);
     }
 
-    // Fetch only active credits (remaining_amount > 0) regardless of date range
-    const { data: credits } = await supabase
+    // Fetch credits from same sources as Credits page
+    // 1. Unpaid/partial invoices from sales table
+    const { data: salesCredits } = await supabase
+      .from("sales")
+      .select("final_amount, paid_amount")
+      .not("customer_name", "is", null)
+      .neq("payment_status", "paid");
+    
+    const salesCreditTotal = salesCredits?.reduce((sum, sale) => {
+      const remaining = Number(sale.final_amount) - Number(sale.paid_amount || 0);
+      return remaining > 0 ? sum + remaining : sum;
+    }, 0) || 0;
+
+    // 2. Cash credits from credits table
+    const { data: cashCredits } = await supabase
       .from("credits")
       .select("remaining_amount")
-      .is("deleted_at", null)
+      .eq("credit_type", "cash")
       .gt("remaining_amount", 0);
-    const totalCredit = credits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
+    
+    const cashCreditTotal = cashCredits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
+
+    const totalCredit = salesCreditTotal + cashCreditTotal;
 
     setStats({
       totalSales,
@@ -414,16 +430,30 @@ const Dashboard = () => {
     const salesSparkline = chartData.map(d => ({ value: d.sales }));
     const profitSparkline = chartData.map(d => ({ value: d.profit }));
     
-    // Fetch only active credits (remaining_amount > 0) for sparkline
-    const { data: credits } = await supabase
+    // Fetch credits from same sources as Credits page for sparkline
+    const { data: salesCreditsForSparkline } = await supabase
+      .from("sales")
+      .select("final_amount, paid_amount, created_at")
+      .not("customer_name", "is", null)
+      .neq("payment_status", "paid")
+      .order("created_at", { ascending: true });
+
+    const { data: cashCreditsForSparkline } = await supabase
       .from("credits")
       .select("remaining_amount, created_at")
-      .is("deleted_at", null)
+      .eq("credit_type", "cash")
       .gt("remaining_amount", 0)
       .order("created_at", { ascending: true });
 
     const creditByDate: { [key: string]: number } = {};
-    credits?.forEach(credit => {
+    salesCreditsForSparkline?.forEach(sale => {
+      const remaining = Number(sale.final_amount) - Number(sale.paid_amount || 0);
+      if (remaining > 0) {
+        const date = new Date(sale.created_at!).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
+        creditByDate[date] = (creditByDate[date] || 0) + remaining;
+      }
+    });
+    cashCreditsForSparkline?.forEach(credit => {
       const date = new Date(credit.created_at!).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' });
       creditByDate[date] = (creditByDate[date] || 0) + Number(credit.remaining_amount);
     });
