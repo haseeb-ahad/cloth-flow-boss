@@ -130,8 +130,33 @@ const Sales = () => {
     }
   };
 
+  // Initial fetch and real-time subscription
   useEffect(() => {
     fetchSales();
+
+    // Subscribe to real-time changes for instant sync
+    const salesChannel = supabase
+      .channel('sales-page-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => fetchSales()
+      )
+      .subscribe();
+
+    const saleItemsChannel = supabase
+      .channel('sales-items-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sale_items' },
+        () => fetchSales()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesChannel);
+      supabase.removeChannel(saleItemsChannel);
+    };
   }, []);
 
   useEffect(() => {

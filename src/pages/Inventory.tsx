@@ -109,8 +109,23 @@ const Inventory = () => {
     }
   };
 
+  // Initial fetch and real-time subscription
   useEffect(() => {
     fetchProducts();
+
+    // Subscribe to real-time changes for instant sync
+    const productsChannel = supabase
+      .channel('inventory-products-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => fetchProducts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productsChannel);
+    };
   }, []);
 
   useEffect(() => {

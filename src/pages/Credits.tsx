@@ -169,10 +169,45 @@ const Credits = () => {
     }
   };
 
+  // Initial data fetch and real-time subscription
   useEffect(() => {
     fetchCredits();
     fetchProducts();
     fetchPaymentRecords();
+
+    // Subscribe to real-time changes for instant sync
+    const salesChannel = supabase
+      .channel('credits-sales-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => fetchCredits()
+      )
+      .subscribe();
+
+    const creditsChannel = supabase
+      .channel('credits-credits-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'credits' },
+        () => fetchCredits()
+      )
+      .subscribe();
+
+    const paymentLedgerChannel = supabase
+      .channel('credits-payment-ledger-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payment_ledger' },
+        () => fetchPaymentRecords()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesChannel);
+      supabase.removeChannel(creditsChannel);
+      supabase.removeChannel(paymentLedgerChannel);
+    };
   }, []);
 
   const fetchPaymentRecords = async () => {

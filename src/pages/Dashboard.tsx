@@ -90,9 +90,54 @@ const Dashboard = () => {
   const [isPlanExpired, setIsPlanExpired] = useState(false);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
 
+  // Real-time sync for dashboard data
   useEffect(() => {
     handleRefresh();
     checkSubscriptionStatus();
+
+    // Subscribe to real-time changes
+    const salesChannel = supabase
+      .channel('dashboard-sales')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => handleRefresh()
+      )
+      .subscribe();
+
+    const creditsChannel = supabase
+      .channel('dashboard-credits')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'credits' },
+        () => handleRefresh()
+      )
+      .subscribe();
+
+    const productsChannel = supabase
+      .channel('dashboard-products')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => handleRefresh()
+      )
+      .subscribe();
+
+    const saleItemsChannel = supabase
+      .channel('dashboard-sale-items')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sale_items' },
+        () => handleRefresh()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesChannel);
+      supabase.removeChannel(creditsChannel);
+      supabase.removeChannel(productsChannel);
+      supabase.removeChannel(saleItemsChannel);
+    };
   }, [dateRange, startDate, endDate]);
 
   const checkSubscriptionStatus = async () => {

@@ -101,10 +101,38 @@ const ReceivePayment = () => {
     }
   };
 
+  // Initial fetch and real-time subscription
   useEffect(() => {
     fetchCustomers();
     fetchRecentPayments();
-  }, []);
+
+    // Subscribe to real-time changes for instant sync
+    const salesChannel = supabase
+      .channel('receive-payment-sales-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => {
+          fetchCustomers();
+          if (selectedCustomer) fetchUnpaidInvoices(selectedCustomer);
+        }
+      )
+      .subscribe();
+
+    const paymentLedgerChannel = supabase
+      .channel('receive-payment-ledger-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payment_ledger' },
+        () => fetchRecentPayments()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesChannel);
+      supabase.removeChannel(paymentLedgerChannel);
+    };
+  }, [selectedCustomer]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -319,16 +347,22 @@ const ReceivePayment = () => {
             creditStatus = "partial";
           }
 
-          await supabase
-            .from("credits")
-            .update({
-              paid_amount: newCreditPaidAmount,
-              remaining_amount: creditRemainingAmount,
-              status: creditStatus,
-            })
-            .eq("id", creditData.id);
+          if (creditRemainingAmount <= 0) {
+            // Credit is fully paid - delete it permanently
+            await supabase.from("credits").delete().eq("id", creditData.id);
+          } else {
+            // Update credit with new amounts
+            await supabase
+              .from("credits")
+              .update({
+                paid_amount: newCreditPaidAmount,
+                remaining_amount: creditRemainingAmount,
+                status: creditStatus,
+              })
+              .eq("id", creditData.id);
+          }
 
-          // Add credit transaction
+          // Add credit transaction for payment history
           const customer = customers.find((c) => c.name === selectedCustomer);
           await supabase.from("credit_transactions").insert({
             credit_id: creditData.id,
