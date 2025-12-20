@@ -295,12 +295,12 @@ const Dashboard = () => {
       totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * Number(item.quantity)), 0);
     }
 
+    // Fetch only active credits (remaining_amount > 0) regardless of date range
     const { data: credits } = await supabase
       .from("credits")
-      .select("remaining_amount, created_at")
+      .select("remaining_amount")
       .is("deleted_at", null)
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString());
+      .gt("remaining_amount", 0);
     const totalCredit = credits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
 
     setStats({
@@ -369,13 +369,12 @@ const Dashboard = () => {
     const salesSparkline = chartData.map(d => ({ value: d.sales }));
     const profitSparkline = chartData.map(d => ({ value: d.profit }));
     
-    // Fetch credit data for sparkline
+    // Fetch only active credits (remaining_amount > 0) for sparkline
     const { data: credits } = await supabase
       .from("credits")
       .select("remaining_amount, created_at")
       .is("deleted_at", null)
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString())
+      .gt("remaining_amount", 0)
       .order("created_at", { ascending: true });
 
     const creditByDate: { [key: string]: number } = {};
