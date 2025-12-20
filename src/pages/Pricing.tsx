@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Check, Sparkles, ChevronRight, Zap, Crown, Star } from "lucide-react";
+import { Check, ChevronRight, Zap, Crown, Star } from "lucide-react";
+import invoxaLogo from "@/assets/invoxa-logo.png";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -140,19 +141,14 @@ const Pricing = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/">
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Invoxa
-              </span>
+              <img src={invoxaLogo} alt="Invoxa Logo" className="h-10 w-auto" />
             </motion.div>
           </Link>
           
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/#features" className="text-slate-600 hover:text-slate-900 transition-colors">Features</Link>
-            <Link to="/#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors">Testimonials</Link>
-            <Link to="/pricing" className="text-blue-600 font-medium">Pricing</Link>
+            <Link to="/#features" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Features</Link>
+            <Link to="/#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Testimonials</Link>
+            <Link to="/pricing" className="text-blue-600 font-semibold">Pricing</Link>
           </div>
 
           <div className="flex items-center gap-3">
