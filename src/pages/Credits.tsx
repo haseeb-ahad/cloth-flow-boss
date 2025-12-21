@@ -36,6 +36,7 @@ interface Credit {
   image_url?: string | null;
   credit_type?: string;
   person_type?: string;
+  last_payment_date?: string | null;
 }
 
 interface Product {
@@ -266,6 +267,22 @@ const Credits = () => {
         .gt("remaining_amount", 0)
         .order("created_at", { ascending: true });
 
+      // Fetch last payment dates from credit_transactions for cash credits
+      const { data: transactionsData } = await supabase
+        .from("credit_transactions")
+        .select("credit_id, transaction_date")
+        .order("transaction_date", { ascending: false });
+
+      // Create a map of credit_id to last payment date
+      const lastPaymentDates: { [key: string]: string } = {};
+      if (transactionsData) {
+        transactionsData.forEach(t => {
+          if (!lastPaymentDates[t.credit_id]) {
+            lastPaymentDates[t.credit_id] = t.transaction_date;
+          }
+        });
+      }
+
       let allCredits: Credit[] = [];
 
       if (salesData) {
@@ -288,6 +305,7 @@ const Credits = () => {
             image_url: sale.image_url || null,
             credit_type: "invoice",
             person_type: "customer",
+            last_payment_date: null, // Invoice credits don't track this here
           }));
         allCredits = [...allCredits, ...creditsFromSales];
       }
@@ -310,6 +328,7 @@ const Credits = () => {
           image_url: null,
           credit_type: credit.credit_type || "cash",
           person_type: credit.person_type || "other",
+          last_payment_date: lastPaymentDates[credit.id] || null,
         }));
         allCredits = [...allCredits, ...cashCredits];
       }
@@ -1152,6 +1171,7 @@ const Credits = () => {
                           <TableHead>Invoice #</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>Date</TableHead>
+                          <TableHead>Payment Date</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead className="text-right">Paid</TableHead>
                           <TableHead className="text-right font-semibold">Remaining</TableHead>
@@ -1170,6 +1190,9 @@ const Credits = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>{formatDate(credit.created_at)}</TableCell>
+                            <TableCell>
+                              {credit.last_payment_date ? formatDate(credit.last_payment_date) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
                             <TableCell className="text-right">
                               Rs. {credit.amount.toFixed(2)}
                             </TableCell>
