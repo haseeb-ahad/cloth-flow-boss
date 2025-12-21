@@ -497,19 +497,22 @@ const Inventory = () => {
 
               <div>
                 <Label htmlFor="quantity_type">Quantity Type *</Label>
-                <Select value={formData.quantity_type} onValueChange={(value) => setFormData({ ...formData, quantity_type: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Meter">Meter</SelectItem>
-                    <SelectItem value="Than">Than</SelectItem>
-                    <SelectItem value="Suit">Suit</SelectItem>
-                    <SelectItem value="Unit">Unit</SelectItem>
-                    <SelectItem value="Piece">Piece</SelectItem>
-                    <SelectItem value="Kg">Kg</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="quantity_type"
+                  required
+                  list="quantity-type-options"
+                  value={formData.quantity_type}
+                  onChange={(e) => setFormData({ ...formData, quantity_type: e.target.value })}
+                  placeholder="Type or select quantity type"
+                />
+                <datalist id="quantity-type-options">
+                  <option value="Meter" />
+                  <option value="Than" />
+                  <option value="Suit" />
+                  <option value="Unit" />
+                  <option value="Piece" />
+                  <option value="Kg" />
+                </datalist>
               </div>
 
               <div className="flex gap-2">
