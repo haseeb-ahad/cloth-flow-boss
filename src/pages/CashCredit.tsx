@@ -105,6 +105,11 @@ const CashCredit = () => {
 
     setIsLoading(true);
     try {
+      // Use selected date or current date for created_at
+      const creditDate = formData.date 
+        ? new Date(formData.date + 'T12:00:00').toISOString() 
+        : new Date().toISOString();
+
       const { error } = await supabase.from("credits").insert({
         customer_name: formData.name.trim(),
         customer_phone: formData.phone || null,
@@ -117,6 +122,7 @@ const CashCredit = () => {
         owner_id: ownerId,
         credit_type: "cash",
         person_type: formData.person_type,
+        created_at: creditDate,
       });
 
       if (error) throw error;
