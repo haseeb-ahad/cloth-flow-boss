@@ -340,25 +340,29 @@ const Dashboard = () => {
       totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * Number(item.quantity)), 0);
     }
 
-    // Fetch credits from same sources as Credits page
-    // 1. Unpaid/partial invoices from sales table
+    // Fetch credits filtered by selected date range
+    // 1. Unpaid/partial invoices from sales table within date range
     const { data: salesCredits } = await supabase
       .from("sales")
       .select("final_amount, paid_amount")
       .not("customer_name", "is", null)
-      .neq("payment_status", "paid");
+      .neq("payment_status", "paid")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
     
     const salesCreditTotal = salesCredits?.reduce((sum, sale) => {
       const remaining = Number(sale.final_amount) - Number(sale.paid_amount || 0);
       return remaining > 0 ? sum + remaining : sum;
     }, 0) || 0;
 
-    // 2. Cash credits from credits table
+    // 2. Cash credits from credits table within date range
     const { data: cashCredits } = await supabase
       .from("credits")
       .select("remaining_amount")
       .eq("credit_type", "cash")
-      .gt("remaining_amount", 0);
+      .gt("remaining_amount", 0)
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
     
     const cashCreditTotal = cashCredits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
 
@@ -430,12 +434,14 @@ const Dashboard = () => {
     const salesSparkline = chartData.map(d => ({ value: d.sales }));
     const profitSparkline = chartData.map(d => ({ value: d.profit }));
     
-    // Fetch credits from same sources as Credits page for sparkline
+    // Fetch credits filtered by date range for sparkline
     const { data: salesCreditsForSparkline } = await supabase
       .from("sales")
       .select("final_amount, paid_amount, created_at")
       .not("customer_name", "is", null)
       .neq("payment_status", "paid")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
 
     const { data: cashCreditsForSparkline } = await supabase
@@ -443,6 +449,8 @@ const Dashboard = () => {
       .select("remaining_amount, created_at")
       .eq("credit_type", "cash")
       .gt("remaining_amount", 0)
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
 
     const creditByDate: { [key: string]: number } = {};
