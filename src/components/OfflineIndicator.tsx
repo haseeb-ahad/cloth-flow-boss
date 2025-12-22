@@ -1,14 +1,13 @@
-import { useOfflineStatus } from '@/hooks/useOfflineStatus';
-import { WifiOff, RefreshCw, Cloud, CloudOff, Check } from 'lucide-react';
+import { useOffline } from '@/contexts/OfflineContext';
+import { WifiOff, RefreshCw, Cloud, CloudOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 export function OfflineIndicator() {
-  const { isOnline, pendingCount, isSyncing, lastSyncTime, triggerSync } = useOfflineStatus();
+  const { isOnline, pendingCount, isSyncing, lastSyncTime, triggerSync } = useOffline();
 
-  // If online with no pending changes and recently synced, show success briefly then hide
+  // If online with no pending changes and recently synced, show success
   if (isOnline && pendingCount === 0 && !isSyncing) {
     return (
       <TooltipProvider>
