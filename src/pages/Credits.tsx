@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useOfflineCredits, Credit as OfflineCredit, CreditTransaction } from "@/hooks/useOfflineCredits";
+import { useOfflineProducts } from "@/hooks/useOfflineProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +21,8 @@ import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+import * as offlineDb from "@/lib/offlineDb";
 
 // Credit now represents a sale/invoice with remaining balance
 interface Credit {
@@ -91,6 +96,9 @@ interface PaymentRecord {
 const Credits = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate, formatDateInput } = useTimezone();
+  const { isOnline } = useOffline();
+  const { credits: offlineCreditsData, refetch: refetchOfflineCredits, addCredit: addOfflineCredit, updateCredit: updateOfflineCredit, recordPayment: recordOfflinePayment } = useOfflineCredits();
+  const { products: offlineProducts, updateProduct: updateOfflineProduct } = useOfflineProducts();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("credits", "create");
@@ -153,11 +161,19 @@ const Credits = () => {
 
       let imported = 0;
       for (const credit of parsedCredits) {
-        const { error } = await supabase.from("credits").insert({
-          ...credit,
-          owner_id: ownerId,
+        await addOfflineCredit({
+          customer_name: credit.customer_name,
+          customer_phone: credit.customer_phone || null,
+          amount: credit.amount,
+          paid_amount: 0,
+          remaining_amount: credit.amount,
+          due_date: credit.due_date || null,
+          status: "pending",
+          notes: credit.notes || null,
+          credit_type: "cash",
+          person_type: "other",
         });
-        if (!error) imported++;
+        imported++;
       }
 
       toast.success(`Successfully imported ${imported} credits`);
@@ -176,7 +192,9 @@ const Credits = () => {
     fetchProducts();
     fetchPaymentRecords();
 
-    // Subscribe to real-time changes for instant sync
+    // Subscribe to real-time changes only when online
+    if (!isOnline) return;
+
     const salesChannel = supabase
       .channel('credits-sales-sync')
       .on(
@@ -209,14 +227,41 @@ const Credits = () => {
       supabase.removeChannel(creditsChannel);
       supabase.removeChannel(paymentLedgerChannel);
     };
-  }, []);
+  }, [isOnline]);
+
+  // Update products from offline hook
+  useEffect(() => {
+    if (offlineProducts.length > 0) {
+      setProducts(offlineProducts.map(p => ({
+        id: p.id,
+        name: p.name,
+        selling_price: p.selling_price,
+        purchase_price: p.purchase_price,
+        stock_quantity: p.stock_quantity,
+        quantity_type: p.quantity_type || null,
+      })));
+    }
+  }, [offlineProducts]);
 
   const fetchPaymentRecords = async () => {
-    const { data } = await supabase
-      .from("payment_ledger")
-      .select("id, customer_name, customer_phone, payment_amount, payment_date, description, image_url, notes")
-      .order("payment_date", { ascending: false });
-    if (data) setPaymentRecords(data);
+    // First try from IndexedDB
+    const localPayments = await offlineDb.getAll<PaymentRecord>('payment_ledger');
+    if (localPayments.length > 0) {
+      setPaymentRecords(localPayments);
+    }
+
+    // Sync from server if online
+    if (isOnline) {
+      const { data } = await supabase
+        .from("payment_ledger")
+        .select("id, customer_name, customer_phone, payment_amount, payment_date, description, image_url, notes")
+        .order("payment_date", { ascending: false });
+      if (data) {
+        setPaymentRecords(data);
+        // Store in IndexedDB
+        await offlineDb.bulkPut('payment_ledger', data, 'synced');
+      }
+    }
   };
 
   const getCustomerPayments = (customerName: string, customerPhone: string | null) => {
@@ -231,8 +276,8 @@ const Credits = () => {
   }, [credits, searchTerm, creditTypeFilter]);
 
   const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*").order("name");
-    if (data) setProducts(data);
+    // Products are now loaded from useOfflineProducts hook
+    // This function kept for compatibility
   };
 
   useEffect(() => {
@@ -251,68 +296,37 @@ const Credits = () => {
   const fetchCredits = async () => {
     setIsLoading(true);
     try {
-      // Fetch from sales table - only unpaid/partial paid invoices (remaining > 0)
-      const { data: salesData } = await supabase
-        .from("sales")
-        .select("*")
-        .not("customer_name", "is", null)
-        .neq("payment_status", "paid")
-        .order("created_at", { ascending: true }); // Oldest first for FIFO display
-
-      // Fetch from credits table for cash credits - only with remaining > 0
-      const { data: cashCreditsData } = await supabase
-        .from("credits")
-        .select("*")
-        .eq("credit_type", "cash")
-        .gt("remaining_amount", 0)
-        .order("created_at", { ascending: true });
-
-      // Fetch last payment dates from credit_transactions for cash credits
-      const { data: transactionsData } = await supabase
-        .from("credit_transactions")
-        .select("credit_id, transaction_date")
-        .order("transaction_date", { ascending: false });
-
-      // Create a map of credit_id to last payment date
-      const lastPaymentDates: { [key: string]: string } = {};
-      if (transactionsData) {
-        transactionsData.forEach(t => {
-          if (!lastPaymentDates[t.credit_id]) {
-            lastPaymentDates[t.credit_id] = t.transaction_date;
-          }
-        });
-      }
-
       let allCredits: Credit[] = [];
 
-      if (salesData) {
-        // Map sales to credit format - only include those with remaining amount > 0
-        const creditsFromSales: Credit[] = salesData
-          .filter(sale => (sale.final_amount - (sale.paid_amount || 0)) > 0)
-          .map(sale => ({
-            id: sale.id,
-            customer_name: sale.customer_name || "",
-            customer_phone: sale.customer_phone || null,
-            amount: sale.final_amount, // Total invoice amount
-            paid_amount: sale.paid_amount || 0, // Exact value from sales table
-            remaining_amount: sale.final_amount - (sale.paid_amount || 0), // Calculated from sales table values
-            due_date: null,
-            status: sale.payment_status || "pending", // Exact status from sales table
-            notes: null,
-            created_at: sale.created_at || "",
-            invoice_number: sale.invoice_number,
-            description: sale.description || null,
-            image_url: sale.image_url || null,
-            credit_type: "invoice",
-            person_type: "customer",
-            last_payment_date: null, // Invoice credits don't track this here
-          }));
-        allCredits = [...allCredits, ...creditsFromSales];
-      }
+      // Get sales data from IndexedDB first
+      const localSales = await offlineDb.getAll<any>('sales');
+      const salesWithRemaining = localSales
+        .filter(sale => sale.customer_name && sale.payment_status !== 'paid' && (sale.final_amount - (sale.paid_amount || 0)) > 0)
+        .map(sale => ({
+          id: sale.id,
+          customer_name: sale.customer_name || "",
+          customer_phone: sale.customer_phone || null,
+          amount: sale.final_amount,
+          paid_amount: sale.paid_amount || 0,
+          remaining_amount: sale.final_amount - (sale.paid_amount || 0),
+          due_date: null,
+          status: sale.payment_status || "pending",
+          notes: null,
+          created_at: sale.created_at || "",
+          invoice_number: sale.invoice_number,
+          description: sale.description || null,
+          image_url: sale.image_url || null,
+          credit_type: "invoice",
+          person_type: "customer",
+          last_payment_date: null,
+        }));
+      allCredits = [...allCredits, ...salesWithRemaining];
 
-      if (cashCreditsData) {
-        // Map cash credits - only those with remaining > 0 (already filtered in query)
-        const cashCredits: Credit[] = cashCreditsData.map(credit => ({
+      // Get cash credits from IndexedDB
+      const localCredits = await offlineDb.getAll<any>('credits');
+      const cashCredits = localCredits
+        .filter(credit => credit.credit_type === 'cash' && credit.remaining_amount > 0)
+        .map(credit => ({
           id: credit.id,
           customer_name: credit.customer_name || "",
           customer_phone: credit.customer_phone || null,
@@ -328,16 +342,106 @@ const Credits = () => {
           image_url: null,
           credit_type: credit.credit_type || "cash",
           person_type: credit.person_type || "other",
-          last_payment_date: lastPaymentDates[credit.id] || null,
+          last_payment_date: null,
         }));
-        allCredits = [...allCredits, ...cashCredits];
-      }
+      allCredits = [...allCredits, ...cashCredits];
 
       // Sort by created_at
       allCredits.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
       setCredits(allCredits);
       setFilteredCredits(allCredits);
+
+      // Sync with server if online
+      if (isOnline) {
+        try {
+          // Fetch from sales table
+          const { data: salesData } = await supabase
+            .from("sales")
+            .select("*")
+            .not("customer_name", "is", null)
+            .neq("payment_status", "paid")
+            .order("created_at", { ascending: true });
+
+          // Fetch from credits table for cash credits
+          const { data: cashCreditsData } = await supabase
+            .from("credits")
+            .select("*")
+            .eq("credit_type", "cash")
+            .gt("remaining_amount", 0)
+            .order("created_at", { ascending: true });
+
+          // Fetch last payment dates
+          const { data: transactionsData } = await supabase
+            .from("credit_transactions")
+            .select("credit_id, transaction_date")
+            .order("transaction_date", { ascending: false });
+
+          const lastPaymentDates: { [key: string]: string } = {};
+          if (transactionsData) {
+            transactionsData.forEach(t => {
+              if (!lastPaymentDates[t.credit_id]) {
+                lastPaymentDates[t.credit_id] = t.transaction_date;
+              }
+            });
+          }
+
+          let serverCredits: Credit[] = [];
+
+          if (salesData) {
+            const creditsFromSales: Credit[] = salesData
+              .filter(sale => (sale.final_amount - (sale.paid_amount || 0)) > 0)
+              .map(sale => ({
+                id: sale.id,
+                customer_name: sale.customer_name || "",
+                customer_phone: sale.customer_phone || null,
+                amount: sale.final_amount,
+                paid_amount: sale.paid_amount || 0,
+                remaining_amount: sale.final_amount - (sale.paid_amount || 0),
+                due_date: null,
+                status: sale.payment_status || "pending",
+                notes: null,
+                created_at: sale.created_at || "",
+                invoice_number: sale.invoice_number,
+                description: sale.description || null,
+                image_url: sale.image_url || null,
+                credit_type: "invoice",
+                person_type: "customer",
+                last_payment_date: null,
+              }));
+            serverCredits = [...serverCredits, ...creditsFromSales];
+          }
+
+          if (cashCreditsData) {
+            const serverCashCredits: Credit[] = cashCreditsData.map(credit => ({
+              id: credit.id,
+              customer_name: credit.customer_name || "",
+              customer_phone: credit.customer_phone || null,
+              amount: credit.amount,
+              paid_amount: credit.paid_amount || 0,
+              remaining_amount: credit.remaining_amount,
+              due_date: credit.due_date,
+              status: credit.status || "pending",
+              notes: credit.notes,
+              created_at: credit.created_at || "",
+              invoice_number: `CASH-${credit.id.slice(0, 8).toUpperCase()}`,
+              description: credit.notes,
+              image_url: null,
+              credit_type: credit.credit_type || "cash",
+              person_type: credit.person_type || "other",
+              last_payment_date: lastPaymentDates[credit.id] || null,
+            }));
+            serverCredits = [...serverCredits, ...serverCashCredits];
+          }
+
+          serverCredits.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          setCredits(serverCredits);
+          setFilteredCredits(serverCredits);
+        } catch (syncError) {
+          console.warn('Failed to sync credits from server:', syncError);
+        }
+      }
+
       toast.success("Credits data refreshed");
     } catch (error) {
       toast.error("Failed to fetch credits");
@@ -368,7 +472,6 @@ const Credits = () => {
     const dateFilter = customerPaymentDateFilters[customerKey];
     const today = new Date().toISOString().split('T')[0];
     
-    // Default to today if no filter set
     const startDate = dateFilter?.start || today;
     const endDate = dateFilter?.end || today;
     
@@ -399,26 +502,27 @@ const Credits = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // PERMISSION CHECK
     if (!canCreate) {
       toast.error("You do not have permission to create credits.");
       return;
     }
 
     const amount = parseFloat(formData.amount);
-    const creditData = {
-      customer_name: formData.customer_name,
-      customer_phone: formData.customer_phone || null,
-      amount: amount,
-      paid_amount: 0,
-      remaining_amount: amount,
-      due_date: formData.due_date || null,
-      status: "pending",
-      notes: formData.notes || null,
-    };
-
+    
     try {
-      await supabase.from("credits").insert(creditData);
+      await addOfflineCredit({
+        customer_name: formData.customer_name,
+        customer_phone: formData.customer_phone || null,
+        amount: amount,
+        paid_amount: 0,
+        remaining_amount: amount,
+        due_date: formData.due_date || null,
+        status: "pending",
+        notes: formData.notes || null,
+        credit_type: "cash",
+        person_type: "other",
+      });
+      
       toast.success("Credit record added successfully!");
       fetchCredits();
       resetForm();
@@ -443,49 +547,38 @@ const Credits = () => {
     const newStatus = newRemainingAmount === 0 ? "paid" : "pending";
 
     try {
-      // Update credit record
-      await supabase
-        .from("credits")
-        .update({
-          paid_amount: newPaidAmount,
-          remaining_amount: newRemainingAmount,
-          status: newStatus,
-        })
-        .eq("id", selectedCredit.id);
+      // Update credit record via offline hook
+      await updateOfflineCredit(selectedCredit.id, {
+        paid_amount: newPaidAmount,
+        remaining_amount: newRemainingAmount,
+        status: newStatus,
+      });
 
-      // Update associated sale record
-      const { data: saleData } = await supabase
-        .from("sales")
-        .select("id, final_amount")
-        .eq("customer_name", selectedCredit.customer_name)
-        .eq("customer_phone", selectedCredit.customer_phone || "")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Record payment transaction
+      await recordOfflinePayment(selectedCredit.id, payment, fullPayment ? "Full payment received" : "Partial payment received");
 
-      if (saleData) {
-        await supabase
+      // Update associated sale if online
+      if (isOnline) {
+        const { data: saleData } = await supabase
           .from("sales")
-          .update({
-            paid_amount: newPaidAmount,
-            status: newStatus === "paid" ? "completed" : "pending",
-            payment_status: newStatus === "paid" ? "paid" : "pending",
-          })
-          .eq("id", saleData.id);
-      }
+          .select("id, final_amount")
+          .eq("customer_name", selectedCredit.customer_name)
+          .eq("customer_phone", selectedCredit.customer_phone || "")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      // Record payment transaction with auto-filled date
-      await supabase
-        .from("credit_transactions")
-        .insert({
-          credit_id: selectedCredit.id,
-          customer_name: selectedCredit.customer_name,
-          customer_phone: selectedCredit.customer_phone,
-          amount: payment,
-          transaction_date: new Date().toISOString().split('T')[0],
-          notes: fullPayment ? "Full payment received" : "Partial payment received",
-          owner_id: ownerId,
-        });
+        if (saleData) {
+          await supabase
+            .from("sales")
+            .update({
+              paid_amount: newPaidAmount,
+              status: newStatus === "paid" ? "completed" : "pending",
+              payment_status: newStatus === "paid" ? "paid" : "pending",
+            })
+            .eq("id", saleData.id);
+        }
+      }
 
       toast.success("Payment recorded successfully!");
       fetchCredits();
@@ -511,7 +604,6 @@ const Credits = () => {
   const handleCashCreditPayment = async () => {
     if (!selectedCredit) return;
 
-    // PERMISSION CHECK
     if (!canEdit) {
       toast.error("You do not have permission to record payments.");
       return;
@@ -532,7 +624,6 @@ const Credits = () => {
     const newPaidAmount = selectedCredit.paid_amount + payment;
     const newRemainingAmount = selectedCredit.remaining_amount - payment;
     
-    // Determine status based on remaining
     let newStatus = "pending";
     if (newRemainingAmount <= 0) {
       newStatus = "paid";
@@ -542,32 +633,16 @@ const Credits = () => {
 
     setIsLoading(true);
     try {
-      // Update credit record
-      const { error: updateError } = await supabase
-        .from("credits")
-        .update({
-          paid_amount: newPaidAmount,
-          remaining_amount: newRemainingAmount,
-          status: newStatus,
-        })
-        .eq("id", selectedCredit.id);
-
-      if (updateError) throw updateError;
+      // Update credit record via offline hook
+      await updateOfflineCredit(selectedCredit.id, {
+        paid_amount: newPaidAmount,
+        remaining_amount: newRemainingAmount,
+        status: newStatus,
+      });
 
       // Record payment transaction
-      const { error: transactionError } = await supabase
-        .from("credit_transactions")
-        .insert({
-          credit_id: selectedCredit.id,
-          customer_name: selectedCredit.customer_name,
-          customer_phone: selectedCredit.customer_phone,
-          amount: payment,
-          transaction_date: cashCreditPaymentData.payment_date,
-          notes: `${cashCreditPaymentData.payment_mode.toUpperCase()}: ${cashCreditPaymentData.notes || "Payment received"}`,
-          owner_id: ownerId,
-        });
-
-      if (transactionError) throw transactionError;
+      const notes = `${cashCreditPaymentData.payment_mode.toUpperCase()}: ${cashCreditPaymentData.notes || "Payment received"}`;
+      await recordOfflinePayment(selectedCredit.id, payment, notes);
 
       toast.success("Cash credit payment recorded successfully!");
       fetchCredits();
@@ -587,18 +662,31 @@ const Credits = () => {
   };
 
   const handleEdit = async (credit: Credit) => {
-    const { data: saleData, error: saleError } = await supabase
-      .from("sales")
-      .select("*, sale_items(*)")
-      .eq("customer_name", credit.customer_name)
-      .eq("customer_phone", credit.customer_phone || "")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let saleData: any = null;
+    
+    // Try to get sale data from IndexedDB first
+    const localSales = await offlineDb.getAll<any>('sales');
+    saleData = localSales.find(s => 
+      s.customer_name === credit.customer_name && 
+      s.customer_phone === (credit.customer_phone || "")
+    );
 
-    if (saleError) {
-      console.error("Error loading sale data:", saleError);
-      toast.error("Failed to load associated sale data");
+    // If online, try to get more detailed data
+    if (isOnline && !saleData) {
+      const { data, error: saleError } = await supabase
+        .from("sales")
+        .select("*, sale_items(*)")
+        .eq("customer_name", credit.customer_name)
+        .eq("customer_phone", credit.customer_phone || "")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (saleError) {
+        console.error("Error loading sale data:", saleError);
+        toast.error("Failed to load associated sale data");
+      }
+      saleData = data;
     }
 
     // Always open invoice edit dialog
@@ -613,11 +701,17 @@ const Credits = () => {
     });
     
     if (saleData) {
-      // CRITICAL: Check if sale has items
-      if (!saleData.sale_items || saleData.sale_items.length === 0) {
-        toast.error("WARNING: This sale has no items! Cannot edit safely.");
-        console.error("Sale has no items:", saleData.invoice_number);
-        return;
+      // Get sale items from IndexedDB
+      const localSaleItems = await offlineDb.getAll<any>('sale_items');
+      const saleItems = localSaleItems.filter(item => item.sale_id === saleData.id);
+      
+      if (saleItems.length === 0 && isOnline && saleData.sale_items) {
+        // Use items from server response
+        if (saleData.sale_items.length === 0) {
+          toast.error("WARNING: This sale has no items! Cannot edit safely.");
+          console.error("Sale has no items:", saleData.invoice_number);
+          return;
+        }
       }
 
       setSaleId(saleData.id);
@@ -625,7 +719,8 @@ const Credits = () => {
       setDiscount(saleData.discount || 0);
       setCurrentPaymentStatus(saleData.payment_status || "");
       
-      const items = saleData.sale_items.map((item: any) => ({
+      const itemsToUse = saleItems.length > 0 ? saleItems : (saleData.sale_items || []);
+      const items = itemsToUse.map((item: any) => ({
         id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
@@ -639,7 +734,6 @@ const Credits = () => {
       console.log(`Credits Edit: Loaded ${items.length} items for editing`);
       setInvoiceItems(items);
     } else {
-      // No sale found, initialize empty invoice
       setSaleId("");
       setInvoiceNumber("");
       setDiscount(0);
@@ -667,7 +761,6 @@ const Credits = () => {
   };
 
   const handleRemoveInvoiceItem = (id: string) => {
-    // CRITICAL PROTECTION: Prevent removing last item when editing a sale
     if (saleId && invoiceItems.length === 1) {
       toast.error("Cannot remove the last item! An invoice must have at least one product.");
       return;
@@ -713,13 +806,11 @@ const Credits = () => {
   const handleSaveInvoice = async () => {
     if (!selectedCredit) return;
     
-    // PERMISSION CHECK
     if (!canEdit) {
       toast.error("You do not have permission to edit credits.");
       return;
     }
 
-    // CRITICAL VALIDATION: Ensure invoice items exist when editing a sale
     if (saleId && invoiceItems.length === 0) {
       toast.error("Cannot save invoice without items! Please add at least one product.");
       return;
@@ -729,56 +820,28 @@ const Credits = () => {
       const paidAmt = parseFloat(invoicePaidAmount) || 0;
       
       if (saleId && invoiceItems.length > 0) {
-        // Case 1: There's a sale - update sale and credit with proper inventory management
         const { totalAmount, finalAmount } = calculateInvoiceTotals();
         const remainingAmt = finalAmount - paidAmt;
 
-        // TASK 3: Get original items to restore their stock first
-        const { data: originalItems, error: fetchOriginalError } = await supabase
-          .from("sale_items")
-          .select("*")
-          .eq("sale_id", saleId);
+        // Get original items to restore their stock first
+        const localSaleItems = await offlineDb.getAll<any>('sale_items');
+        const originalItems = localSaleItems.filter(item => item.sale_id === saleId);
 
-        if (fetchOriginalError) {
-          console.error("Error fetching original items:", fetchOriginalError);
-          toast.error("Failed to load original items");
-          throw fetchOriginalError;
-        }
-
-        // Restore stock for all original items
+        // Restore stock for all original items using offline hook
         console.log("Credits Edit: Restoring stock for original items:", originalItems);
-        for (const originalItem of originalItems || []) {
-          const { data: product, error: fetchError } = await supabase
-            .from("products")
-            .select("stock_quantity")
-            .eq("id", originalItem.product_id)
-            .single();
-
-          if (fetchError || !product) {
-            console.error("Error fetching product for restoration:", fetchError);
-            toast.error(`Failed to restore stock for ${originalItem.product_name}`);
-            throw fetchError || new Error("Product not found");
-          }
-
-          const restoredStock = product.stock_quantity + originalItem.quantity;
-          console.log(`Restoring ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
-
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ stock_quantity: restoredStock })
-            .eq("id", originalItem.product_id);
-          
-          if (updateError) {
-            console.error("Error restoring stock:", updateError);
-            toast.error(`Failed to restore stock for ${originalItem.product_name}`);
-            throw updateError;
+        for (const originalItem of originalItems) {
+          const product = products.find(p => p.id === originalItem.product_id);
+          if (product) {
+            const restoredStock = product.stock_quantity + originalItem.quantity;
+            await updateOfflineProduct(originalItem.product_id, { stock_quantity: restoredStock });
           }
         }
 
-        // Update sale
-        await supabase
-          .from("sales")
-          .update({
+        // Update sale in IndexedDB
+        const existingSale = await offlineDb.getById<any>('sales', saleId);
+        if (existingSale) {
+          await offlineDb.put('sales', {
+            ...existingSale,
             customer_name: formData.customer_name,
             customer_phone: formData.customer_phone || null,
             total_amount: totalAmount,
@@ -787,20 +850,18 @@ const Credits = () => {
             paid_amount: paidAmt,
             status: remainingAmt > 0 ? "pending" : "completed",
             payment_status: remainingAmt > 0 ? "pending" : "paid",
-          })
-          .eq("id", saleId);
+          }, 'pending');
+        }
 
-        // Delete old sale items
-        console.log(`Credits Edit: Deleting old items and replacing with ${invoiceItems.length} new items`);
-        await supabase.from("sale_items").delete().eq("sale_id", saleId);
+        // Delete old sale items from IndexedDB
+        for (const oldItem of originalItems) {
+          await offlineDb.hardDelete('sale_items', oldItem.id);
+        }
 
-        // Insert new sale items with error handling and inventory deduction
-        console.log(`Credits Edit: Inserting ${invoiceItems.length} new items`);
-        for (let i = 0; i < invoiceItems.length; i++) {
-          const item = invoiceItems[i];
-          
-          // Insert the item
-          const { error: insertError } = await supabase.from("sale_items").insert({
+        // Insert new sale items and deduct inventory
+        for (const item of invoiceItems) {
+          await offlineDb.put('sale_items', {
+            id: item.id,
             sale_id: saleId,
             product_id: item.product_id,
             product_name: item.product_name,
@@ -809,97 +870,86 @@ const Credits = () => {
             purchase_price: item.purchase_price,
             total_price: item.total_price,
             profit: item.profit,
-          });
-
-          if (insertError) {
-            console.error(`Error inserting item ${i + 1}/${invoiceItems.length}:`, insertError);
-            toast.error(`Failed to add ${item.product_name}`);
-            throw insertError;
-          }
-
-          console.log(`✓ Item ${i + 1}/${invoiceItems.length} inserted: ${item.product_name}`);
+          } as any, 'pending');
 
           // Deduct stock from inventory
-          const { data: product, error: fetchError } = await supabase
-            .from("products")
-            .select("stock_quantity")
-            .eq("id", item.product_id)
-            .single();
-
-          if (fetchError || !product) {
-            console.error("Error fetching product:", fetchError);
-            toast.error(`Failed to update inventory for ${item.product_name}`);
-            throw fetchError || new Error("Product not found");
+          const product = products.find(p => p.id === item.product_id);
+          if (product) {
+            const newStock = product.stock_quantity - item.quantity;
+            if (newStock < 0) {
+              toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
+              throw new Error("Insufficient stock");
+            }
+            await updateOfflineProduct(item.product_id, { stock_quantity: newStock });
           }
-
-          const newStock = product.stock_quantity - item.quantity;
-
-          if (newStock < 0) {
-            toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-            throw new Error("Insufficient stock");
-          }
-
-          console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
-
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ stock_quantity: newStock })
-            .eq("id", item.product_id);
-
-          if (updateError) {
-            console.error("Error updating inventory:", updateError);
-            toast.error(`Failed to update inventory for ${item.product_name}`);
-            throw updateError;
-          }
-
-          console.log(`✓ Inventory updated for ${item.product_name}`);
         }
 
-        console.log("✓ Credits Edit: All items saved and inventory updated successfully");
+        // Sync with server if online
+        if (isOnline) {
+          await supabase
+            .from("sales")
+            .update({
+              customer_name: formData.customer_name,
+              customer_phone: formData.customer_phone || null,
+              total_amount: totalAmount,
+              discount: discount,
+              final_amount: finalAmount,
+              paid_amount: paidAmt,
+              status: remainingAmt > 0 ? "pending" : "completed",
+              payment_status: remainingAmt > 0 ? "pending" : "paid",
+            })
+            .eq("id", saleId);
+
+          await supabase.from("sale_items").delete().eq("sale_id", saleId);
+
+          for (const item of invoiceItems) {
+            await supabase.from("sale_items").insert({
+              sale_id: saleId,
+              product_id: item.product_id,
+              product_name: item.product_name,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              purchase_price: item.purchase_price,
+              total_price: item.total_price,
+              profit: item.profit,
+            });
+          }
+        }
 
         // Update credit with new invoice totals
-        await supabase
-          .from("credits")
-          .update({
-            customer_name: formData.customer_name,
-            customer_phone: formData.customer_phone || null,
-            amount: finalAmount,
-            remaining_amount: remainingAmt,
-            paid_amount: paidAmt,
-            status: remainingAmt > 0 ? "pending" : "paid",
-            due_date: formData.due_date || null,
-            notes: formData.notes || null,
-          })
-          .eq("id", selectedCredit.id);
+        await updateOfflineCredit(selectedCredit.id, {
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone || null,
+          amount: finalAmount,
+          remaining_amount: remainingAmt,
+          paid_amount: paidAmt,
+          status: remainingAmt > 0 ? "pending" : "paid",
+          due_date: formData.due_date || null,
+          notes: formData.notes || null,
+        });
       } else {
-        // Case 2: No sale - just update credit payment
+        // No sale - just update credit payment
         const currentPaid = selectedCredit.paid_amount + paidAmt;
         const newRemainingAmt = selectedCredit.amount - currentPaid;
 
-        await supabase
-          .from("credits")
-          .update({
-            customer_name: formData.customer_name,
-            customer_phone: formData.customer_phone || null,
-            paid_amount: currentPaid,
-            remaining_amount: newRemainingAmt,
-            status: newRemainingAmt <= 0 ? "paid" : "pending",
-            due_date: formData.due_date || null,
-            notes: formData.notes || null,
-          })
-          .eq("id", selectedCredit.id);
+        await updateOfflineCredit(selectedCredit.id, {
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone || null,
+          paid_amount: currentPaid,
+          remaining_amount: newRemainingAmt,
+          status: newRemainingAmt <= 0 ? "paid" : "pending",
+          due_date: formData.due_date || null,
+          notes: formData.notes || null,
+        });
       }
 
       // Record payment transaction if payment made
       if (paidAmt > 0) {
-        await supabase.from("credit_transactions").insert({
-          credit_id: selectedCredit.id,
-          customer_name: formData.customer_name,
-          customer_phone: formData.customer_phone || null,
-          amount: paidAmt,
-          transaction_date: new Date().toISOString().split('T')[0],
-          notes: saleId ? "Payment via invoice edit" : "Direct payment",
-        });
+        await recordOfflinePayment(
+          selectedCredit.id, 
+          paidAmt, 
+          saleId ? "Payment via invoice edit" : "Direct payment"
+        );
       }
 
       toast.success("Credit updated successfully!");
@@ -914,7 +964,6 @@ const Credits = () => {
 
 
   const handleDelete = async (id: string) => {
-    // PERMISSION CHECK
     if (!canDelete) {
       toast.error("You do not have permission to delete credits.");
       return;
@@ -925,7 +974,14 @@ const Credits = () => {
     }
     
     try {
-      await supabase.from("credits").delete().eq("id", id);
+      // Soft delete in IndexedDB
+      await offlineDb.softDelete('credits', id);
+      
+      // Delete from server if online
+      if (isOnline) {
+        await supabase.from("credits").delete().eq("id", id);
+      }
+      
       toast.success("Credit deleted successfully!");
       fetchCredits();
     } catch (error) {
@@ -955,7 +1011,6 @@ const Credits = () => {
   };
 
   const getStatusBadge = (credit: Credit) => {
-    // Determine status based on remaining_amount - same logic as Receive Payment
     if (credit.remaining_amount <= 0) {
       return <Badge className="bg-success text-success-foreground">Paid</Badge>;
     } else if (credit.paid_amount > 0 && credit.remaining_amount > 0) {
@@ -965,11 +1020,9 @@ const Credits = () => {
   };
 
   const getCustomerTotal = (customerCredits: Credit[]) => {
-    // Sum remaining_amount directly from sales table data - no recalculation
     return customerCredits.reduce((sum, credit) => sum + credit.remaining_amount, 0);
   };
 
-  // Filter to show only unpaid invoices (remaining_amount > 0)
   const getUnpaidCredits = (customerCredits: Credit[]) => {
     return customerCredits.filter(credit => credit.remaining_amount > 0);
   };
@@ -986,15 +1039,40 @@ const Credits = () => {
           <h1 className="text-4xl font-bold text-foreground tracking-tight">Credit Management</h1>
           <p className="text-muted-foreground mt-1 text-base">Track customer loans and payments</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <OfflineIndicator />
           <Button 
             onClick={fetchCredits} 
             variant="outline" 
             size="icon"
             disabled={isLoading}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            onChange={handleImportCSV}
+            className="hidden"
+          />
+          {canCreate && (
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline"
+              disabled={isLoading || isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import CSV"}
+            </Button>
+          )}
+          <Button 
+            onClick={() => exportCreditsToCSV(credits)} 
+            variant="outline"
+            disabled={isLoading || credits.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
           </Button>
           {canCreate && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -1119,10 +1197,8 @@ const Credits = () => {
             const totalRemaining = getCustomerTotal(customerCredits);
             const isExpanded = expandedCustomers.has(key);
 
-            // Skip customers with no remaining balance
             if (totalRemaining <= 0) return null;
 
-            // Check if any credits for this customer are cash or invoice credits
             const hasCashCredit = customerCredits.some(credit => credit.credit_type === "cash");
             const hasInvoiceCredit = customerCredits.some(credit => credit.credit_type === "invoice");
             const hasAnyLabel = hasCashCredit || hasInvoiceCredit;
@@ -1337,11 +1413,7 @@ const Credits = () => {
                                           onClick={() => setSelectedImage(payment.image_url)}
                                           className="inline-block"
                                         >
-                                          <img 
-                                            src={payment.image_url} 
-                                            alt="Payment proof" 
-                                            className="h-10 w-10 object-cover rounded border hover:opacity-80 transition-opacity cursor-pointer mx-auto"
-                                          />
+                                          <ImageIcon className="h-4 w-4 text-primary hover:opacity-80" />
                                         </button>
                                       ) : (
                                         <span className="text-muted-foreground">-</span>
@@ -1360,105 +1432,41 @@ const Credits = () => {
               </Collapsible>
             );
           })}
+          {Object.keys(groupedCredits).length === 0 && (
+            <div className="text-center py-12">
+              <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-lg text-muted-foreground">No pending credits found</p>
+            </div>
+          )}
         </div>
       </Card>
 
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Record payment</DialogTitle>
-          </DialogHeader>
-          {selectedCredit && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold">{selectedCredit.customer_name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Remaining amount</p>
-                <p className="text-2xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="fullPayment"
-                  checked={fullPayment}
-                  onCheckedChange={(checked) => setFullPayment(checked as boolean)}
-                />
-                <Label htmlFor="fullPayment" className="font-medium cursor-pointer">
-                  Pay full amount
-                </Label>
-              </div>
-              {!fullPayment && (
-                <div>
-                  <Label htmlFor="paymentAmount">Payment amount</Label>
-                  <Input
-                    id="paymentAmount"
-                    type="number"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    max={selectedCredit.remaining_amount}
-                  />
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button onClick={handlePayment} className="flex-1">
-                  Record payment
-                </Button>
-                <Button onClick={() => setIsPaymentDialogOpen(false)} variant="outline">
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Invoice Edit Dialog */}
       <Dialog open={isInvoiceEditDialogOpen} onOpenChange={setIsInvoiceEditDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit credit</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Credit / Invoice
+              {invoiceNumber && <Badge variant="outline">{invoiceNumber}</Badge>}
+            </DialogTitle>
           </DialogHeader>
-          
           {selectedCredit && (
             <div className="space-y-6">
-              {/* Credit Summary */}
-              <Card className="p-4 bg-muted/50">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Original amount</p>
-                    <p className="text-xl font-bold text-primary">Rs. {selectedCredit.amount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                <p className="text-sm text-muted-foreground">Remaining amount</p>
-                    <p className="text-xl font-bold text-warning">Rs. {selectedCredit.remaining_amount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Paid amount</p>
-                    <p className="text-lg font-semibold text-success">Rs. {selectedCredit.paid_amount.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <div className="mt-1">{getStatusBadge(selectedCredit)}</div>
-                  </div>
-                </div>
-              </Card>
-
               {/* Customer Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="invoice_customer_name">Customer name</Label>
+                  <Label htmlFor="edit_customer_name">Customer name *</Label>
                   <Input
-                    id="invoice_customer_name"
+                    id="edit_customer_name"
                     value={formData.customer_name}
                     onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="invoice_customer_phone">Customer phone</Label>
+                  <Label htmlFor="edit_customer_phone">Customer phone</Label>
                   <Input
-                    id="invoice_customer_phone"
+                    id="edit_customer_phone"
                     value={formData.customer_phone}
                     onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
                   />
@@ -1468,17 +1476,16 @@ const Credits = () => {
               {/* Invoice Items */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <Label className="text-base font-semibold">Invoice items</Label>
-                  <Button type="button" onClick={handleAddInvoiceItem} size="sm">
+                  <Label className="text-base font-semibold">Invoice Items</Label>
+                  <Button type="button" onClick={handleAddInvoiceItem} variant="outline" size="sm">
                     <Plus className="h-4 w-4 mr-1" />
-                    Add item
+                    Add Item
                   </Button>
                 </div>
-                
                 <div className="space-y-3">
-                  {invoiceItems.map((item) => (
+                  {invoiceItems.map((item, index) => (
                     <Card key={item.id} className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                      <div className="grid gap-3 md:grid-cols-5">
                         <div className="md:col-span-2">
                           <Label>Product</Label>
                           <Select
