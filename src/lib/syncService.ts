@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 type TableName = 'products' | 'sales' | 'sale_items' | 'credits' | 'credit_transactions' | 
                  'expenses' | 'payment_ledger' | 'installments' | 'installment_payments' | 'app_settings';
 
-interface SyncResult {
+export interface SyncResult {
   success: boolean;
   synced: number;
   errors: number;
@@ -25,6 +25,8 @@ const storeToTable: Record<offlineDb.StoreName, TableName | null> = {
   installments: 'installments',
   installment_payments: 'installment_payments',
   app_settings: 'app_settings',
+  customers: null, // Derived from credits/sales, not a real table
+  workers: null, // Handled separately via profiles/user_roles
   sync_queue: null,
 };
 
@@ -69,6 +71,9 @@ export async function initialSync(ownerId: string): Promise<void> {
     for (const installment of installments) {
       await syncInstallmentPaymentsFromServer(installment.id);
     }
+
+    // Save last sync time
+    offlineDb.setLocalStorage(offlineDb.localStorageKeys.lastSyncTime, new Date().toISOString());
 
     console.log('Initial sync completed');
   } catch (error) {
@@ -282,6 +287,9 @@ export async function fullSync(ownerId: string): Promise<SyncResult> {
   
   // Then pull latest from server
   await initialSync(ownerId);
+
+  // Save last sync time
+  offlineDb.setLocalStorage(offlineDb.localStorageKeys.lastSyncTime, new Date().toISOString());
 
   return pushResult;
 }
