@@ -1,6 +1,7 @@
 // IndexedDB wrapper for offline-first functionality
+// All records have: id, created_at, updated_at, sync_status, is_deleted, created_by
 const DB_NAME = 'invoxa_offline_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export type SyncStatus = 'synced' | 'pending' | 'error';
 
@@ -11,8 +12,9 @@ export interface OfflineRecord {
   updated_at: string;
   deleted_at?: string | null;
   is_deleted?: boolean;
-  local_updated_at: string; // For conflict resolution
+  local_updated_at: string;
   owner_id?: string | null;
+  created_by?: string | null; // admin or worker user id
 }
 
 export interface OfflineProduct extends OfflineRecord {
@@ -23,6 +25,7 @@ export interface OfflineProduct extends OfflineRecord {
   selling_price: number;
   stock_quantity: number;
   quantity_type?: string | null;
+  low_stock_alert?: number;
 }
 
 export interface OfflineSale extends OfflineRecord {
@@ -132,6 +135,40 @@ export interface OfflineAppSettings {
   updated_at?: string | null;
   sync_status: SyncStatus;
   local_updated_at: string;
+  created_by?: string | null;
+}
+
+export interface OfflineCustomer {
+  id: string;
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+  total_credit: number;
+  opening_balance: number;
+  owner_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  sync_status: SyncStatus;
+  local_updated_at: string;
+  is_deleted?: boolean;
+  created_by?: string | null;
+}
+
+export interface OfflineWorker {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name?: string | null;
+  phone_number?: string | null;
+  role: 'admin' | 'worker';
+  admin_id?: string | null;
+  permissions?: any[];
+  status?: string;
+  created_at: string;
+  updated_at: string;
+  sync_status: SyncStatus;
+  local_updated_at: string;
+  is_deleted?: boolean;
 }
 
 const STORES = {
@@ -145,6 +182,8 @@ const STORES = {
   installments: 'installments',
   installment_payments: 'installment_payments',
   app_settings: 'app_settings',
+  customers: 'customers',
+  workers: 'workers',
   sync_queue: 'sync_queue',
 } as const;
 
@@ -249,16 +288,23 @@ export async function getById<T>(storeName: StoreName, id: string): Promise<T | 
 export async function put<T extends { id: string }>(
   storeName: StoreName, 
   data: T,
-  syncStatus: SyncStatus = 'pending'
+  syncStatus: SyncStatus = 'pending',
+  createdBy?: string | null
 ): Promise<T> {
   const db = await getDb();
   const now = new Date().toISOString();
+  
+  // Get existing record to preserve created_at and created_by
+  const existing = await getById<T & OfflineRecord>(storeName, data.id);
   
   const record = {
     ...data,
     sync_status: syncStatus,
     local_updated_at: now,
     updated_at: (data as any).updated_at || now,
+    created_at: existing?.created_at || (data as any).created_at || now,
+    created_by: existing?.created_by || createdBy || (data as any).created_by || null,
+    is_deleted: (data as any).is_deleted ?? false,
   };
 
   return new Promise((resolve, reject) => {
@@ -410,6 +456,42 @@ export async function getPendingSyncCount(): Promise<number> {
     count += pending.length;
   }
   return count;
+}
+
+// LocalStorage helpers for lightweight data
+export const localStorageKeys = {
+  lastSyncTime: 'invoxa_last_sync_time',
+  userSession: 'invoxa_user_session',
+  selectedBranch: 'invoxa_selected_branch',
+  language: 'invoxa_language',
+  theme: 'invoxa_theme',
+  offlineMode: 'invoxa_offline_mode',
+} as const;
+
+export function setLocalStorage(key: string, value: any): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error('LocalStorage set error:', e);
+  }
+}
+
+export function getLocalStorage<T>(key: string, defaultValue: T): T {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (e) {
+    console.error('LocalStorage get error:', e);
+    return defaultValue;
+  }
+}
+
+export function removeLocalStorage(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    console.error('LocalStorage remove error:', e);
+  }
 }
 
 export { STORES };
