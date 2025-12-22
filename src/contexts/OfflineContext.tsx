@@ -146,10 +146,18 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useOffline() {
+export function useOffline(): OfflineContextValue {
   const context = useContext(OfflineContext);
+  // Return safe defaults if used outside provider (e.g., during initial render)
   if (!context) {
-    throw new Error('useOffline must be used within an OfflineProvider');
+    return {
+      isOnline: navigator.onLine,
+      isSyncing: false,
+      pendingCount: 0,
+      lastSyncTime: null,
+      isInitialized: false,
+      triggerSync: async () => {},
+    };
   }
   return context;
 }
