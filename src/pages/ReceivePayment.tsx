@@ -2,18 +2,20 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useOfflinePayments } from "@/hooks/useOfflinePayments";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Banknote, RefreshCw, Calendar, User, Download, Upload, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { exportPaymentsToCSV, parsePaymentsCSV } from "@/lib/csvExport";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 interface Customer {
   name: string;
@@ -49,6 +51,8 @@ interface LedgerEntry {
 const ReceivePayment = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate, formatDateInput } = useTimezone();
+  const { isOnline } = useOffline();
+  const { payments: offlinePayments, addPayment: addOfflinePayment, refetch: refetchPayments, isLoading: paymentsLoading } = useOfflinePayments();
   
   // Permission checks - receive payment has its own permission
   const canCreate = userRole === "admin" || hasPermission("receive_payment", "create");
@@ -65,7 +69,18 @@ const ReceivePayment = () => {
   const [unpaidInvoices, setUnpaidInvoices] = useState<UnpaidInvoice[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
-  const [recentPayments, setRecentPayments] = useState<LedgerEntry[]>([]);
+
+  // Map offline payments to LedgerEntry format
+  const recentPayments: LedgerEntry[] = offlinePayments.slice(0, 10).map(p => ({
+    id: p.id,
+    customer_name: p.customer_name,
+    payment_amount: p.payment_amount,
+    payment_date: p.payment_date,
+    details: (p.details as PaymentDetail[]) || [],
+    created_at: p.created_at || "",
+    description: p.description || undefined,
+    image_url: p.image_url || undefined,
+  }));
 
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,16 +98,19 @@ const ReceivePayment = () => {
 
       let imported = 0;
       for (const payment of parsedPayments) {
-        const { error } = await supabase.from("payment_ledger").insert({
+        await addOfflinePayment({
           ...payment,
           details: [],
-          owner_id: ownerId,
+          owner_id: ownerId || "",
+          customer_name: payment.customer_name || "",
+          payment_amount: payment.payment_amount || 0,
+          payment_date: payment.payment_date || new Date().toISOString().split('T')[0],
         });
-        if (!error) imported++;
+        imported++;
       }
 
-      toast.success(`Successfully imported ${imported} payments`);
-      fetchRecentPayments();
+      toast.success(isOnline ? `Successfully imported ${imported} payments` : `${imported} payments saved offline`);
+      refetchPayments();
     } catch (error) {
       toast.error("Failed to import CSV");
     } finally {
@@ -103,10 +121,13 @@ const ReceivePayment = () => {
 
   // Initial fetch and real-time subscription
   useEffect(() => {
-    fetchCustomers();
-    fetchRecentPayments();
+    if (isOnline) {
+      fetchCustomers();
+    }
 
-    // Subscribe to real-time changes for instant sync
+    // Subscribe to real-time changes for instant sync (only when online)
+    if (!isOnline) return;
+
     const salesChannel = supabase
       .channel('receive-payment-sales-sync')
       .on(
@@ -124,7 +145,7 @@ const ReceivePayment = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'payment_ledger' },
-        () => fetchRecentPayments()
+        () => refetchPayments()
       )
       .subscribe();
 
@@ -132,7 +153,7 @@ const ReceivePayment = () => {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(paymentLedgerChannel);
     };
-  }, [selectedCustomer]);
+  }, [selectedCustomer, isOnline]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -191,33 +212,6 @@ const ReceivePayment = () => {
       }
     } catch (error) {
       toast.error("Failed to fetch invoices");
-    }
-  };
-
-  const fetchRecentPayments = async () => {
-    try {
-      // Using any cast because payment_ledger table types are not yet generated
-      const { data } = await (supabase as any)
-        .from("payment_ledger")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (data) {
-        const payments = data.map((entry: any) => ({
-          id: entry.id,
-          customer_name: entry.customer_name,
-          payment_amount: entry.payment_amount,
-          payment_date: entry.payment_date,
-          details: (entry.details as PaymentDetail[]) || [],
-          created_at: entry.created_at,
-          description: entry.description,
-          image_url: entry.image_url,
-        }));
-        setRecentPayments(payments);
-      }
-    } catch (error) {
-      console.error("Failed to fetch recent payments:", error);
     }
   };
 
@@ -417,7 +411,7 @@ const ReceivePayment = () => {
         fileInputRef.current.value = "";
       }
       setUnpaidInvoices([]);
-      fetchRecentPayments();
+      refetchPayments();
     } catch (error) {
       console.error("Payment error:", error);
       toast.error("Failed to process payment");
@@ -447,7 +441,8 @@ const ReceivePayment = () => {
             Record customer payments with auto credit adjustment
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <OfflineIndicator />
           <input
             type="file"
             ref={csvInputRef}
@@ -476,7 +471,7 @@ const ReceivePayment = () => {
           <Button
             onClick={() => {
               fetchCustomers();
-              fetchRecentPayments();
+              refetchPayments();
             }}
             variant="outline"
             size="icon"
