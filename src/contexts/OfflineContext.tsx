@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { setupAutoSync, initialSync, isOnline, fullSync } from '@/lib/syncService';
-import { getPendingSyncCount } from '@/lib/offlineDb';
+import { getPendingSyncCount, clearErrorRecords } from '@/lib/offlineDb';
 import { toast } from '@/hooks/use-toast';
 
 interface OfflineContextValue {
@@ -34,6 +34,9 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       setIsSyncing(true);
       
       try {
+        // Clear any stuck error records first
+        await clearErrorRecords();
+        
         // Initial sync if online
         if (isOnline()) {
           await initialSync(ownerId);

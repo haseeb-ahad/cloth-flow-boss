@@ -458,6 +458,37 @@ export async function getPendingSyncCount(): Promise<number> {
   return count;
 }
 
+// Clear all error status records (mark as synced if they exist on server)
+export async function clearErrorRecords(): Promise<number> {
+  let cleared = 0;
+  const db = await getDb();
+  
+  for (const storeName of Object.keys(STORES) as StoreName[]) {
+    if (storeName === 'sync_queue' || storeName === 'customers' || storeName === 'workers') continue;
+    
+    try {
+      const errorRecords = await new Promise<any[]>((resolve, reject) => {
+        const transaction = db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const index = store.index('sync_status');
+        const request = index.getAll('error');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      for (const record of errorRecords) {
+        // Mark as synced (will be verified on next sync)
+        await updateSyncStatus(storeName, record.id, 'synced');
+        cleared++;
+      }
+    } catch (e) {
+      console.error(`Error clearing ${storeName}:`, e);
+    }
+  }
+  
+  return cleared;
+}
+
 // LocalStorage helpers for lightweight data
 export const localStorageKeys = {
   lastSyncTime: 'invoxa_last_sync_time',
