@@ -1,9 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useOffline } from "@/contexts/OfflineContext";
-import { useOfflineExpenses } from "@/hooks/useOfflineExpenses";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +18,6 @@ import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { format } from "date-fns";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
-import * as offlineDb from "@/lib/offlineDb";
 
 const DATE_FILTERS = [
   { label: "All", value: "all" },
@@ -37,14 +33,6 @@ const DATE_FILTERS = [
 export default function Expenses() {
   const { user, ownerId, hasPermission, userRole } = useAuth();
   const { formatDate, formatDateInput } = useTimezone();
-  const { isOnline } = useOffline();
-  const { 
-    expenses: offlineExpenses, 
-    isLoading: offlineExpensesLoading, 
-    addExpense: addOfflineExpense, 
-    deleteExpense: deleteOfflineExpense,
-    refetch: refetchOfflineExpenses 
-  } = useOfflineExpenses();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,17 +50,16 @@ export default function Expenses() {
     expense_date: new Date().toISOString().split('T')[0]
   });
 
-  // Real-time subscription for expenses and sales - only when online
+  // Real-time subscription for expenses and sales
   useEffect(() => {
-    if (!isOnline) return;
-
     const expensesChannel = supabase
       .channel('expenses-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'expenses' },
         () => {
-          refetchOfflineExpenses();
+          // Invalidate all expense-related queries for real-time updates
+          queryClient.invalidateQueries({ queryKey: ["expenses"] });
           queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
           queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
           queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
@@ -111,7 +98,7 @@ export default function Expenses() {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(saleItemsChannel);
     };
-  }, [queryClient, isOnline, refetchOfflineExpenses]);
+  }, [queryClient]);
 
   const handleExportCSV = () => {
     // Export the currently filtered expenses
@@ -154,13 +141,15 @@ export default function Expenses() {
         return;
       }
 
-      // Check for duplicates in local database
+      // Check for duplicates in database if we have original IDs
       let existingIds: string[] = [];
       if (duplicateIds.length > 0) {
-        const localExpenses = await offlineDb.getAll<any>('expenses');
-        existingIds = localExpenses
-          .filter(e => duplicateIds.includes(e.id))
-          .map(e => e.id);
+        const { data: existingExpenses } = await supabase
+          .from("expenses")
+          .select("id")
+          .in("id", duplicateIds);
+        
+        existingIds = existingExpenses?.map(e => e.id) || [];
       }
 
       // Apply type filter to imported expenses if active
@@ -187,14 +176,15 @@ export default function Expenses() {
         // Remove original_id before inserting (it's not a database column)
         const { original_id, ...expenseData } = expense;
         
-        try {
-          await addOfflineExpense({
-            ...expenseData,
-            owner_id: ownerId!,
-          });
+        const { error } = await supabase.from("expenses").insert({
+          ...expenseData,
+          owner_id: ownerId,
+        });
+        
+        if (error) {
+          importErrors.push(`Failed to import expense: ${error.message}`);
+        } else {
           imported++;
-        } catch (err: any) {
-          importErrors.push(`Failed to import expense: ${err.message}`);
         }
       }
 
@@ -213,7 +203,7 @@ export default function Expenses() {
       }
       
       toast.success(message);
-      refetchOfflineExpenses();
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
       queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
       queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
@@ -368,32 +358,45 @@ export default function Expenses() {
     }
   };
 
-  // Get all unique expense types from offline data for filter dropdown
-  const allExpenseTypes = useMemo(() => {
-    const types = new Set<string>();
-    offlineExpenses.forEach(exp => {
-      if (exp.expense_type) types.add(exp.expense_type);
-    });
-    return Array.from(types).sort();
-  }, [offlineExpenses]);
-
-  // Filter expenses based on date and type filters
-  const expenses = useMemo(() => {
-    const { start, end } = getDateRange();
-    
-    return offlineExpenses.filter(expense => {
-      const expenseDate = new Date(expense.expense_date);
-      const startDate = new Date(start.toISOString().split('T')[0]);
-      const endDate = new Date(end.toISOString().split('T')[0]);
+  // Fetch all unique expense types for filter dropdown
+  const { data: allExpenseTypes = [] } = useQuery({
+    queryKey: ["allExpenseTypes", ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("expense_type")
+        .order("expense_type");
       
-      const withinDateRange = expenseDate >= startDate && expenseDate <= endDate;
-      const matchesType = typeFilter === "all" || expense.expense_type === typeFilter;
-      
-      return withinDateRange && matchesType;
-    }).sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
-  }, [offlineExpenses, dateFilter, typeFilter, startDate, endDate]);
+      if (error) throw error;
+      const types = new Set<string>();
+      data?.forEach(exp => {
+        if (exp.expense_type) types.add(exp.expense_type);
+      });
+      return Array.from(types).sort();
+    },
+    enabled: !!ownerId
+  });
 
-  const expensesLoading = offlineExpensesLoading;
+  // Fetch expenses
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+    queryKey: ["expenses", dateFilter, typeFilter, ownerId, startDate?.toISOString(), endDate?.toISOString()],
+    queryFn: async () => {
+      let query = supabase.from("expenses").select("*").order("expense_date", { ascending: false });
+      
+      const { start, end } = getDateRange();
+      query = query.gte("expense_date", start.toISOString().split('T')[0])
+                   .lte("expense_date", end.toISOString().split('T')[0]);
+      
+      if (typeFilter !== "all") {
+        query = query.eq("expense_type", typeFilter);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!ownerId
+  });
 
   // Fetch profit based on filter
   const { data: filteredProfit = 0, isLoading: profitLoading } = useQuery({
@@ -508,7 +511,53 @@ export default function Expenses() {
   const expensesChange = calculatePercentageChange(filteredExpensesTotal, previousExpenses);
   const netProfitChange = calculatePercentageChange(netProfit, previousNetProfit);
 
-  const [isDeleting, setIsDeleting] = useState(false);
+  // Add expense mutation
+  const addExpenseMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const { error } = await supabase.from("expenses").insert({
+        owner_id: ownerId,
+        expense_type: data.expense_type,
+        amount: parseFloat(data.amount),
+        description: data.description || null,
+        expense_date: data.expense_date
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
+      queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpenseTypes"] });
+      toast.success("Expense added successfully");
+      setIsDialogOpen(false);
+      setFormData({
+        expense_type: "",
+        amount: "",
+        description: "",
+        expense_date: new Date().toISOString().split('T')[0]
+      });
+    },
+    onError: (error) => {
+      toast.error("Failed to add expense: " + error.message);
+    }
+  });
+
+  // Delete expense mutation
+  const deleteExpenseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
+      queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
+      toast.success("Expense deleted");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete expense: " + error.message);
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -525,32 +574,13 @@ export default function Expenses() {
     }
     setIsSubmitting(true);
     try {
-      await addOfflineExpense({
-        expense_type: formData.expense_type,
-        amount: parseFloat(formData.amount),
-        description: formData.description || null,
-        expense_date: formData.expense_date,
-        owner_id: ownerId!,
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
-      queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
-      toast.success("Expense added successfully");
-      setIsDialogOpen(false);
-      setFormData({
-        expense_type: "",
-        amount: "",
-        description: "",
-        expense_date: new Date().toISOString().split('T')[0]
-      });
-    } catch (error: any) {
-      toast.error("Failed to add expense: " + error.message);
+      await addExpenseMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     // Permission check for delete
     if (!hasPermission("expenses", "delete")) {
       toast.error("You don't have permission to delete expenses");
@@ -558,17 +588,7 @@ export default function Expenses() {
     }
     
     if (confirm("Are you sure you want to delete this expense?")) {
-      setIsDeleting(true);
-      try {
-        await deleteOfflineExpense(id);
-        queryClient.invalidateQueries({ queryKey: ["filteredExpensesTotal"] });
-        queryClient.invalidateQueries({ queryKey: ["previousExpenses"] });
-        toast.success("Expense deleted");
-      } catch (error: any) {
-        toast.error("Failed to delete expense: " + error.message);
-      } finally {
-        setIsDeleting(false);
-      }
+      deleteExpenseMutation.mutate(id);
     }
   };
 
@@ -580,10 +600,7 @@ export default function Expenses() {
         </div>
       )}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">Expenses</h1>
-            <OfflineIndicator />
-          </div>
+          <h1 className="text-3xl font-bold">Expenses</h1>
           <div className="flex gap-2">
             <input
               type="file"
@@ -886,7 +903,7 @@ export default function Expenses() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDelete(expense.id)}
-                            disabled={isDeleting}
+                            disabled={deleteExpenseMutation.isPending}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>

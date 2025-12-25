@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
-import { useOffline } from "@/contexts/OfflineContext";
-import { useOfflineCredits } from "@/hooks/useOfflineCredits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Banknote, Loader2, Search } from "lucide-react";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 interface Customer {
   name: string;
@@ -23,8 +20,6 @@ interface Customer {
 const CashCredit = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDateInput } = useTimezone();
-  const { isOnline } = useOffline();
-  const { addCredit } = useOfflineCredits();
   
   const canCreate = userRole === "admin" || hasPermission("credits", "create");
   
@@ -43,10 +38,8 @@ const CashCredit = () => {
   });
 
   useEffect(() => {
-    if (isOnline) {
-      fetchCustomers();
-    }
-  }, [isOnline]);
+    fetchCustomers();
+  }, []);
 
   const fetchCustomers = async () => {
     const { data } = await supabase
@@ -117,8 +110,7 @@ const CashCredit = () => {
         ? new Date(formData.date + 'T12:00:00').toISOString() 
         : new Date().toISOString();
 
-      // Use offline-first credit hook
-      await addCredit({
+      const { error } = await supabase.from("credits").insert({
         customer_name: formData.name.trim(),
         customer_phone: formData.phone || null,
         amount: amount,
@@ -127,13 +119,15 @@ const CashCredit = () => {
         due_date: formData.date || null,
         status: "pending",
         notes: formData.notes || null,
-        owner_id: ownerId || "",
+        owner_id: ownerId,
         credit_type: "cash",
         person_type: formData.person_type,
         created_at: creditDate,
       });
 
-      toast.success(isOnline ? "Cash credit successfully added" : "Cash credit saved offline");
+      if (error) throw error;
+
+      toast.success("Cash credit successfully added");
       
       // Reset form
       setFormData({
@@ -172,12 +166,9 @@ const CashCredit = () => {
           <AnimatedLogoLoader size="lg" showMessage message="Saving..." />
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Cash Credit (Udhar Diya)</h1>
-          <p className="text-muted-foreground">Record cash given as credit to any person</p>
-        </div>
-        <OfflineIndicator />
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Cash Credit (Udhar Diya)</h1>
+        <p className="text-muted-foreground">Record cash given as credit to any person</p>
       </div>
 
       <Card className="max-w-2xl">

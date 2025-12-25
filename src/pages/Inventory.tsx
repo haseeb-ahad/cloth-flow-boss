@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOffline } from "@/contexts/OfflineContext";
-import { useOfflineProducts, Product } from "@/hooks/useOfflineProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +13,18 @@ import { toast } from "sonner";
 import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload, PackageSearch, DollarSign, TrendingUp } from "lucide-react";
 import { exportInventoryToCSV, parseInventoryCSV } from "@/lib/csvExport";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
-import * as offlineDb from "@/lib/offlineDb";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  purchase_price: number;
+  selling_price: number;
+  stock_quantity: number;
+  category: string | null;
+  quantity_type: string;
+  created_at: string | null;
+}
 
 interface StockStats {
   stockCost: number;
@@ -34,19 +42,19 @@ interface StockStats {
 
 const Inventory = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
-  const { isOnline } = useOffline();
-  const { products, isLoading, refetch, addProduct, updateProduct, deleteProduct } = useOfflineProducts();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("inventory", "create");
   const canEdit = userRole === "admin" || hasPermission("inventory", "edit");
   const canDelete = userRole === "admin" || hasPermission("inventory", "delete");
-  
+  const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,63 +76,6 @@ const Inventory = () => {
     quantity_type: "Unit",
   });
 
-  // Calculate stock stats whenever products change
-  useEffect(() => {
-    if (products.length > 0) {
-      const stockCost = products.reduce(
-        (sum, product) => sum + Number(product.purchase_price) * product.stock_quantity,
-        0
-      );
-      const stockSellWorth = products.reduce(
-        (sum, product) => sum + Number(product.selling_price) * product.stock_quantity,
-        0
-      );
-      const sellProfit = stockSellWorth - stockCost;
-      const totalProducts = products.length;
-      const lowStockCount = products.filter(p => p.stock_quantity < 10).length;
-      const totalStockByType = products.reduce(
-        (acc, product) => {
-          const type = product.quantity_type || 'Unit';
-          acc[type as keyof typeof acc] = (acc[type as keyof typeof acc] || 0) + product.stock_quantity;
-          return acc;
-        },
-        { Unit: 0, Than: 0, Suit: 0, Meter: 0 }
-      );
-      
-      setStockStats({
-        stockCost,
-        stockSellWorth,
-        sellProfit,
-        totalProducts,
-        lowStockCount,
-        totalStockByType,
-      });
-    }
-  }, [products]);
-
-  // Filter products when search/filter changes
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchTerm, categoryFilter]);
-
-  // Real-time subscription only when online
-  useEffect(() => {
-    if (!isOnline) return;
-
-    const productsChannel = supabase
-      .channel('inventory-products-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => refetch()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(productsChannel);
-    };
-  }, [isOnline, refetch]);
-
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -141,24 +92,98 @@ const Inventory = () => {
 
       let imported = 0;
       for (const product of parsedProducts) {
-        await addProduct({
-          name: product.name,
-          description: product.description || null,
-          purchase_price: product.purchase_price,
-          selling_price: product.selling_price,
-          stock_quantity: product.stock_quantity,
-          category: product.category || null,
-          quantity_type: product.quantity_type || 'Unit',
+        const { error } = await supabase.from("products").insert({
+          ...product,
+          owner_id: ownerId,
         });
-        imported++;
+        if (!error) imported++;
       }
 
       toast.success(`Successfully imported ${imported} products`);
+      fetchProducts();
     } catch (error) {
       toast.error("Failed to import CSV");
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Initial fetch and real-time subscription
+  useEffect(() => {
+    fetchProducts();
+
+    // Subscribe to real-time changes for instant sync
+    const productsChannel = supabase
+      .channel('inventory-products-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => fetchProducts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productsChannel);
+    };
+  }, []);
+
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm, categoryFilter]);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        toast.error("Failed to load products");
+        return;
+      }
+      
+      if (data) {
+        setProducts(data);
+        setFilteredProducts(data);
+        
+        // Calculate stock stats
+        const stockCost = data.reduce(
+          (sum, product) => sum + Number(product.purchase_price) * product.stock_quantity,
+          0
+        );
+        const stockSellWorth = data.reduce(
+          (sum, product) => sum + Number(product.selling_price) * product.stock_quantity,
+          0
+        );
+        const sellProfit = stockSellWorth - stockCost;
+        const totalProducts = data.length;
+        const lowStockCount = data.filter(p => p.stock_quantity < 10).length;
+        const totalStockByType = data.reduce(
+          (acc, product) => {
+            const type = product.quantity_type || 'Unit';
+            acc[type as keyof typeof acc] = (acc[type as keyof typeof acc] || 0) + product.stock_quantity;
+            return acc;
+          },
+          { Unit: 0, Than: 0, Suit: 0, Meter: 0 }
+        );
+        
+        setStockStats({
+          stockCost,
+          stockSellWorth,
+          sellProfit,
+          totalProducts,
+          lowStockCount,
+          totalStockByType,
+        });
+      }
+      toast.success("Products refreshed");
+    } catch (error) {
+      toast.error("Failed to load products");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -184,7 +209,7 @@ const Inventory = () => {
   const getUniqueCategories = () => {
     const categories = products
       .map(p => p.category)
-      .filter((cat): cat is string => cat !== null && cat !== undefined && cat !== "")
+      .filter((cat): cat is string => cat !== null && cat !== "")
       .filter((cat, index, self) => self.indexOf(cat) === index)
       .sort();
     return categories;
@@ -209,33 +234,30 @@ const Inventory = () => {
     
     if (!confirm(confirmMessage)) return;
     
-    setIsSaving(true);
-    
-    try {
-      const productData = {
-        name: formData.name,
-        description: formData.description || null,
-        purchase_price: parseFloat(formData.purchase_price),
-        selling_price: parseFloat(formData.selling_price),
-        stock_quantity: parseFloat(formData.stock_quantity),
-        category: formData.category || null,
-        quantity_type: formData.quantity_type,
-      };
+    const productData = {
+      name: formData.name,
+      description: formData.description || null,
+      purchase_price: parseFloat(formData.purchase_price),
+      selling_price: parseFloat(formData.selling_price),
+      stock_quantity: parseFloat(formData.stock_quantity),
+      category: formData.category || null,
+      quantity_type: formData.quantity_type,
+    };
 
+    try {
       if (editingProduct) {
-        await updateProduct(editingProduct.id, productData);
+        await supabase.from("products").update(productData).eq("id", editingProduct.id);
         toast.success("Product updated successfully!");
       } else {
-        await addProduct(productData);
+        await supabase.from("products").insert({ ...productData, owner_id: ownerId });
         toast.success("Product added successfully!");
       }
       
+      await fetchProducts();
       resetForm();
       setIsDialogOpen(false);
     } catch (error) {
       toast.error("Failed to save product");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -268,11 +290,20 @@ const Inventory = () => {
     
     setIsSaving(true);
     try {
-      // Check if product has been used in any sales (from IndexedDB)
-      const saleItems = await offlineDb.getAll<{ id: string; product_id: string }>('sale_items');
-      const hasUsage = saleItems.some(item => item.product_id === editingProduct.id);
+      // First check if product has been used in any sales
+      const { data: saleItems, error: checkError } = await supabase
+        .from("sale_items")
+        .select("id")
+        .eq("product_id", editingProduct.id)
+        .limit(1);
       
-      if (hasUsage) {
+      if (checkError) {
+        console.error("Error checking sales:", checkError);
+        toast.error("Failed to check product usage");
+        return;
+      }
+      
+      if (saleItems && saleItems.length > 0) {
         toast.error(
           "Cannot delete this product because it has been used in sales. Sales history must be preserved.",
           { duration: 5000 }
@@ -280,10 +311,22 @@ const Inventory = () => {
         return;
       }
       
-      await deleteProduct(editingProduct.id);
+      // If no sales, proceed with deletion
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", editingProduct.id);
+      
+      if (error) {
+        console.error("Delete error:", error);
+        toast.error(`Failed to delete product: ${error.message}`);
+        return;
+      }
+      
       toast.success("Product deleted successfully!");
       setIsDialogOpen(false);
       resetForm();
+      await fetchProducts();
     } catch (error: any) {
       console.error("Delete exception:", error);
       toast.error(`Failed to delete product: ${error?.message || "Unknown error"}`);
@@ -334,8 +377,7 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your products and stock</p>
         </div>
-        <div className="flex gap-2 items-center">
-          <OfflineIndicator />
+        <div className="flex gap-2">
           <input
             type="file"
             ref={fileInputRef}
@@ -361,7 +403,7 @@ const Inventory = () => {
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
-          <Button onClick={refetch} variant="outline" size="icon" disabled={isLoading}>
+          <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           {canCreate && (
