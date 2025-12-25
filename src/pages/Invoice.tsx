@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useOfflineProducts } from "@/hooks/useOfflineProducts";
+import { useOfflineSales, Sale, SaleItem } from "@/hooks/useOfflineSales";
+import * as offlineDb from "@/lib/offlineDb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw, WifiOff, Wifi } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
@@ -20,6 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import PrintInvoice from "@/components/PrintInvoice";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 // DEBUG FLAG - Set to false after confirming fix
 const DEBUG_MODE = true;
@@ -53,16 +58,31 @@ interface InvoiceItem {
 const Invoice = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { ownerId, hasPermission, userRole } = useAuth();
+  const { ownerId, hasPermission, userRole, user } = useAuth();
   const { timezone, formatDateInput } = useTimezone();
+  const { isOnline } = useOffline();
   const editSaleId = searchParams.get("edit");
+  
+  // Offline hooks for products and sales
+  const { products: offlineProducts, updateProduct } = useOfflineProducts();
+  const { sales, addSale, updateSale: updateSaleOffline, deleteSale: deleteSaleOffline, getSaleItems, generateInvoiceNumber } = useOfflineSales();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("invoice", "create");
   const canEdit = userRole === "admin" || hasPermission("invoice", "edit");
   const canDelete = userRole === "admin" || hasPermission("invoice", "delete");
   
-  const [products, setProducts] = useState<Product[]>([]);
+  // Convert offline products to invoice format
+  const products: Product[] = offlineProducts.map(p => ({
+    id: p.id,
+    name: p.name,
+    selling_price: p.selling_price,
+    purchase_price: p.purchase_price,
+    stock_quantity: p.stock_quantity,
+    quantity_type: p.quantity_type || 'Unit',
+    category: p.category || null,
+  }));
+  
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -158,7 +178,7 @@ const Invoice = () => {
       setIsLoading(true);
       hasLoadedRef.current = true;
       
-      await Promise.all([fetchProducts(), fetchCustomerNames(), fetchReceiptSettings()]);
+      await Promise.all([fetchCustomerNames(), fetchReceiptSettings()]);
       if (editSaleId) {
         await loadSaleData(editSaleId);
       }
@@ -280,10 +300,8 @@ const Invoice = () => {
     }
   };
 
-  const fetchProducts = async () => {
-    const { data } = await supabase.from("products").select("*");
-    if (data) setProducts(data);
-  };
+  // Products are now loaded from useOfflineProducts hook
+  // No need to fetch manually - they come from the hook
 
   // Check if an item is complete (all required fields filled)
   const isItemComplete = (item: InvoiceItem): boolean => {
@@ -794,7 +812,7 @@ const Invoice = () => {
     
     try {
       if (editSaleId) {
-        await updateSale();
+        await updateSaleLocal();
       } else {
         await createSale();
       }
@@ -817,7 +835,7 @@ const Invoice = () => {
   };
 
   const createSale = async () => {
-    debugLog("🆕 CREATE SALE: Starting");
+    debugLog("🆕 CREATE SALE: Starting (offline-first)");
     
     // Use locked items snapshot for absolute safety
     const safeItems = itemsBeforeSaveRef.current.length > 0 
@@ -826,7 +844,6 @@ const Invoice = () => {
     
     debugLog(`📦 Creating invoice with ${safeItems.length} items (locked snapshot)`);
     
-    const newInvoiceNumber = `INV-${Date.now()}`;
     const totalAmount = calculateTotal();
     const finalAmount = calculateFinalAmount();
     const paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
@@ -835,141 +852,114 @@ const Invoice = () => {
     const now = new Date();
     let invoiceDateISO: string;
     if (invoiceDate) {
-      // User selected a specific date - combine with current time
       const selectedDate = new Date(invoiceDate);
       selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
       invoiceDateISO = selectedDate.toISOString();
     } else {
-      // No date selected - use current datetime
       invoiceDateISO = now.toISOString();
     }
 
-    // Upload image if provided
-    const uploadedImageUrl = await uploadImage();
+    // Upload image if online, otherwise skip
+    let uploadedImageUrl: string | null = null;
+    if (isOnline && imageFile) {
+      uploadedImageUrl = await uploadImage();
+    } else if (imageFile) {
+      toast.info("Image will be uploaded when you're back online");
+    }
 
-    const { data: sale, error: saleError } = await supabase
-      .from("sales")
-      .insert({
-        invoice_number: newInvoiceNumber,
-        customer_name: customerName || null,
-        customer_phone: customerPhone || null,
-        total_amount: totalAmount,
-        discount: discount,
-        final_amount: finalAmount,
-        payment_method: paymentMethod,
-        paid_amount: paid,
-        payment_status: isFullPayment ? "paid" : "pending",
-        created_at: invoiceDateISO,
-        owner_id: ownerId,
-        description: description || null,
-        image_url: uploadedImageUrl || null,
-      })
-      .select()
-      .single();
-
-    if (saleError) throw saleError;
-
-    debugLog(`💾 Sale record created: ${newInvoiceNumber}`);
-
-    // CRITICAL: Insert each item from LOCKED snapshot
-    for (let i = 0; i < safeItems.length; i++) {
-      const item = safeItems[i];
-      const profit = (item.unit_price - item.purchase_price) * item.quantity;
-      
-      debugLog(`📝 Inserting item ${i + 1}/${safeItems.length}: ${item.product_name}`);
-      
-      // Step 1: Insert the sale item
-      const { error: itemInsertError } = await supabase.from("sale_items").insert({
-        sale_id: sale.id,
+    try {
+      // Convert InvoiceItem to SaleItem format for the hook
+      const saleItemsData = safeItems.map(item => ({
         product_id: item.product_id,
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
         purchase_price: item.purchase_price,
         total_price: item.total_price,
-        profit: profit,
+        profit: (item.unit_price - item.purchase_price) * item.quantity,
         is_return: item.is_return || false,
-      });
+      }));
 
-      if (itemInsertError) {
-        debugLog(`❌ Error inserting item ${i + 1}/${safeItems.length}:`, itemInsertError);
-        toast.error(`Failed to add item: ${item.product_name}`);
-        throw itemInsertError;
+      // Use the offline hook to add sale
+      const newSale = await addSale(
+        {
+          customer_name: customerName || null,
+          customer_phone: customerPhone || null,
+          total_amount: totalAmount,
+          discount: discount,
+          final_amount: finalAmount,
+          payment_method: paymentMethod,
+          paid_amount: paid,
+          payment_status: isFullPayment ? "paid" : "pending",
+          status: "completed",
+          description: description || null,
+          image_url: uploadedImageUrl || null,
+        },
+        saleItemsData
+      );
+
+      debugLog(`💾 Sale record created: ${newSale.invoice_number}`);
+
+      // Update inventory for each non-return item
+      for (const item of safeItems) {
+        if (item.is_return) {
+          debugLog(`⏭️ Skipping inventory for return item: ${item.product_name}`);
+          continue;
+        }
+
+        const product = products.find(p => p.id === item.product_id);
+        if (product) {
+          const newStock = product.stock_quantity - item.quantity;
+          if (newStock < 0) {
+            toast.error(`Insufficient stock for ${item.product_name}`);
+            throw new Error("Insufficient stock");
+          }
+          await updateProduct(item.product_id, { stock_quantity: newStock });
+          debugLog(`✅ Inventory updated for ${item.product_name}: ${product.stock_quantity} → ${newStock}`);
+        }
       }
 
-      debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
-
-      // SKIP inventory for return items - they are just for tracking
-      // The main item's reduced quantity already accounts for the return
-      if (item.is_return) {
-        debugLog(`⏭️ Skipping inventory update for return item: ${item.product_name} (tracking only)`);
-        continue;
+      // Handle credit creation if partial payment
+      if (paid < finalAmount) {
+        const creditAmount = finalAmount - paid;
+        const creditData = {
+          sale_id: newSale.id,
+          customer_name: customerName || "Walk-in Customer",
+          customer_phone: customerPhone || null,
+          amount: creditAmount,
+          paid_amount: 0,
+          remaining_amount: creditAmount,
+          status: "pending",
+          notes: `Partial payment for invoice ${newSale.invoice_number}`,
+          credit_type: "invoice",
+          owner_id: ownerId,
+        };
+        
+        // Store in offline DB
+        await offlineDb.put('credits', {
+          id: crypto.randomUUID(),
+          ...creditData,
+          created_at: invoiceDateISO,
+          is_deleted: false,
+        } as any, 'pending', user?.id);
+        
+        debugLog(`📝 Credit created for ${creditAmount}`);
       }
 
-      // Step 2: Fetch current stock from database (not from state)
-      const { data: product, error: fetchError } = await supabase
-        .from("products")
-        .select("stock_quantity")
-        .eq("id", item.product_id)
-        .single();
-
-      if (fetchError || !product) {
-        console.error("Error fetching product stock:", fetchError);
-        toast.error(`Failed to update inventory for ${item.product_name}`);
-        throw fetchError || new Error("Product not found");
-      }
-
-      // Step 3: Deduct stock for regular items only
-      const newStock = product.stock_quantity - item.quantity;
-      
-      if (newStock < 0) {
-        toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-        throw new Error("Insufficient stock");
-      }
-      console.log(`Reducing stock for ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
-
-      // Step 4: Update inventory
-      const { error: updateError } = await supabase
-        .from("products")
-        .update({ stock_quantity: newStock })
-        .eq("id", item.product_id);
-
-      if (updateError) {
-        console.error("Error updating inventory:", updateError);
-        toast.error(`Failed to update inventory for ${item.product_name}`);
-        throw updateError;
-      }
-
-      debugLog(`✅ Inventory updated for ${item.product_name}`);
+      debugLog(`✅ ALL ${safeItems.length} ITEMS SAVED AND INVENTORY UPDATED`);
+      toast.success(isOnline ? "Invoice created successfully!" : "Invoice saved offline - will sync when online");
+      printInvoice(newSale.invoice_number);
+      resetForm();
+    } catch (error) {
+      console.error("Error creating sale:", error);
+      toast.error("Failed to create invoice");
+      throw error;
     }
-
-    debugLog(`✅ ALL ${safeItems.length} ITEMS SAVED AND INVENTORY UPDATED`);
-
-    if (paid < finalAmount) {
-      const creditAmount = finalAmount - paid;
-      await supabase.from("credits").insert({
-        sale_id: sale.id,
-        customer_name: customerName || "Walk-in Customer",
-        customer_phone: customerPhone || null,
-        amount: creditAmount,
-        paid_amount: 0,
-        remaining_amount: creditAmount,
-        status: "pending",
-        notes: `Partial payment for invoice ${newInvoiceNumber}`,
-        created_at: invoiceDateISO,
-        owner_id: ownerId,
-      });
-    }
-
-    toast.success("Invoice created successfully!");
-    printInvoice(newInvoiceNumber);
-    resetForm();
   };
 
-  const updateSale = async () => {
-    debugLog("🔄 UPDATE SALE: Starting");
+  const updateSaleLocal = async () => {
+    debugLog("🔄 UPDATE SALE: Starting (offline-first)");
     
-    // Use locked items snapshot
     const safeItems = itemsBeforeSaveRef.current.length > 0 
       ? itemsBeforeSaveRef.current 
       : items;
@@ -977,17 +967,13 @@ const Invoice = () => {
     debugLog(`📦 Updating with ${safeItems.length} items (locked snapshot)`);
     
     try {
-      // CRITICAL VALIDATION: Prevent data loss
       if (safeItems.length === 0) {
-        toast.error("Cannot save invoice without items! Please add products before saving.");
-        debugLog("⛔ BLOCKED: No items to update");
+        toast.error("Cannot save invoice without items!");
         return;
       }
 
-      // Validate that we have original items to compare against
       if (originalItems.length === 0) {
-        toast.error("Cannot update sale - original items not loaded. Please reload the page.");
-        debugLog("⛔ BLOCKED: Original items not loaded");
+        toast.error("Cannot update sale - original items not loaded. Please reload.");
         return;
       }
 
@@ -995,61 +981,31 @@ const Invoice = () => {
       const finalAmount = calculateFinalAmount();
       let paid = paidAmount ? parseFloat(paidAmount) : finalAmount;
       
-      // Add additional payment if provided
       if (additionalPayment && parseFloat(additionalPayment) > 0) {
         paid += parseFloat(additionalPayment);
       }
 
-      // Step 1: Reverse stock changes for original items (ONLY regular items, skip returns)
-      // Return items are tracking-only and never affected inventory
-      debugLog("♻️ Reversing stock for original items:", originalItems.filter(i => !i.is_return).map(i => i.product_name));
+      // Step 1: Reverse stock for original items (offline-first)
+      debugLog("♻️ Reversing stock for original items");
       for (const originalItem of originalItems) {
-        // SKIP return items - they never affected inventory
-        if (originalItem.is_return) {
-          debugLog(`⏭️ Skipping reversal for return item: ${originalItem.product_name} (tracking only)`);
-          continue;
-        }
+        if (originalItem.is_return) continue;
 
-        const { data: product, error: fetchError } = await supabase
-          .from("products")
-          .select("stock_quantity")
-          .eq("id", originalItem.product_id)
-          .single();
-
-        if (fetchError) {
-          console.error("Error fetching product for restoration:", fetchError);
-          toast.error(`Failed to restore stock for ${originalItem.product_name}`);
-          throw fetchError;
-        }
-
-        if (!product) {
-          toast.error(`Product not found: ${originalItem.product_name}`);
-          throw new Error("Product not found");
-        }
-
-        // Regular items were DEDUCTED from stock, so we ADD back
-        const restoredStock = product.stock_quantity + originalItem.quantity;
-        console.log(`Reversing deduction for ${originalItem.product_name}: ${product.stock_quantity} + ${originalItem.quantity} = ${restoredStock}`);
-
-        const { error: updateError } = await supabase
-          .from("products")
-          .update({ stock_quantity: restoredStock })
-          .eq("id", originalItem.product_id);
-        
-        if (updateError) {
-          console.error("Error restoring stock:", updateError);
-          toast.error(`Failed to restore stock for ${originalItem.product_name}`);
-          throw updateError;
+        const product = products.find(p => p.id === originalItem.product_id);
+        if (product) {
+          const restoredStock = product.stock_quantity + originalItem.quantity;
+          await updateProduct(originalItem.product_id, { stock_quantity: restoredStock });
+          debugLog(`✅ Restored ${originalItem.product_name}: +${originalItem.quantity}`);
         }
       }
 
-      // Step 2: Update sale record with accurate data
-      // NOTE: We do NOT update created_at to preserve the original invoice date/time
-      
-      // Upload image if provided
-      const uploadedImageUrl = await uploadImage();
+      // Upload image if online
+      let uploadedImageUrl: string | null = imagePreview;
+      if (isOnline && imageFile) {
+        uploadedImageUrl = await uploadImage();
+      }
 
-      const { error: saleError } = await supabase.from("sales").update({
+      // Step 2: Update sale using offline hook
+      await updateSaleOffline(editSaleId!, {
         customer_name: customerName || null,
         customer_phone: customerPhone || null,
         total_amount: totalAmount,
@@ -1061,38 +1017,21 @@ const Invoice = () => {
         payment_status: isFullPayment ? "paid" : "pending",
         description: description || null,
         image_url: uploadedImageUrl || null,
-      }).eq("id", editSaleId);
+      });
 
-      if (saleError) {
-        console.error("Error updating sale:", saleError);
-        toast.error("Failed to update sale record");
-        throw saleError;
+      // Step 3: Update sale items in offline DB
+      // First soft delete old items
+      const oldItems = await getSaleItems(editSaleId!);
+      for (const oldItem of oldItems) {
+        await offlineDb.softDelete('sale_items', oldItem.id);
       }
 
-      // Step 3: CRITICAL - Only delete old items if we have new items to insert
-      // This prevents accidental data loss
-      if (safeItems.length === 0) {
-        toast.error("CRITICAL: Cannot delete items without replacements. Operation aborted.");
-        debugLog("⛔ BLOCKED: Attempted to delete without replacements");
-        throw new Error("Cannot delete items - no replacement items available");
-      }
-      
-      debugLog(`🗑️ Deleting old items and replacing with ${safeItems.length} new items`);
-      const { error: deleteError } = await supabase.from("sale_items").delete().eq("sale_id", editSaleId);
-      if (deleteError) {
-        debugLog("❌ Error deleting old sale items:", deleteError);
-        toast.error("Failed to update sale items");
-        throw deleteError;
-      }
-
-      // Step 4: Insert new sale items from LOCKED snapshot and deduct stock
-      debugLog(`📝 Inserting ${safeItems.length} new items for updated invoice`);
-      for (let i = 0; i < safeItems.length; i++) {
-        const item = safeItems[i];
+      // Insert new items
+      for (const item of safeItems) {
         const profit = (item.unit_price - item.purchase_price) * item.quantity;
-        
-        const { error: insertError } = await supabase.from("sale_items").insert({
-          sale_id: editSaleId,
+        await offlineDb.put('sale_items', {
+          id: crypto.randomUUID(),
+          sale_id: editSaleId!,
           product_id: item.product_id,
           product_name: item.product_name,
           quantity: item.quantity,
@@ -1101,93 +1040,46 @@ const Invoice = () => {
           total_price: item.total_price,
           profit: profit,
           is_return: item.is_return || false,
-        });
-
-        if (insertError) {
-          debugLog(`❌ Error inserting item ${i + 1}/${safeItems.length}:`, insertError);
-          toast.error(`Failed to add ${item.product_name} to sale`);
-          throw insertError;
-        }
-
-        debugLog(`✅ Item ${i + 1}/${safeItems.length} inserted: ${item.product_name}`);
-
-        // SKIP inventory for return items - they are just for tracking
-        // The main item's reduced quantity already accounts for the return
-        if (item.is_return) {
-          debugLog(`⏭️ Skipping inventory update for return item: ${item.product_name} (tracking only)`);
-          continue;
-        }
-
-        // Deduct stock for regular items only
-        const { data: product, error: fetchError } = await supabase
-          .from("products")
-          .select("stock_quantity")
-          .eq("id", item.product_id)
-          .single();
-
-        if (fetchError) {
-          console.error("Error fetching product for deduction:", fetchError);
-          toast.error(`Failed to update stock for ${item.product_name}`);
-          throw fetchError;
-        }
-
-        if (!product) {
-          toast.error(`Product not found: ${item.product_name}`);
-          throw new Error("Product not found");
-        }
-
-        // Deduct stock for regular items
-        const newStock = product.stock_quantity - item.quantity;
-        console.log(`Deducting ${item.product_name}: ${product.stock_quantity} - ${item.quantity} = ${newStock}`);
-
-        if (newStock < 0) {
-          toast.error(`Insufficient stock for ${item.product_name}. Available: ${product.stock_quantity}, Required: ${item.quantity}`);
-          throw new Error("Insufficient stock");
-        }
-
-        const { error: updateError } = await supabase
-          .from("products")
-          .update({ stock_quantity: newStock })
-          .eq("id", item.product_id);
-        
-        if (updateError) {
-          console.error("Error updating stock:", updateError);
-          toast.error(`Failed to update stock for ${item.product_name}`);
-          throw updateError;
-        }
-
-        debugLog(`✅ Inventory updated for ${item.product_name}`);
+          is_deleted: false,
+        } as any, 'pending', user?.id);
       }
 
-      debugLog(`✅ ALL ${safeItems.length} ITEMS UPDATED AND INVENTORY SYNCED`);
+      // Step 4: Deduct stock for new items
+      for (const item of safeItems) {
+        if (item.is_return) continue;
 
-      // Step 5: Handle credit updates
-      const { data: existingCredit } = await supabase
-        .from("credits")
-        .select("*")
-        .eq("sale_id", editSaleId)
-        .maybeSingle();
+        const product = products.find(p => p.id === item.product_id);
+        if (product) {
+          const newStock = product.stock_quantity - item.quantity;
+          if (newStock < 0) {
+            toast.error(`Insufficient stock for ${item.product_name}`);
+            throw new Error("Insufficient stock");
+          }
+          await updateProduct(item.product_id, { stock_quantity: newStock });
+          debugLog(`✅ Deducted ${item.product_name}: -${item.quantity}`);
+        }
+      }
+
+      // Step 5: Handle credits (offline)
+      const allCredits = await offlineDb.getAll<any>('credits');
+      const existingCredit = allCredits.find(c => c.sale_id === editSaleId);
 
       if (existingCredit) {
         if (paid >= finalAmount) {
-          const { error: creditDeleteError } = await supabase.from("credits").delete().eq("id", existingCredit.id);
-          if (creditDeleteError) {
-            console.error("Error deleting credit:", creditDeleteError);
-          }
+          await offlineDb.softDelete('credits', existingCredit.id);
         } else {
           const newCreditAmount = finalAmount - paid;
-          const { error: creditUpdateError } = await supabase.from("credits").update({
+          await offlineDb.put('credits', {
+            ...existingCredit,
             amount: newCreditAmount,
             remaining_amount: newCreditAmount,
             paid_amount: 0,
-          }).eq("id", existingCredit.id);
-          if (creditUpdateError) {
-            console.error("Error updating credit:", creditUpdateError);
-          }
+          }, 'pending', user?.id);
         }
       } else if (paid < finalAmount) {
         const creditAmount = finalAmount - paid;
-        const { error: creditInsertError } = await supabase.from("credits").insert({
+        await offlineDb.put('credits', {
+          id: crypto.randomUUID(),
           sale_id: editSaleId,
           customer_name: customerName || "Walk-in Customer",
           customer_phone: customerPhone || null,
@@ -1195,18 +1087,20 @@ const Invoice = () => {
           paid_amount: 0,
           remaining_amount: creditAmount,
           status: "pending",
+          credit_type: "invoice",
           notes: `Partial payment for invoice ${invoiceNumber}`,
-        });
-        if (creditInsertError) {
-          console.error("Error creating credit:", creditInsertError);
-        }
+          owner_id: ownerId,
+          created_at: new Date().toISOString(),
+          is_deleted: false,
+        } as any, 'pending', user?.id);
       }
 
-      toast.success("Sale updated successfully! Inventory and credits synchronized.");
+      debugLog(`✅ Sale updated with ${safeItems.length} items`);
+      toast.success(isOnline ? "Sale updated successfully!" : "Sale updated offline - will sync when online");
       navigate("/sales");
     } catch (error) {
-      console.error("Critical error updating sale:", error);
-      toast.error("Failed to update sale. Please try again or contact support.");
+      console.error("Error updating sale:", error);
+      toast.error("Failed to update sale");
     }
   };
 
@@ -1287,7 +1181,7 @@ const Invoice = () => {
     setDescription("");
     setImageFile(null);
     setImagePreview(null);
-    fetchProducts();
+    // Products are automatically refreshed by the hook
   };
 
   return (
@@ -1298,20 +1192,23 @@ const Invoice = () => {
         </div>
       )}
 
-      <div className="flex items-center gap-4">
-        {editSaleId && (
-          <Button onClick={() => navigate("/sales")} variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            {editSaleId ? "Edit sale" : "Create invoice"}
-          </h1>
-          <p className="text-muted-foreground">
-            {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {editSaleId && (
+            <Button onClick={() => navigate("/sales")} variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              {editSaleId ? "Edit sale" : "Create invoice"}
+            </h1>
+            <p className="text-muted-foreground">
+              {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
+            </p>
+          </div>
         </div>
+        <OfflineIndicator />
       </div>
 
       <Card className="p-6">
