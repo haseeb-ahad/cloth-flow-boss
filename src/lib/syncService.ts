@@ -134,6 +134,32 @@ async function syncInstallmentPaymentsFromServer(installmentId: string): Promise
   }
 }
 
+// Clear stuck error records that are already synced on server
+async function clearSyncedErrorRecords(storeName: offlineDb.StoreName, tableName: TableName): Promise<void> {
+  const errorRecords = await getErrorSyncRecords<offlineDb.OfflineRecord>(storeName);
+  
+  for (const record of errorRecords) {
+    try {
+      // Check if record exists on server
+      const { data: serverRecord } = await supabase
+        .from(tableName)
+        .select('id, updated_at')
+        .eq('id', record.id)
+        .maybeSingle();
+      
+      if (serverRecord) {
+        // Record exists on server, mark as synced locally
+        await offlineDb.updateSyncStatus(storeName, record.id, 'synced');
+      } else if (record.is_deleted) {
+        // Deleted record that doesn't exist on server - remove locally
+        await offlineDb.hardDelete(storeName, record.id);
+      }
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
+}
+
 // Push pending changes to server
 export async function syncToServer(): Promise<SyncResult> {
   const result: SyncResult = { success: true, synced: 0, errors: 0, conflicts: 0 };
@@ -152,12 +178,13 @@ export async function syncToServer(): Promise<SyncResult> {
     if (!tableName) continue;
 
     try {
-      // Get both pending and error status records for retry
-      const pending = await offlineDb.getPendingSyncRecords<offlineDb.OfflineRecord>(storeName);
-      const errorRecords = await getErrorSyncRecords<offlineDb.OfflineRecord>(storeName);
-      const recordsToSync = [...pending, ...errorRecords];
+      // First, clear any stuck error records that are already synced
+      await clearSyncedErrorRecords(storeName, tableName);
       
-      for (const record of recordsToSync) {
+      // Get pending records only (error records were cleaned above)
+      const pending = await offlineDb.getPendingSyncRecords<offlineDb.OfflineRecord>(storeName);
+      
+      for (const record of pending) {
         try {
           const syncResult = await syncRecord(tableName, record, storeName);
           if (syncResult.synced) {
@@ -169,8 +196,6 @@ export async function syncToServer(): Promise<SyncResult> {
           }
           if (syncResult.error) {
             result.errors++;
-            // Keep as pending for retry instead of marking as error permanently
-            // await offlineDb.updateSyncStatus(storeName, record.id, 'error');
           }
         } catch (error) {
           console.error(`Error syncing record ${record.id}:`, error);
@@ -198,6 +223,20 @@ async function getErrorSyncRecords<T>(storeName: offlineDb.StoreName): Promise<T
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+// Clean record by removing local-only fields
+function cleanRecordForSync(record: any, tableName: TableName): any {
+  // Remove local-only fields
+  const { 
+    sync_status, 
+    local_updated_at, 
+    created_by,
+    low_stock_alert, // Not in DB schema
+    ...rest 
+  } = record;
+  
+  return rest;
 }
 
 async function syncRecord(
@@ -246,7 +285,7 @@ async function syncRecord(
     }
 
     // Prepare data for upsert (remove local-only fields)
-    const { sync_status, local_updated_at, created_by, ...dataToSync } = localRecord as any;
+    const dataToSync = cleanRecordForSync(localRecord, tableName);
 
     if (!serverRecord) {
       // New record - insert
@@ -271,7 +310,7 @@ async function syncRecord(
           return result;
         }
       }
-      result.synced = true;
+      result.synced = true
     } else {
       // Existing record - check for conflicts using last-modified-wins
       const serverUpdatedAt = new Date((serverRecord as any).updated_at || (serverRecord as any).created_at || new Date()).getTime();
