@@ -151,32 +151,53 @@ export async function syncToServer(): Promise<SyncResult> {
     const tableName = storeToTable[storeName];
     if (!tableName) continue;
 
-    const pending = await offlineDb.getPendingSyncRecords<offlineDb.OfflineRecord>(storeName);
-    
-    for (const record of pending) {
-      try {
-        const syncResult = await syncRecord(tableName, record, storeName);
-        if (syncResult.synced) {
-          result.synced++;
-          await offlineDb.updateSyncStatus(storeName, record.id, 'synced');
-        }
-        if (syncResult.conflict) {
-          result.conflicts++;
-        }
-        if (syncResult.error) {
+    try {
+      // Get both pending and error status records for retry
+      const pending = await offlineDb.getPendingSyncRecords<offlineDb.OfflineRecord>(storeName);
+      const errorRecords = await getErrorSyncRecords<offlineDb.OfflineRecord>(storeName);
+      const recordsToSync = [...pending, ...errorRecords];
+      
+      for (const record of recordsToSync) {
+        try {
+          const syncResult = await syncRecord(tableName, record, storeName);
+          if (syncResult.synced) {
+            result.synced++;
+            await offlineDb.updateSyncStatus(storeName, record.id, 'synced');
+          }
+          if (syncResult.conflict) {
+            result.conflicts++;
+          }
+          if (syncResult.error) {
+            result.errors++;
+            // Keep as pending for retry instead of marking as error permanently
+            // await offlineDb.updateSyncStatus(storeName, record.id, 'error');
+          }
+        } catch (error) {
+          console.error(`Error syncing record ${record.id}:`, error);
           result.errors++;
-          await offlineDb.updateSyncStatus(storeName, record.id, 'error');
         }
-      } catch (error) {
-        console.error(`Error syncing record ${record.id}:`, error);
-        result.errors++;
-        await offlineDb.updateSyncStatus(storeName, record.id, 'error');
       }
+    } catch (storeError) {
+      console.error(`Error processing store ${storeName}:`, storeError);
     }
   }
 
   result.success = result.errors === 0;
   return result;
+}
+
+// Get records with error sync status for retry
+async function getErrorSyncRecords<T>(storeName: offlineDb.StoreName): Promise<T[]> {
+  const db = await offlineDb.getDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const index = store.index('sync_status');
+    const request = index.getAll('error');
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 async function syncRecord(
@@ -196,6 +217,10 @@ async function syncRecord(
 
     if (fetchError) {
       console.error('Error fetching server record:', fetchError);
+      // Network error - don't mark as error, will retry
+      if (fetchError.message?.includes('fetch') || fetchError.message?.includes('network')) {
+        return result;
+      }
       result.error = true;
       return result;
     }
@@ -209,6 +234,7 @@ async function syncRecord(
           .eq('id', localRecord.id);
         
         if (error) {
+          console.error('Error syncing delete:', error);
           result.error = true;
           return result;
         }
@@ -220,12 +246,13 @@ async function syncRecord(
     }
 
     // Prepare data for upsert (remove local-only fields)
-    const { sync_status, local_updated_at, ...dataToSync } = localRecord as any;
+    const { sync_status, local_updated_at, created_by, ...dataToSync } = localRecord as any;
 
     if (!serverRecord) {
       // New record - insert
       const { error } = await supabase.from(tableName).insert(dataToSync as any);
       if (error) {
+        console.error(`Insert error for ${tableName}:`, error);
         // Check if it's a duplicate - might already exist
         if (error.code === '23505') {
           // Try update instead
@@ -235,6 +262,7 @@ async function syncRecord(
             .eq('id', localRecord.id);
           
           if (updateError) {
+            console.error(`Update fallback error for ${tableName}:`, updateError);
             result.error = true;
             return result;
           }
@@ -247,9 +275,11 @@ async function syncRecord(
     } else {
       // Existing record - check for conflicts using last-modified-wins
       const serverUpdatedAt = new Date((serverRecord as any).updated_at || (serverRecord as any).created_at || new Date()).getTime();
-      const localUpdatedAt = new Date(localRecord.local_updated_at).getTime();
+      const localUpdatedAtTime = localRecord.local_updated_at 
+        ? new Date(localRecord.local_updated_at).getTime() 
+        : new Date().getTime();
 
-      if (localUpdatedAt >= serverUpdatedAt) {
+      if (localUpdatedAtTime >= serverUpdatedAt) {
         // Local is newer - push to server
         const { error } = await supabase
           .from(tableName)
@@ -257,6 +287,7 @@ async function syncRecord(
           .eq('id', localRecord.id);
 
         if (error) {
+          console.error(`Update error for ${tableName}:`, error);
           result.error = true;
           return result;
         }
