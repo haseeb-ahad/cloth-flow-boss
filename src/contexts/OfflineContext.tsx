@@ -1,7 +1,7 @@
 // Context for managing offline sync state across the app
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { setupAutoSync, initialSync, isOnline } from '@/lib/syncService';
+import { setupAutoSync, initialSync, isOnline, fullSync } from '@/lib/syncService';
 import { getPendingSyncCount } from '@/lib/offlineDb';
 import { toast } from '@/hooks/use-toast';
 
@@ -107,15 +107,22 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
 
     setIsSyncing(true);
     try {
-      await initialSync(ownerId);
+      // Use fullSync to push pending changes first, then pull latest
+      const result = await fullSync(ownerId);
       const count = await getPendingSyncCount();
       setPendingCount(count);
       setLastSyncTime(new Date());
       
-      if (count === 0) {
+      if (result.success && count === 0) {
         toast({
           title: "All data synced successfully",
-          description: "Your data is up to date",
+          description: result.synced > 0 ? `${result.synced} records synchronized` : "Your data is up to date",
+        });
+      } else if (result.errors > 0) {
+        toast({
+          title: "Sync completed with some issues",
+          description: `${result.synced} synced, ${result.errors} pending retry`,
+          variant: "destructive",
         });
       }
     } catch (error) {
