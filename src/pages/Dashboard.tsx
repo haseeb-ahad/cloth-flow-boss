@@ -12,6 +12,9 @@ import { useTimezone } from "@/contexts/TimezoneContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOffline } from "@/contexts/OfflineContext";
 import { useOfflineDashboard } from "@/hooks/useOfflineDashboard";
+import { useOfflineSales } from "@/hooks/useOfflineSales";
+import { useOfflineCredits } from "@/hooks/useOfflineCredits";
+import { useOfflineProducts } from "@/hooks/useOfflineProducts";
 import MiniSparkline from "@/components/dashboard/MiniSparkline";
 import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
@@ -21,6 +24,7 @@ import TopCustomersList from "@/components/dashboard/TopCustomersList";
 import UpgradePlanPopup from "@/components/billing/UpgradePlanPopup";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { Badge } from "@/components/ui/badge";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 interface DashboardStats {
   totalSales: number;
@@ -68,6 +72,11 @@ const Dashboard = () => {
   const [dateRange, setDateRange] = useState("today");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  
+  // Use offline hooks for data syncing
+  const { refetch: refetchSales } = useOfflineSales();
+  const { refetch: refetchCredits } = useOfflineCredits();
+  const { refetch: refetchProducts } = useOfflineProducts();
   
   // Use offline dashboard hook for IndexedDB-based calculations
   const {
@@ -203,16 +212,28 @@ const Dashboard = () => {
   };
 
   const handleRefresh = async () => {
-    setIsLoading(true);
+    // Also refresh offline data stores
     await Promise.all([
-      fetchDashboardStats(), 
-      fetchChartData(), 
-      fetchTopProducts(),
-      fetchTopCustomers(),
-      fetchCategoryData(),
-      fetchWeeklyData(),
+      refetchSales(),
+      refetchCredits(),
+      refetchProducts(),
     ]);
-    setIsLoading(false);
+    
+    if (isOnline) {
+      setIsLoading(true);
+      await Promise.all([
+        fetchDashboardStats(), 
+        fetchChartData(), 
+        fetchTopProducts(),
+        fetchTopCustomers(),
+        fetchCategoryData(),
+        fetchWeeklyData(),
+      ]);
+      setIsLoading(false);
+    } else {
+      // When offline, just refresh the offline dashboard calculations
+      await refetchOffline();
+    }
   };
 
   // Helper function to get current date parts in user's timezone
@@ -771,6 +792,7 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your business performance</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
+            <OfflineIndicator />
             {isPlanExpired && (
               <Button 
                 onClick={() => setShowUpgradePopup(true)}
