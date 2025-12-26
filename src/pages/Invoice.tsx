@@ -223,77 +223,106 @@ const Invoice = () => {
   const loadSaleData = async (saleId: string) => {
     try {
       setIsLoadingItems(true);
-      const { data: sale, error: saleError } = await supabase.from("sales").select("*").eq("id", saleId).single();
-      const { data: saleItems, error: itemsError } = await supabase.from("sale_items").select("*").eq("sale_id", saleId);
+      
+      // First try to load from offline DB
+      let sale: any = null;
+      let saleItems: any[] = [];
+      
+      // Try offline DB first
+      const offlineSale = await offlineDb.getById<any>('sales', saleId);
+      const offlineSaleItems = await offlineDb.getByIndex<any>('sale_items', 'sale_id', saleId);
+      
+      if (offlineSale) {
+        sale = offlineSale;
+        saleItems = offlineSaleItems || [];
+        debugLog("📦 Loaded sale from offline DB:", sale.invoice_number);
+      }
+      
+      // If not in offline DB or no items, try server
+      if (!sale || saleItems.length === 0) {
+        if (isOnline) {
+          const { data: serverSale, error: saleError } = await supabase.from("sales").select("*").eq("id", saleId).single();
+          const { data: serverItems, error: itemsError } = await supabase.from("sale_items").select("*").eq("sale_id", saleId);
+          
+          if (saleError) {
+            console.error("Error loading sale from server:", saleError);
+            if (!sale) {
+              toast.error("Failed to load sale data");
+              return;
+            }
+          }
+          
+          if (serverSale) {
+            sale = serverSale;
+            // Also store in offline DB
+            await offlineDb.put('sales', serverSale as any, 'synced');
+          }
+          
+          if (serverItems && serverItems.length > 0) {
+            saleItems = serverItems;
+            // Also store items in offline DB
+            for (const item of serverItems) {
+              await offlineDb.put('sale_items', item as any, 'synced');
+            }
+          }
+        }
+      }
 
-      if (saleError) {
-        console.error("Error loading sale:", saleError);
-        toast.error("Failed to load sale data");
+      if (!sale) {
+        toast.error("Sale not found");
         return;
       }
 
-      if (itemsError) {
-        console.error("Error loading sale items:", itemsError);
-        toast.error("Failed to load sale items");
+      // CRITICAL: Check if sale has items
+      if (!saleItems || saleItems.length === 0) {
+        toast.error("This sale has no items! The items may not have synced yet.");
+        console.error("Sale has no items:", sale.invoice_number);
         return;
       }
-
-      if (sale) {
-        // CRITICAL: Check if sale has items
-        if (!saleItems || saleItems.length === 0) {
-          toast.error("WARNING: This sale has no items! Cannot edit safely.");
-          console.error("Sale has no items:", sale.invoice_number);
-          return;
-        }
-        setInvoiceNumber(sale.invoice_number);
-        setCustomerName(sale.customer_name || "");
-        setCustomerPhone(sale.customer_phone || "");
-        setDiscount(sale.discount || 0);
-        setPaymentMethod(sale.payment_method || "cash");
-        setPaidAmount(sale.paid_amount?.toString() || "");
-        setIsFullPayment(sale.payment_status === "paid");
-        setDescription(sale.description || "");
-        if (sale.image_url) {
-          setImagePreview(sale.image_url);
-        }
-        
-        // Extract date from created_at timestamp and format as YYYY-MM-DD
-        if (sale.created_at) {
-          setInvoiceDate(formatDateInput(new Date(sale.created_at)));
-        } else {
-          setInvoiceDate(formatDateInput(new Date()));
-        }
-
-        // Fetch product details to get correct quantity_type
-        const productIds = saleItems.map(item => item.product_id);
-        const { data: productsData } = await supabase
-          .from("products")
-          .select("id, quantity_type")
-          .in("id", productIds);
-
-        const loadedItems = saleItems.map(item => {
-          const product = productsData?.find(p => p.id === item.product_id);
-          return {
-            product_id: item.product_id,
-            product_name: item.product_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            purchase_price: item.purchase_price,
-            total_price: item.total_price,
-            quantity_type: product?.quantity_type || "Unit",
-            is_return: (item as any).is_return || false,
-          };
-        });
-        
-        debugLog(`📦 Loaded ${loadedItems.length} items for editing:`, JSON.stringify(loadedItems.map(i => i.product_name)));
-        
-        // CRITICAL: Lock items to prevent any auto-modification
-        setItems(loadedItems);
-        setOriginalItems(loadedItems.map(item => ({...item})));
-        
-        debugLog(`✅ Items locked in state: ${loadedItems.length} items`);
+      
+      setInvoiceNumber(sale.invoice_number);
+      setCustomerName(sale.customer_name || "");
+      setCustomerPhone(sale.customer_phone || "");
+      setDiscount(sale.discount || 0);
+      setPaymentMethod(sale.payment_method || "cash");
+      setPaidAmount(sale.paid_amount?.toString() || "");
+      setIsFullPayment(sale.payment_status === "paid");
+      setDescription(sale.description || "");
+      if (sale.image_url) {
+        setImagePreview(sale.image_url);
       }
+      
+      // Extract date from created_at timestamp and format as YYYY-MM-DD
+      if (sale.created_at) {
+        setInvoiceDate(formatDateInput(new Date(sale.created_at)));
+      } else {
+        setInvoiceDate(formatDateInput(new Date()));
+      }
+
+      // Get product details from offline products
+      const loadedItems = saleItems.filter((item: any) => !item.is_deleted).map((item: any) => {
+        const product = products.find(p => p.id === item.product_id);
+        return {
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          purchase_price: item.purchase_price,
+          total_price: item.total_price,
+          quantity_type: product?.quantity_type || "Unit",
+          is_return: item.is_return || false,
+        };
+      });
+      
+      debugLog(`📦 Loaded ${loadedItems.length} items for editing:`, JSON.stringify(loadedItems.map((i: any) => i.product_name)));
+      
+      // CRITICAL: Lock items to prevent any auto-modification
+      setItems(loadedItems);
+      setOriginalItems(loadedItems.map((item: any) => ({...item})));
+      
+      debugLog(`✅ Items locked in state: ${loadedItems.length} items`);
     } catch (error) {
+      console.error("Error loading sale:", error);
       toast.error("Failed to load sale data");
     } finally {
       setIsLoadingItems(false);

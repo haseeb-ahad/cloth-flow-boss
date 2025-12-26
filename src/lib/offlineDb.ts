@@ -1,7 +1,7 @@
 // IndexedDB wrapper for offline-first functionality
 // All records have: id, created_at, updated_at, sync_status, is_deleted, created_by
 const DB_NAME = 'invoxa_offline_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export type SyncStatus = 'synced' | 'pending' | 'error';
 
@@ -452,9 +452,13 @@ export async function getByIndex<T>(
 export async function getPendingSyncCount(): Promise<number> {
   let count = 0;
   for (const storeName of Object.keys(STORES) as StoreName[]) {
-    if (storeName === 'sync_queue') continue;
-    const pending = await getPendingSyncRecords(storeName);
-    count += pending.length;
+    if (storeName === 'sync_queue' || storeName === 'sync_logs') continue;
+    try {
+      const pending = await getPendingSyncRecords(storeName);
+      count += pending.length;
+    } catch (e) {
+      console.warn(`Error counting pending for ${storeName}:`, e);
+    }
   }
   return count;
 }
@@ -462,19 +466,23 @@ export async function getPendingSyncCount(): Promise<number> {
 // Clear all error status records (mark as synced if they exist on server)
 export async function clearErrorRecords(): Promise<number> {
   let cleared = 0;
-  const db = await getDb();
   
   for (const storeName of Object.keys(STORES) as StoreName[]) {
-    if (storeName === 'sync_queue' || storeName === 'customers' || storeName === 'workers') continue;
+    if (storeName === 'sync_queue' || storeName === 'sync_logs' || storeName === 'customers' || storeName === 'workers') continue;
     
     try {
+      const db = await getDb();
       const errorRecords = await new Promise<any[]>((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly');
-        const store = transaction.objectStore(storeName);
-        const index = store.index('sync_status');
-        const request = index.getAll('error');
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        try {
+          const transaction = db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const index = store.index('sync_status');
+          const request = index.getAll('error');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        } catch (e) {
+          resolve([]);
+        }
       });
       
       for (const record of errorRecords) {
@@ -483,7 +491,7 @@ export async function clearErrorRecords(): Promise<number> {
         cleared++;
       }
     } catch (e) {
-      console.error(`Error clearing ${storeName}:`, e);
+      console.warn(`Error clearing ${storeName}:`, e);
     }
   }
   
