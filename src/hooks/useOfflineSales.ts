@@ -128,7 +128,8 @@ export function useOfflineSales() {
 
     await offlineDb.put('sales', newSale as any, 'pending', user?.id);
 
-    // Save sale items
+    // Save sale items FIRST before updating state
+    const savedItems: SaleItem[] = [];
     for (const item of items) {
       const saleItem: SaleItem = {
         ...item,
@@ -137,22 +138,22 @@ export function useOfflineSales() {
         is_deleted: false,
       };
       await offlineDb.put('sale_items', saleItem as any, 'pending', user?.id);
+      savedItems.push(saleItem);
     }
 
     setSales(prev => [newSale, ...prev]);
 
     if (isOnline) {
       try {
-        const { sync_status, local_updated_at, ...saleToInsert } = newSale as any;
+        const { sync_status, local_updated_at, created_by, ...saleToInsert } = newSale as any;
         const { error: saleError } = await supabase.from('sales').insert(saleToInsert);
         
         if (!saleError) {
           await offlineDb.updateSyncStatus('sales', newSale.id, 'synced');
           
           // Sync sale items
-          const localItems = await offlineDb.getByIndex<SaleItem>('sale_items', 'sale_id', newSale.id);
-          for (const item of localItems) {
-            const { sync_status: itemSyncStatus, local_updated_at: itemLocalUpdated, ...itemToInsert } = item as any;
+          for (const item of savedItems) {
+            const { sync_status: itemSyncStatus, local_updated_at: itemLocalUpdated, created_by: itemCreatedBy, ...itemToInsert } = item as any;
             const { error: itemError } = await supabase.from('sale_items').insert(itemToInsert);
             if (!itemError) {
               await offlineDb.updateSyncStatus('sale_items', item.id, 'synced');
@@ -195,6 +196,10 @@ export function useOfflineSales() {
   }, [isOnline]);
 
   const deleteSale = useCallback(async (id: string): Promise<void> => {
+    // Remove from UI state immediately
+    setSales(prev => prev.filter(item => item.id !== id));
+    
+    // Soft delete in offline DB
     await offlineDb.softDelete('sales', id);
     
     // Also soft delete related sale items
@@ -202,20 +207,23 @@ export function useOfflineSales() {
     for (const item of saleItems) {
       await offlineDb.softDelete('sale_items', item.id);
     }
-    
-    setSales(prev => prev.filter(item => item.id !== id));
 
     if (isOnline) {
       try {
         const now = new Date().toISOString();
-        await supabase
+        const { error: saleDeleteError } = await supabase
           .from('sales')
           .update({ is_deleted: true, deleted_at: now })
           .eq('id', id);
-        await supabase
-          .from('sale_items')
-          .update({ is_deleted: true, deleted_at: now })
-          .eq('sale_id', id);
+          
+        if (!saleDeleteError) {
+          await supabase
+            .from('sale_items')
+            .update({ is_deleted: true, deleted_at: now })
+            .eq('sale_id', id);
+          // Mark as synced after successful server delete
+          await offlineDb.updateSyncStatus('sales', id, 'synced');
+        }
       } catch (err) {
         console.warn('Failed to sync sale delete:', err);
       }
