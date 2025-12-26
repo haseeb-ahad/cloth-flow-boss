@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TimezoneProvider } from "./contexts/TimezoneContext";
-import { OfflineProvider } from "./contexts/OfflineContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import SuperAdminRoute from "./components/SuperAdminRoute";
 import Index from "./pages/Index";
@@ -40,7 +39,6 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TimezoneProvider>
-            <OfflineProvider>
             <Routes>
               {/* Super Admin routes */}
               <Route path="/super-admin-login" element={<SuperAdminLogin />} />
@@ -70,7 +68,6 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </OfflineProvider>
           </TimezoneProvider>
         </AuthProvider>
       </BrowserRouter>
