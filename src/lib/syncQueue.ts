@@ -442,7 +442,7 @@ function shouldRetry(item: SyncQueueItem): boolean {
   return true;
 }
 
-// Process sync queue
+// Process sync queue - deletes are processed AFTER creates/updates
 export interface SyncProgress {
   total: number;
   processed: number;
@@ -453,6 +453,94 @@ export interface SyncProgress {
 }
 
 export type SyncProgressCallback = (progress: SyncProgress) => void;
+
+// Check if a delete should be cancelled because the create was never synced
+async function shouldCancelDelete(item: SyncQueueItem): Promise<boolean> {
+  if (item.action_type !== 'delete') return false;
+  
+  // If the entity ID is a temp ID that was never replaced, cancel the delete
+  if (isTempId(item.entity_id) && !getServerId(item.entity_id)) {
+    console.log(`Cancelling delete for never-synced record: ${item.entity_id}`);
+    return true;
+  }
+  
+  return false;
+}
+
+// Sort items: creates first, then updates, then deletes
+function sortSyncItems(items: SyncQueueItem[]): SyncQueueItem[] {
+  const priority: Record<SyncActionType, number> = {
+    'create': 1,
+    'update': 2,
+    'delete': 3,
+  };
+  
+  return items.sort((a, b) => {
+    // First by action type priority
+    const priorityDiff = priority[a.action_type] - priority[b.action_type];
+    if (priorityDiff !== 0) return priorityDiff;
+    
+    // Then by creation time
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
+}
+
+// Find and remove conflicting operations (create + delete for same entity)
+async function deduplicateQueue(items: SyncQueueItem[]): Promise<SyncQueueItem[]> {
+  const entityOperations = new Map<string, SyncQueueItem[]>();
+  
+  // Group by entity
+  for (const item of items) {
+    const key = `${item.entity_type}:${item.entity_id}`;
+    if (!entityOperations.has(key)) {
+      entityOperations.set(key, []);
+    }
+    entityOperations.get(key)!.push(item);
+  }
+  
+  const result: SyncQueueItem[] = [];
+  const toRemove: string[] = [];
+  
+  for (const [key, ops] of entityOperations.entries()) {
+    if (ops.length === 1) {
+      result.push(ops[0]);
+      continue;
+    }
+    
+    // Check for create + delete pattern (should cancel both)
+    const hasCreate = ops.some(o => o.action_type === 'create');
+    const hasDelete = ops.some(o => o.action_type === 'delete');
+    
+    if (hasCreate && hasDelete) {
+      // This entity was created offline and deleted before sync - cancel all
+      console.log(`Cancelling create+delete for: ${key}`);
+      ops.forEach(o => toRemove.push(o.id));
+      continue;
+    }
+    
+    // Keep the most recent operation for each action type
+    const latest = ops.reduce((acc, curr) => {
+      if (new Date(curr.updated_at) > new Date(acc.updated_at)) {
+        toRemove.push(acc.id);
+        return curr;
+      }
+      toRemove.push(curr.id);
+      return acc;
+    });
+    result.push(latest);
+  }
+  
+  // Remove cancelled items from queue
+  for (const itemId of toRemove) {
+    try {
+      await removeSyncItem(itemId);
+    } catch (e) {
+      console.warn(`Failed to remove sync item ${itemId}:`, e);
+    }
+  }
+  
+  return result;
+}
 
 export async function processSyncQueue(
   onProgress?: SyncProgressCallback
@@ -469,10 +557,14 @@ export async function processSyncQueue(
   loadIdReplacements();
 
   // Get all pending and retryable items
-  const items = await getPendingSyncItems();
-  const toProcess = items.filter(item => 
+  const rawItems = await getPendingSyncItems();
+  const toFilter = rawItems.filter(item => 
     item.status === 'pending' || shouldRetry(item)
   );
+  
+  // Deduplicate and sort (creates first, then updates, then deletes)
+  const deduped = await deduplicateQueue(toFilter);
+  const toProcess = sortSyncItems(deduped);
   
   progress.total = toProcess.length;
   
@@ -484,6 +576,15 @@ export async function processSyncQueue(
   for (const item of toProcess) {
     progress.currentItem = item;
     onProgress?.(progress);
+    
+    // Check if delete should be cancelled
+    if (await shouldCancelDelete(item)) {
+      await removeSyncItem(item.id);
+      progress.synced++;
+      progress.processed++;
+      onProgress?.(progress);
+      continue;
+    }
     
     // Mark as syncing
     await updateSyncItemStatus(item.id, 'syncing');

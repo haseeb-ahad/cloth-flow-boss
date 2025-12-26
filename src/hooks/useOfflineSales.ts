@@ -1,9 +1,11 @@
-// Offline-first hook for sales/invoices management
+// Offline-first hook for sales/invoices management with robust delete system
 import { useState, useEffect, useCallback } from 'react';
 import * as offlineDb from '@/lib/offlineDb';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
+import { softDeleteRecord, undoDelete, canUndoDelete, DeletedRecord } from '@/lib/deleteManager';
+import { toast } from '@/hooks/use-toast';
 
 export interface Sale {
   id: string;
@@ -42,6 +44,7 @@ export function useOfflineSales() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<DeletedRecord | null>(null);
   const { ownerId, user } = useAuth();
   const { isOnline } = useOffline();
 
@@ -195,40 +198,40 @@ export function useOfflineSales() {
     return updated;
   }, [isOnline]);
 
-  const deleteSale = useCallback(async (id: string): Promise<void> => {
+  const deleteSale = useCallback(async (id: string): Promise<DeletedRecord> => {
     // Remove from UI state immediately
     setSales(prev => prev.filter(item => item.id !== id));
     
-    // Soft delete in offline DB
-    await offlineDb.softDelete('sales', id);
-    
-    // Also soft delete related sale items
-    const saleItems = await offlineDb.getByIndex<SaleItem>('sale_items', 'sale_id', id);
-    for (const item of saleItems) {
-      await offlineDb.softDelete('sale_items', item.id);
+    try {
+      // Use the delete manager for robust delete handling
+      const deletedRecord = await softDeleteRecord('sales', id, isOnline);
+      setLastDeleted(deletedRecord);
+      
+      toast({
+        title: "Sale deleted",
+        description: "Refresh to undo within 30 seconds if needed.",
+      });
+      
+      return deletedRecord;
+    } catch (err: any) {
+      loadSales();
+      throw err;
+    }
+  }, [isOnline, loadSales]);
+
+  const undoLastDelete = useCallback(async (): Promise<boolean> => {
+    if (!lastDeleted || !canUndoDelete(lastDeleted.id)) {
+      return false;
     }
 
-    if (isOnline) {
-      try {
-        const now = new Date().toISOString();
-        const { error: saleDeleteError } = await supabase
-          .from('sales')
-          .update({ is_deleted: true, deleted_at: now })
-          .eq('id', id);
-          
-        if (!saleDeleteError) {
-          await supabase
-            .from('sale_items')
-            .update({ is_deleted: true, deleted_at: now })
-            .eq('sale_id', id);
-          // Mark as synced after successful server delete
-          await offlineDb.updateSyncStatus('sales', id, 'synced');
-        }
-      } catch (err) {
-        console.warn('Failed to sync sale delete:', err);
-      }
+    const result = await undoDelete(lastDeleted.id, isOnline);
+    if (result.success) {
+      setLastDeleted(null);
+      await loadSales();
+      return true;
     }
-  }, [isOnline]);
+    return false;
+  }, [lastDeleted, isOnline, loadSales]);
 
   const getSaleItems = useCallback(async (saleId: string): Promise<SaleItem[]> => {
     return await offlineDb.getByIndex<SaleItem>('sale_items', 'sale_id', saleId);
@@ -244,5 +247,8 @@ export function useOfflineSales() {
     deleteSale,
     getSaleItems,
     generateInvoiceNumber,
+    lastDeleted,
+    undoLastDelete,
+    canUndo: lastDeleted ? canUndoDelete(lastDeleted.id) : false,
   };
 }

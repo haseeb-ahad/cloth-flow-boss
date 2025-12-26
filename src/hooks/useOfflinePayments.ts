@@ -1,9 +1,11 @@
-// Offline-first hook for payment ledger management
+// Offline-first hook for payment ledger management with robust delete system
 import { useState, useEffect, useCallback } from 'react';
 import * as offlineDb from '@/lib/offlineDb';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
+import { softDeleteRecord, undoDelete, canUndoDelete, DeletedRecord } from '@/lib/deleteManager';
+import { toast } from '@/hooks/use-toast';
 
 export interface PaymentLedger {
   id: string;
@@ -24,6 +26,7 @@ export function useOfflinePayments() {
   const [payments, setPayments] = useState<PaymentLedger[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<DeletedRecord | null>(null);
   const { ownerId, user } = useAuth();
   const { isOnline } = useOffline();
 
@@ -138,24 +141,38 @@ export function useOfflinePayments() {
     return updated;
   }, [isOnline]);
 
-  const deletePayment = useCallback(async (id: string): Promise<void> => {
-    await offlineDb.softDelete('payment_ledger', id);
+  const deletePayment = useCallback(async (id: string): Promise<DeletedRecord> => {
     setPayments(prev => prev.filter(item => item.id !== id));
 
-    if (isOnline) {
-      try {
-        const { error } = await supabase
-          .from('payment_ledger')
-          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-          .eq('id', id);
-        if (!error) {
-          await offlineDb.hardDelete('payment_ledger', id);
-        }
-      } catch (err) {
-        console.warn('Failed to sync payment delete:', err);
-      }
+    try {
+      const deletedRecord = await softDeleteRecord('payment_ledger', id, isOnline);
+      setLastDeleted(deletedRecord);
+      
+      toast({
+        title: "Payment deleted",
+        description: "Refresh to undo within 30 seconds if needed.",
+      });
+      
+      return deletedRecord;
+    } catch (err: any) {
+      loadPayments();
+      throw err;
     }
-  }, [isOnline]);
+  }, [isOnline, loadPayments]);
+
+  const undoLastDelete = useCallback(async (): Promise<boolean> => {
+    if (!lastDeleted || !canUndoDelete(lastDeleted.id)) {
+      return false;
+    }
+
+    const result = await undoDelete(lastDeleted.id, isOnline);
+    if (result.success) {
+      setLastDeleted(null);
+      await loadPayments();
+      return true;
+    }
+    return false;
+  }, [lastDeleted, isOnline, loadPayments]);
 
   const getTotalPaymentsReceived = useCallback((startDate?: Date, endDate?: Date): number => {
     return payments
@@ -178,5 +195,8 @@ export function useOfflinePayments() {
     updatePayment,
     deletePayment,
     getTotalPaymentsReceived,
+    lastDeleted,
+    undoLastDelete,
+    canUndo: lastDeleted ? canUndoDelete(lastDeleted.id) : false,
   };
 }
