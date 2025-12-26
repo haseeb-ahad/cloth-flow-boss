@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Users, Trash2, Edit, Plus, Mail, Phone, User, Lock, Eye, EyeOff } from "lucide-react";
+import { useOffline } from "@/contexts/OfflineContext";
+import { Loader2, Users, Trash2, Edit, Plus, Mail, Phone, User, Lock, Eye, EyeOff, WifiOff } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { z } from "zod";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 interface Worker {
   id: string;
@@ -63,6 +65,7 @@ const workerSchema = z.object({
 
 export default function Workers() {
   const { userRole } = useAuth();
+  const { isOnline } = useOffline();
   const [loading, setLoading] = useState(false);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
@@ -324,13 +327,15 @@ export default function Workers() {
           <Users className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">Manage Workers</h1>
         </div>
-        <Dialog open={addWorkerOpen} onOpenChange={setAddWorkerOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Worker
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <OfflineIndicator />
+          <Dialog open={addWorkerOpen} onOpenChange={setAddWorkerOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={!isOnline}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Worker
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Worker</DialogTitle>
@@ -424,6 +429,7 @@ export default function Workers() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card className="p-6">
@@ -457,6 +463,7 @@ export default function Workers() {
                         variant="outline"
                         size="icon"
                         onClick={() => handleEditPermissions(worker)}
+                        disabled={!isOnline}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -464,7 +471,7 @@ export default function Workers() {
                         variant="destructive"
                         size="icon"
                         onClick={() => handleDeleteWorker(worker.user_id)}
-                        disabled={deletingWorkerId === worker.user_id}
+                        disabled={deletingWorkerId === worker.user_id || !isOnline}
                       >
                         {deletingWorkerId === worker.user_id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
