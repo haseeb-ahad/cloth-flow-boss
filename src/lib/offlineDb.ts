@@ -185,6 +185,7 @@ const STORES = {
   customers: 'customers',
   workers: 'workers',
   sync_queue: 'sync_queue',
+  sync_logs: 'sync_logs',
 } as const;
 
 export type StoreName = keyof typeof STORES;

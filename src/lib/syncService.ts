@@ -28,6 +28,7 @@ const storeToTable: Record<offlineDb.StoreName, TableName | null> = {
   customers: null, // Derived from credits/sales, not a real table
   workers: null, // Handled separately via profiles/user_roles
   sync_queue: null,
+  sync_logs: null,
 };
 
 // Check if we're online

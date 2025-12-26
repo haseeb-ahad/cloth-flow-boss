@@ -2,6 +2,12 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { setupAutoSync, initialSync, isOnline, fullSync } from '@/lib/syncService';
+import { 
+  processSyncQueue, 
+  getSyncQueueStats, 
+  loadIdReplacements,
+  type SyncProgress 
+} from '@/lib/syncQueue';
 import { getPendingSyncCount, clearErrorRecords } from '@/lib/offlineDb';
 import { toast } from '@/hooks/use-toast';
 
@@ -11,6 +17,7 @@ interface OfflineContextValue {
   pendingCount: number;
   lastSyncTime: Date | null;
   isInitialized: boolean;
+  syncProgress: SyncProgress | null;
   triggerSync: () => Promise<void>;
 }
 
@@ -22,6 +29,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const { ownerId, user } = useAuth();
 
   // Initialize offline database and sync
@@ -34,6 +42,9 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       setIsSyncing(true);
       
       try {
+        // Load ID replacements from storage
+        loadIdReplacements();
+        
         // Clear any stuck error records first
         await clearErrorRecords();
         
@@ -67,12 +78,52 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
 
   // Update online status
   useEffect(() => {
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setOnline(true);
       toast({
         title: "Back online",
         description: "Syncing your changes...",
       });
+      
+      // Trigger sync when coming back online
+      if (ownerId) {
+        setIsSyncing(true);
+        try {
+          // Process sync queue first
+          const queueStats = await getSyncQueueStats();
+          if (queueStats.pending > 0 || queueStats.failed > 0) {
+            await processSyncQueue((progress) => {
+              setSyncProgress(progress);
+            });
+          }
+          
+          // Then do full sync
+          await fullSync(ownerId);
+          setLastSyncTime(new Date());
+          
+          const newCount = await getPendingSyncCount();
+          const newQueueStats = await getSyncQueueStats();
+          setPendingCount(newCount + newQueueStats.pending);
+          
+          if (newQueueStats.failed === 0 && newCount === 0) {
+            toast({
+              title: "All data synced",
+              description: "Your changes have been saved to the server",
+            });
+          } else if (newQueueStats.failed > 0) {
+            toast({
+              title: "Sync completed with issues",
+              description: `${newQueueStats.failed} items need attention`,
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('Sync error:', error);
+        } finally {
+          setIsSyncing(false);
+          setSyncProgress(null);
+        }
+      }
     };
 
     const handleOffline = () => {
@@ -90,13 +141,18 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [ownerId]);
 
   // Update pending count periodically
   useEffect(() => {
     const updateCount = async () => {
-      const count = await getPendingSyncCount();
-      setPendingCount(count);
+      try {
+        const legacyCount = await getPendingSyncCount();
+        const queueStats = await getSyncQueueStats();
+        setPendingCount(legacyCount + queueStats.pending + queueStats.failed);
+      } catch (e) {
+        console.error('Error getting pending count:', e);
+      }
     };
 
     updateCount();
@@ -110,21 +166,40 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
 
     setIsSyncing(true);
     try {
-      // Use fullSync to push pending changes first, then pull latest
+      // First process the sync queue with progress tracking
+      const queueStats = await getSyncQueueStats();
+      
+      if (queueStats.pending > 0 || queueStats.failed > 0) {
+        const queueResult = await processSyncQueue((progress) => {
+          setSyncProgress(progress);
+        });
+        
+        if (queueResult.failed > 0) {
+          toast({
+            title: "Some items failed to sync",
+            description: `${queueResult.synced} synced, ${queueResult.failed} failed. They will retry automatically.`,
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Then do full sync with server
       const result = await fullSync(ownerId);
       const count = await getPendingSyncCount();
-      setPendingCount(count);
+      const newQueueStats = await getSyncQueueStats();
+      
+      setPendingCount(count + newQueueStats.pending + newQueueStats.failed);
       setLastSyncTime(new Date());
       
-      if (result.success && count === 0) {
+      if (result.success && count === 0 && newQueueStats.failed === 0) {
         toast({
           title: "All data synced successfully",
           description: result.synced > 0 ? `${result.synced} records synchronized` : "Your data is up to date",
         });
-      } else if (result.errors > 0) {
+      } else if (result.errors > 0 || newQueueStats.failed > 0) {
         toast({
           title: "Sync completed with some issues",
-          description: `${result.synced} synced, ${result.errors} pending retry`,
+          description: `${result.synced} synced, ${result.errors + newQueueStats.failed} pending retry`,
           variant: "destructive",
         });
       }
@@ -137,6 +212,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       });
     } finally {
       setIsSyncing(false);
+      setSyncProgress(null);
     }
   }, [ownerId, isSyncing, online]);
 
@@ -148,6 +224,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         pendingCount,
         lastSyncTime,
         isInitialized,
+        syncProgress,
         triggerSync,
       }}
     >
@@ -166,6 +243,7 @@ export function useOffline(): OfflineContextValue {
       pendingCount: 0,
       lastSyncTime: null,
       isInitialized: false,
+      syncProgress: null,
       triggerSync: async () => {},
     };
   }
