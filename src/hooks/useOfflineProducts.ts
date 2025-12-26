@@ -1,9 +1,11 @@
-// Offline-first hook for products/inventory management
+// Offline-first hook for products/inventory management with robust delete system
 import { useState, useEffect, useCallback } from 'react';
 import * as offlineDb from '@/lib/offlineDb';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
+import { softDeleteRecord, undoDelete, canUndoDelete, DeletedRecord } from '@/lib/deleteManager';
+import { toast } from '@/hooks/use-toast';
 
 export interface Product {
   id: string;
@@ -24,6 +26,7 @@ export function useOfflineProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<DeletedRecord | null>(null);
   const { ownerId, user } = useAuth();
   const { isOnline } = useOffline();
 
@@ -146,24 +149,38 @@ export function useOfflineProducts() {
     return updated;
   }, [isOnline]);
 
-  const deleteProduct = useCallback(async (id: string): Promise<void> => {
-    await offlineDb.softDelete('products', id);
+  const deleteProduct = useCallback(async (id: string): Promise<DeletedRecord> => {
     setProducts(prev => prev.filter(item => item.id !== id));
 
-    if (isOnline) {
-      try {
-        const { error } = await supabase
-          .from('products')
-          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-          .eq('id', id);
-        if (!error) {
-          await offlineDb.hardDelete('products', id);
-        }
-      } catch (err) {
-        console.warn('Failed to sync product delete:', err);
-      }
+    try {
+      const deletedRecord = await softDeleteRecord('products', id, isOnline);
+      setLastDeleted(deletedRecord);
+      
+      toast({
+        title: "Product deleted",
+        description: "Refresh to undo within 30 seconds if needed.",
+      });
+      
+      return deletedRecord;
+    } catch (err: any) {
+      loadProducts();
+      throw err;
     }
-  }, [isOnline]);
+  }, [isOnline, loadProducts]);
+
+  const undoLastDelete = useCallback(async (): Promise<boolean> => {
+    if (!lastDeleted || !canUndoDelete(lastDeleted.id)) {
+      return false;
+    }
+
+    const result = await undoDelete(lastDeleted.id, isOnline);
+    if (result.success) {
+      setLastDeleted(null);
+      await loadProducts();
+      return true;
+    }
+    return false;
+  }, [lastDeleted, isOnline, loadProducts]);
 
   // Update stock quantity (for invoice creation/updates)
   const updateStock = useCallback(async (id: string, quantityChange: number): Promise<void> => {
@@ -183,5 +200,8 @@ export function useOfflineProducts() {
     updateProduct,
     deleteProduct,
     updateStock,
+    lastDeleted,
+    undoLastDelete,
+    canUndo: lastDeleted ? canUndoDelete(lastDeleted.id) : false,
   };
 }

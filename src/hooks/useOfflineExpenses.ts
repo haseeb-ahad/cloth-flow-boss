@@ -1,9 +1,11 @@
-// Offline-first hook for expenses management
+// Offline-first hook for expenses management with robust delete system
 import { useState, useEffect, useCallback } from 'react';
 import * as offlineDb from '@/lib/offlineDb';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
+import { softDeleteRecord, undoDelete, canUndoDelete, DeletedRecord } from '@/lib/deleteManager';
+import { toast } from '@/hooks/use-toast';
 
 export interface Expense {
   id: string;
@@ -21,6 +23,7 @@ export function useOfflineExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<DeletedRecord | null>(null);
   const { ownerId, user } = useAuth();
   const { isOnline } = useOffline();
 
@@ -138,24 +141,38 @@ export function useOfflineExpenses() {
     return updated;
   }, [isOnline]);
 
-  const deleteExpense = useCallback(async (id: string): Promise<void> => {
-    await offlineDb.softDelete('expenses', id);
+  const deleteExpense = useCallback(async (id: string): Promise<DeletedRecord> => {
     setExpenses(prev => prev.filter(item => item.id !== id));
 
-    if (isOnline) {
-      try {
-        const { error } = await supabase
-          .from('expenses')
-          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-          .eq('id', id);
-        if (!error) {
-          await offlineDb.hardDelete('expenses', id);
-        }
-      } catch (err) {
-        console.warn('Failed to sync expense delete:', err);
-      }
+    try {
+      const deletedRecord = await softDeleteRecord('expenses', id, isOnline);
+      setLastDeleted(deletedRecord);
+      
+      toast({
+        title: "Expense deleted",
+        description: "Refresh to undo within 30 seconds if needed.",
+      });
+      
+      return deletedRecord;
+    } catch (err: any) {
+      loadExpenses();
+      throw err;
     }
-  }, [isOnline]);
+  }, [isOnline, loadExpenses]);
+
+  const undoLastDelete = useCallback(async (): Promise<boolean> => {
+    if (!lastDeleted || !canUndoDelete(lastDeleted.id)) {
+      return false;
+    }
+
+    const result = await undoDelete(lastDeleted.id, isOnline);
+    if (result.success) {
+      setLastDeleted(null);
+      await loadExpenses();
+      return true;
+    }
+    return false;
+  }, [lastDeleted, isOnline, loadExpenses]);
 
   const getTotalExpenses = useCallback((startDate?: Date, endDate?: Date): number => {
     return expenses
@@ -178,5 +195,8 @@ export function useOfflineExpenses() {
     updateExpense,
     deleteExpense,
     getTotalExpenses,
+    lastDeleted,
+    undoLastDelete,
+    canUndo: lastDeleted ? canUndoDelete(lastDeleted.id) : false,
   };
 }

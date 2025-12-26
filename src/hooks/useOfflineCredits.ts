@@ -1,9 +1,11 @@
-// Offline-first hook for credits management
+// Offline-first hook for credits management with robust delete system
 import { useState, useEffect, useCallback } from 'react';
 import * as offlineDb from '@/lib/offlineDb';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
+import { softDeleteRecord, undoDelete, canUndoDelete, DeletedRecord } from '@/lib/deleteManager';
+import { toast } from '@/hooks/use-toast';
 
 export interface Credit {
   id: string;
@@ -41,6 +43,7 @@ export function useOfflineCredits() {
   const [credits, setCredits] = useState<Credit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<DeletedRecord | null>(null);
   const { ownerId, user } = useAuth();
   const { isOnline } = useOffline();
 
@@ -158,6 +161,39 @@ export function useOfflineCredits() {
     return updated;
   }, [isOnline]);
 
+  const deleteCredit = useCallback(async (id: string): Promise<DeletedRecord> => {
+    setCredits(prev => prev.filter(item => item.id !== id));
+
+    try {
+      const deletedRecord = await softDeleteRecord('credits', id, isOnline);
+      setLastDeleted(deletedRecord);
+      
+      toast({
+        title: "Credit deleted",
+        description: "Refresh to undo within 30 seconds if needed.",
+      });
+      
+      return deletedRecord;
+    } catch (err: any) {
+      loadCredits();
+      throw err;
+    }
+  }, [isOnline, loadCredits]);
+
+  const undoLastDelete = useCallback(async (): Promise<boolean> => {
+    if (!lastDeleted || !canUndoDelete(lastDeleted.id)) {
+      return false;
+    }
+
+    const result = await undoDelete(lastDeleted.id, isOnline);
+    if (result.success) {
+      setLastDeleted(null);
+      await loadCredits();
+      return true;
+    }
+    return false;
+  }, [lastDeleted, isOnline, loadCredits]);
+
   const recordPayment = useCallback(async (
     creditId: string,
     paymentAmount: number,
@@ -219,7 +255,11 @@ export function useOfflineCredits() {
     refetch: loadCredits,
     addCredit,
     updateCredit,
+    deleteCredit,
     recordPayment,
     getTotalOutstanding,
+    lastDeleted,
+    undoLastDelete,
+    canUndo: lastDeleted ? canUndoDelete(lastDeleted.id) : false,
   };
 }
