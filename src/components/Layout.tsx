@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -386,6 +387,9 @@ const Layout = ({ children }: LayoutProps) => {
 
               {/* Right - Actions */}
               <div className="flex items-center gap-3 ml-auto">
+                {/* Offline Status Indicator */}
+                <OfflineIndicator />
+                
                 {/* Plan Status Badge */}
                 {userRole === "admin" && subscriptionStatus && (
                   <div className={cn(

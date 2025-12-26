@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useOfflineSales } from "@/hooks/useOfflineSales";
+import { useOfflineProducts } from "@/hooks/useOfflineProducts";
+import * as offlineDb from "@/lib/offlineDb";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -14,24 +18,22 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
-interface Sale {
+interface SaleWithDetails {
   id: string;
   invoice_number: string;
   customer_name: string | null;
   customer_phone: string | null;
   total_amount: number;
-  discount: number;
+  discount: number | null;
   final_amount: number;
-  paid_amount: number;
-  payment_method: string;
-  created_at: string;
-  status: string;
+  paid_amount: number | null;
+  payment_method: string | null;
+  created_at: string | undefined;
+  status: string | null;
   description: string | null;
   image_url: string | null;
-}
-
-interface SaleWithDetails extends Sale {
   total_cost: number;
   total_profit: number;
   item_count: number;
@@ -39,14 +41,20 @@ interface SaleWithDetails extends Sale {
 
 const Sales = () => {
   const navigate = useNavigate();
-  const { ownerId, hasPermission, userRole } = useAuth();
+  const { ownerId, hasPermission, userRole, user } = useAuth();
   const { formatDate } = useTimezone();
+  const { isOnline } = useOffline();
+  
+  // Offline hooks
+  const { sales: offlineSales, isLoading: salesLoading, refetch: refetchSales, getSaleItems, deleteSale } = useOfflineSales();
+  const { products, updateProduct } = useOfflineProducts();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("sales", "create");
   const canEdit = userRole === "admin" || hasPermission("sales", "edit");
   const canDelete = userRole === "admin" || hasPermission("sales", "delete");
-  const [sales, setSales] = useState<SaleWithDetails[]>([]);
+  
+  const [salesWithDetails, setSalesWithDetails] = useState<SaleWithDetails[]>([]);
   const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -54,18 +62,58 @@ const Sales = () => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchSaleItems = async (saleId: string) => {
-    const { data } = await supabase
-      .from("sale_items")
-      .select("*")
-      .eq("sale_id", saleId);
-    return data || [];
+  // Load sales with details from offline data
+  const loadSalesWithDetails = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const salesDetails: SaleWithDetails[] = await Promise.all(
+        offlineSales.map(async (sale) => {
+          const saleItems = await getSaleItems(sale.id);
+          const regularItems = saleItems.filter(item => !item.is_return);
+          
+          const total_cost = regularItems.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+          const total_profit = regularItems.reduce((sum, item) => sum + item.profit, 0);
+          const item_count = regularItems.length;
+          
+          return {
+            id: sale.id,
+            invoice_number: sale.invoice_number,
+            customer_name: sale.customer_name || null,
+            customer_phone: sale.customer_phone || null,
+            total_amount: sale.total_amount,
+            discount: sale.discount || 0,
+            final_amount: sale.final_amount,
+            paid_amount: sale.paid_amount || 0,
+            payment_method: sale.payment_method || 'cash',
+            created_at: sale.created_at,
+            status: sale.status || 'completed',
+            description: sale.description || null,
+            image_url: sale.image_url || null,
+            total_cost,
+            total_profit,
+            item_count,
+          };
+        })
+      );
+      
+      setSalesWithDetails(salesDetails);
+      setFilteredSales(salesDetails);
+    } catch (error) {
+      console.error("Error loading sales details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [offlineSales, getSaleItems]);
+
+  // Fetch sale items for CSV export (uses offline DB)
+  const fetchSaleItemsForExport = async (saleId: string) => {
+    return await getSaleItems(saleId);
   };
 
   const handleExportCSV = async () => {
     setIsLoading(true);
     try {
-      await exportSalesToCSV(filteredSales, fetchSaleItems);
+      await exportSalesToCSV(filteredSales, fetchSaleItemsForExport);
       toast.success("CSV exported successfully");
     } catch (error) {
       toast.error("Failed to export CSV");
@@ -90,38 +138,33 @@ const Sales = () => {
 
       let imported = 0;
       for (const { sale, items } of parsedSales) {
-        // Insert sale
-        const { data: newSale, error: saleError } = await supabase
-          .from("sales")
-          .insert({
-            ...sale,
-            owner_id: ownerId,
-          })
-          .select()
-          .single();
+        // Store in offline DB
+        const saleId = crypto.randomUUID();
+        const invoiceNumber = `INV-${Date.now()}-${imported}`;
         
-        if (saleError || !newSale) continue;
+        await offlineDb.put('sales', {
+          id: saleId,
+          invoice_number: invoiceNumber,
+          ...sale,
+          owner_id: ownerId,
+          created_at: new Date().toISOString(),
+          is_deleted: false,
+        } as any, 'pending', user?.id);
 
         // Insert items
-        if (items.length > 0) {
-          for (const item of items) {
-            await supabase.from("sale_items").insert({
-              sale_id: newSale.id,
-              product_id: item.product_id,
-              product_name: item.product_name,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              purchase_price: item.purchase_price,
-              total_price: item.total_price,
-              profit: item.profit,
-            });
-          }
+        for (const item of items) {
+          await offlineDb.put('sale_items', {
+            id: crypto.randomUUID(),
+            sale_id: saleId,
+            ...item,
+            is_deleted: false,
+          } as any, 'pending', user?.id);
         }
         imported++;
       }
 
-      toast.success(`Successfully imported ${imported} sales with items`);
-      fetchSales();
+      toast.success(`Successfully imported ${imported} sales${!isOnline ? ' (offline)' : ''}`);
+      refetchSales();
     } catch (error) {
       toast.error("Failed to import CSV");
     } finally {
@@ -130,17 +173,23 @@ const Sales = () => {
     }
   };
 
-  // Initial fetch and real-time subscription
+  // Load sales details when offline sales change
   useEffect(() => {
-    fetchSales();
+    if (offlineSales.length > 0 || !salesLoading) {
+      loadSalesWithDetails();
+    }
+  }, [offlineSales, loadSalesWithDetails, salesLoading]);
 
-    // Subscribe to real-time changes for instant sync
+  // Real-time subscription only when online
+  useEffect(() => {
+    if (!isOnline) return;
+
     const salesChannel = supabase
       .channel('sales-page-sync')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sales' },
-        () => fetchSales()
+        () => refetchSales()
       )
       .subscribe();
 
@@ -149,7 +198,7 @@ const Sales = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sale_items' },
-        () => fetchSales()
+        () => refetchSales()
       )
       .subscribe();
 
@@ -157,56 +206,15 @@ const Sales = () => {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(saleItemsChannel);
     };
-  }, []);
+  }, [isOnline, refetchSales]);
 
+  // Filter sales effect
   useEffect(() => {
     filterSales();
-  }, [sales, searchTerm, dateFilter]);
-
-  const fetchSales = async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await supabase
-        .from("sales")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (data) {
-        // Calculate total cost and profit for each sale
-        const salesWithDetails = await Promise.all(data.map(async (sale) => {
-          const { data: saleItems } = await supabase
-            .from("sale_items")
-            .select("*")
-            .eq("sale_id", sale.id);
-          
-          // Filter out return items - they are tracking only, original qty already reduced
-          const regularItems = saleItems?.filter(item => !item.is_return) || [];
-          
-          const total_cost = regularItems.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
-          const total_profit = regularItems.reduce((sum, item) => sum + item.profit, 0);
-          const item_count = regularItems.length;
-          
-          return {
-            ...sale,
-            total_cost,
-            total_profit,
-            item_count
-          };
-        }));
-        
-        setSales(salesWithDetails);
-        setFilteredSales(salesWithDetails);
-      }
-      toast.success("Sales data refreshed");
-    } catch (error) {
-      toast.error("Failed to fetch sales");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [salesWithDetails, searchTerm, dateFilter]);
 
   const filterSales = () => {
-    let filtered = [...sales];
+    let filtered = [...salesWithDetails];
 
     if (searchTerm) {
       filtered = filtered.filter(sale => 
@@ -218,7 +226,7 @@ const Sales = () => {
 
     if (dateFilter) {
       filtered = filtered.filter(sale => 
-        sale.created_at.startsWith(dateFilter)
+        sale.created_at?.startsWith(dateFilter)
       );
     }
 
@@ -241,34 +249,25 @@ const Sales = () => {
     if (!confirm("Are you sure you want to delete this sale?")) return;
 
     try {
-      const { data: saleItems } = await supabase
-        .from("sale_items")
-        .select("product_id, quantity")
-        .eq("sale_id", id);
+      // Get sale items from offline DB
+      const saleItems = await getSaleItems(id);
 
-      // Restore stock for all items
-      if (saleItems) {
-        for (const item of saleItems) {
-          const { data: product } = await supabase
-            .from("products")
-            .select("stock_quantity")
-            .eq("id", item.product_id)
-            .maybeSingle();
-
-          if (product) {
-            await supabase
-              .from("products")
-              .update({ stock_quantity: product.stock_quantity + item.quantity })
-              .eq("id", item.product_id);
-          }
+      // Restore stock for all items using offline hook
+      for (const item of saleItems) {
+        if (item.is_return) continue; // Skip return items
+        
+        const product = products.find(p => p.id === item.product_id);
+        if (product) {
+          await updateProduct(item.product_id, { 
+            stock_quantity: product.stock_quantity + item.quantity 
+          });
         }
-        await supabase.from("sale_items").delete().eq("sale_id", id);
       }
 
-      // Delete sale (credits will be automatically deleted due to CASCADE)
-      await supabase.from("sales").delete().eq("id", id);
-      toast.success("Sale deleted successfully! Inventory and credits updated.");
-      fetchSales();
+      // Delete sale using offline hook
+      await deleteSale(id);
+      toast.success(isOnline ? "Sale deleted successfully!" : "Sale deleted offline - will sync when online");
+      refetchSales();
     } catch (error) {
       toast.error("Failed to delete sale");
     }
@@ -320,7 +319,8 @@ const Sales = () => {
             Total: {filteredSales.length}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <OfflineIndicator />
           <input
             type="file"
             ref={fileInputRef}
@@ -347,7 +347,7 @@ const Sales = () => {
             Export CSV
           </Button>
           <Button 
-            onClick={fetchSales} 
+            onClick={refetchSales} 
             variant="outline" 
             size="icon"
             disabled={isLoading}
@@ -433,8 +433,8 @@ const Sales = () => {
                   <TableCell className="text-right text-destructive">Rs. {sale.total_cost.toFixed(2)}</TableCell>
                   <TableCell className="text-right text-success">Rs. {sale.total_profit.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
-                    {sale.discount > 0 ? (
-                      <span className="text-destructive">- Rs. {sale.discount.toFixed(2)}</span>
+                    {(sale.discount || 0) > 0 ? (
+                      <span className="text-destructive">- Rs. {(sale.discount || 0).toFixed(2)}</span>
                     ) : (
                       "-"
                     )}

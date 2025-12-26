@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff, Crown } from "lucide-react";
+import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff, Crown, WifiOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,6 +10,11 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useOfflineDashboard } from "@/hooks/useOfflineDashboard";
+import { useOfflineSales } from "@/hooks/useOfflineSales";
+import { useOfflineCredits } from "@/hooks/useOfflineCredits";
+import { useOfflineProducts } from "@/hooks/useOfflineProducts";
 import MiniSparkline from "@/components/dashboard/MiniSparkline";
 import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
@@ -18,6 +23,8 @@ import TopProductsList from "@/components/dashboard/TopProductsList";
 import TopCustomersList from "@/components/dashboard/TopCustomersList";
 import UpgradePlanPopup from "@/components/billing/UpgradePlanPopup";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { Badge } from "@/components/ui/badge";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 interface DashboardStats {
   totalSales: number;
@@ -61,6 +68,27 @@ interface WeeklyData {
 const Dashboard = () => {
   const { timezone } = useTimezone();
   const { user } = useAuth();
+  const { isOnline, pendingCount } = useOffline();
+  const [dateRange, setDateRange] = useState("today");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  
+  // Use offline hooks for data syncing
+  const { refetch: refetchSales } = useOfflineSales();
+  const { refetch: refetchCredits } = useOfflineCredits();
+  const { refetch: refetchProducts } = useOfflineProducts();
+  
+  // Use offline dashboard hook for IndexedDB-based calculations
+  const {
+    stats: offlineStats,
+    topProducts: offlineTopProducts,
+    topCustomers: offlineTopCustomers,
+    categoryData: offlineCategoryData,
+    weeklyData: offlineWeeklyData,
+    isLoading: offlineLoading,
+    refetch: refetchOffline,
+  } = useOfflineDashboard(dateRange, startDate, endDate);
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalSales: 0,
     totalProfit: 0,
@@ -79,9 +107,6 @@ const Dashboard = () => {
     profit: { value: number }[];
     credit: { value: number }[];
   }>({ sales: [], profit: [], credit: [] });
-  const [dateRange, setDateRange] = useState("today");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [valuesHidden, setValuesHidden] = useState(() => {
     const saved = localStorage.getItem("dashboardValuesHidden");
@@ -90,12 +115,34 @@ const Dashboard = () => {
   const [isPlanExpired, setIsPlanExpired] = useState(false);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
 
-  // Real-time sync for dashboard data
+  // When offline, use offline data
   useEffect(() => {
-    handleRefresh();
-    checkSubscriptionStatus();
+    if (!isOnline) {
+      setStats({
+        totalSales: offlineStats.totalSales,
+        totalProfit: offlineStats.totalProfit,
+        totalCredit: offlineStats.totalCredit,
+        todaySales: offlineStats.todaySales,
+        totalCost: offlineStats.totalCost,
+        totalPrice: 0,
+      });
+      setTopProducts(offlineTopProducts);
+      setTopCustomers(offlineTopCustomers.map(c => ({ ...c, profit: 0 })));
+      setCategoryData(offlineCategoryData);
+      setWeeklyData(offlineWeeklyData);
+    }
+  }, [isOnline, offlineStats, offlineTopProducts, offlineTopCustomers, offlineCategoryData, offlineWeeklyData]);
 
-    // Subscribe to real-time changes
+  // Real-time sync for dashboard data (only when online)
+  useEffect(() => {
+    if (isOnline) {
+      handleRefresh();
+      checkSubscriptionStatus();
+    }
+
+    // Subscribe to real-time changes only when online
+    if (!isOnline) return;
+    
     const salesChannel = supabase
       .channel('dashboard-sales')
       .on(
@@ -165,16 +212,28 @@ const Dashboard = () => {
   };
 
   const handleRefresh = async () => {
-    setIsLoading(true);
+    // Also refresh offline data stores
     await Promise.all([
-      fetchDashboardStats(), 
-      fetchChartData(), 
-      fetchTopProducts(),
-      fetchTopCustomers(),
-      fetchCategoryData(),
-      fetchWeeklyData(),
+      refetchSales(),
+      refetchCredits(),
+      refetchProducts(),
     ]);
-    setIsLoading(false);
+    
+    if (isOnline) {
+      setIsLoading(true);
+      await Promise.all([
+        fetchDashboardStats(), 
+        fetchChartData(), 
+        fetchTopProducts(),
+        fetchTopCustomers(),
+        fetchCategoryData(),
+        fetchWeeklyData(),
+      ]);
+      setIsLoading(false);
+    } else {
+      // When offline, just refresh the offline dashboard calculations
+      await refetchOffline();
+    }
   };
 
   // Helper function to get current date parts in user's timezone
@@ -689,6 +748,21 @@ const Dashboard = () => {
         </div>
       )}
       <div id="dashboard-content" className="space-y-6">
+        {/* Offline Indicator */}
+        {!isOnline && (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+              <WifiOff className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-orange-900">You're offline</p>
+              <p className="text-sm text-orange-700">
+                Dashboard showing offline data. {pendingCount > 0 && `${pendingCount} changes pending sync.`}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Expired Plan Banner */}
         {isPlanExpired && (
           <div className="p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -718,6 +792,7 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your business performance</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
+            <OfflineIndicator />
             {isPlanExpired && (
               <Button 
                 onClick={() => setShowUpgradePopup(true)}
