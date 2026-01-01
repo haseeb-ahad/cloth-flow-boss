@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
@@ -15,6 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search } from "lucide-react";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+
+interface CustomerSuggestion {
+  name: string;
+  phone: string | null;
+}
 
 interface CreditEntry {
   id: string;
@@ -55,6 +60,12 @@ const CreditManagement = () => {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<CreditEntry | null>(null);
 
+  // Customer autocomplete
+  const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionRef = useRef<HTMLDivElement>(null);
+
   // Form state
   const [formData, setFormData] = useState({
     party_name: "",
@@ -90,6 +101,7 @@ const CreditManagement = () => {
 
   useEffect(() => {
     fetchCredits();
+    fetchCustomerSuggestions();
 
     const channel = supabase
       .channel('credit-management-sync')
@@ -104,6 +116,81 @@ const CreditManagement = () => {
   useEffect(() => {
     filterCredits();
   }, [credits, activeTab, searchTerm]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchCustomerSuggestions = async () => {
+    try {
+      // Fetch from sales
+      const { data: salesData } = await supabase
+        .from("sales")
+        .select("customer_name, customer_phone")
+        .not("customer_name", "is", null);
+
+      // Fetch from credits
+      const { data: creditsData } = await supabase
+        .from("credits")
+        .select("customer_name, customer_phone");
+
+      // Fetch from payment_ledger
+      const { data: ledgerData } = await supabase
+        .from("payment_ledger")
+        .select("customer_name, customer_phone");
+
+      // Combine and deduplicate by name
+      const allCustomers: CustomerSuggestion[] = [];
+      const customerMap = new Map<string, string | null>();
+
+      [...(salesData || []), ...(creditsData || []), ...(ledgerData || [])].forEach(item => {
+        const name = item.customer_name?.trim();
+        if (name && !customerMap.has(name.toLowerCase())) {
+          customerMap.set(name.toLowerCase(), item.customer_phone);
+          allCustomers.push({ name, phone: item.customer_phone });
+        } else if (name && item.customer_phone && !customerMap.get(name.toLowerCase())) {
+          // Update phone if we have one now
+          customerMap.set(name.toLowerCase(), item.customer_phone);
+          const existing = allCustomers.find(c => c.name.toLowerCase() === name.toLowerCase());
+          if (existing) existing.phone = item.customer_phone;
+        }
+      });
+
+      setCustomerSuggestions(allCustomers);
+    } catch (error) {
+      console.error("Error fetching customer suggestions:", error);
+    }
+  };
+
+  const handlePartyNameChange = (value: string) => {
+    setFormData({ ...formData, party_name: value });
+    
+    if (value.length > 0) {
+      const filtered = customerSuggestions.filter(c =>
+        c.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectCustomer = (customer: CustomerSuggestion) => {
+    setFormData({
+      ...formData,
+      party_name: customer.name,
+      party_phone: customer.phone || "",
+    });
+    setShowSuggestions(false);
+  };
 
   const fetchCredits = async () => {
     setIsLoading(true);
@@ -465,15 +552,41 @@ const CreditManagement = () => {
                     <DialogTitle>Add Credit Entry</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleAddCredit} className="space-y-4">
-                    <div>
+                    <div className="relative" ref={suggestionRef}>
                       <Label htmlFor="party_name">Party Name *</Label>
                       <Input
                         id="party_name"
                         required
                         placeholder={activeTab === "given" ? "Customer name" : "Supplier name"}
                         value={formData.party_name}
-                        onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
+                        onChange={(e) => handlePartyNameChange(e.target.value)}
+                        onFocus={() => {
+                          if (formData.party_name.length > 0) {
+                            const filtered = customerSuggestions.filter(c =>
+                              c.name.toLowerCase().includes(formData.party_name.toLowerCase())
+                            );
+                            setFilteredSuggestions(filtered);
+                            setShowSuggestions(filtered.length > 0);
+                          }
+                        }}
+                        autoComplete="off"
                       />
+                      {showSuggestions && filteredSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {filteredSuggestions.map((customer, index) => (
+                            <div
+                              key={index}
+                              className="px-3 py-2 hover:bg-accent cursor-pointer flex justify-between items-center"
+                              onClick={() => selectCustomer(customer)}
+                            >
+                              <span className="font-medium">{customer.name}</span>
+                              {customer.phone && (
+                                <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="party_phone">Phone Number</Label>
