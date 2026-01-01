@@ -266,7 +266,7 @@ const SalesReport = ({ className }: SalesReportProps) => {
         </div>
 
         {/* Report Table */}
-        <ScrollArea className="flex-1 max-h-[50vh]">
+        <div className="flex-1 max-h-[50vh] overflow-auto border rounded-md">
           <div className="min-w-[1200px]">
           <Table>
             <TableHeader>
@@ -416,7 +416,7 @@ const SalesReport = ({ className }: SalesReportProps) => {
             </TableBody>
           </Table>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
