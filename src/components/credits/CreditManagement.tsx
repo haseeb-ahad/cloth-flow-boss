@@ -470,12 +470,20 @@ const CreditManagement = () => {
 
   const openEditDialog = (credit: CreditEntry) => {
     setSelectedCredit(credit);
+    
+    // Parse the created_at date correctly using local timezone
+    let creditDate = getLocalDate();
+    if (credit.created_at) {
+      const date = new Date(credit.created_at);
+      creditDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+    
     setFormData({
       party_name: credit.party_name,
       party_phone: credit.party_phone || "",
       credit_type: credit.credit_type,
       total_amount: credit.total_amount.toString(),
-      credit_date: credit.created_at ? credit.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+      credit_date: creditDate,
       due_date: credit.due_date || "",
       date_complete: credit.date_complete || "",
       notes: credit.notes || "",
