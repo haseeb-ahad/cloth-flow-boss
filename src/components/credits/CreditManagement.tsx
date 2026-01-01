@@ -216,6 +216,7 @@ const CreditManagement = () => {
         paid_amount: credit.paid_amount || 0,
         remaining_amount: credit.remaining_amount,
         due_date: credit.due_date,
+        date_complete: (credit as any).date_complete || null,
         status: getStatus(credit),
         notes: credit.notes,
         created_at: credit.created_at || "",
@@ -334,6 +335,7 @@ const CreditManagement = () => {
           amount: amount,
           remaining_amount: Math.max(0, newRemaining),
           due_date: formData.due_date || null,
+          date_complete: formData.date_complete || null,
           notes: formData.notes || null,
           status: newStatus,
         })
