@@ -44,7 +44,7 @@ interface PaymentFormData {
 
 const CreditManagement = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
-  const { formatDate, formatDateInput } = useTimezone();
+  const { formatDate } = useTimezone();
   
   const canCreate = userRole === "admin" || hasPermission("credits", "create");
   const canEdit = userRole === "admin" || hasPermission("credits", "edit");
@@ -68,9 +68,10 @@ const CreditManagement = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionRef = useRef<HTMLDivElement>(null);
 
-  // Get current local date using timezone context
+  // Get current local date
   const getLocalDate = () => {
-    return formatDateInput(new Date()) || new Date().toLocaleDateString('en-CA');
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
   // Form state
@@ -469,18 +470,12 @@ const CreditManagement = () => {
 
   const openEditDialog = (credit: CreditEntry) => {
     setSelectedCredit(credit);
-    
-    // Parse the created_at date correctly using timezone context
-    const creditDate = credit.created_at 
-      ? formatDateInput(new Date(credit.created_at)) 
-      : getLocalDate();
-    
     setFormData({
       party_name: credit.party_name,
       party_phone: credit.party_phone || "",
       credit_type: credit.credit_type,
       total_amount: credit.total_amount.toString(),
-      credit_date: creditDate,
+      credit_date: credit.created_at ? credit.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       due_date: credit.due_date || "",
       date_complete: credit.date_complete || "",
       notes: credit.notes || "",
