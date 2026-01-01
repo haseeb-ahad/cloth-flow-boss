@@ -203,6 +203,7 @@ export type Database = {
           credit_type: string
           customer_name: string
           customer_phone: string | null
+          date_complete: string | null
           deleted_at: string | null
           due_date: string | null
           id: string
@@ -222,6 +223,7 @@ export type Database = {
           credit_type?: string
           customer_name: string
           customer_phone?: string | null
+          date_complete?: string | null
           deleted_at?: string | null
           due_date?: string | null
           id?: string
@@ -241,6 +243,7 @@ export type Database = {
           credit_type?: string
           customer_name?: string
           customer_phone?: string | null
+          date_complete?: string | null
           deleted_at?: string | null
           due_date?: string | null
           id?: string
