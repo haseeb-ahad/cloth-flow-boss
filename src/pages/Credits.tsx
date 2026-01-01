@@ -986,6 +986,13 @@ const Credits = () => {
           <h1 className="text-4xl font-bold text-foreground tracking-tight">Credits</h1>
           <p className="text-muted-foreground mt-1 text-base">Track customer loans, invoices, and credit management</p>
         </div>
+        <Card className="px-6 py-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800">
+          <p className="text-sm text-muted-foreground">Total Credits</p>
+          <p className="text-2xl font-bold text-warning">
+            Rs. {credits.reduce((sum, c) => sum + (c.remaining_amount || 0), 0).toLocaleString()}
+          </p>
+          <p className="text-xs text-muted-foreground">{credits.filter(c => c.remaining_amount > 0).length} unpaid</p>
+        </Card>
       </div>
 
       <div className="flex items-center justify-end gap-3">
