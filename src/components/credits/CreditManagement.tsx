@@ -60,6 +60,7 @@ const CreditManagement = () => {
     party_name: "",
     credit_type: "given" as "given" | "taken",
     total_amount: "",
+    credit_date: new Date().toISOString().split('T')[0],
     due_date: "",
     notes: "",
   });
@@ -163,6 +164,7 @@ const CreditManagement = () => {
       party_name: "",
       credit_type: activeTab,
       total_amount: "",
+      credit_date: new Date().toISOString().split('T')[0],
       due_date: "",
       notes: "",
     });
@@ -190,6 +192,7 @@ const CreditManagement = () => {
         amount: amount,
         paid_amount: 0,
         remaining_amount: amount,
+        created_at: formData.credit_date ? new Date(formData.credit_date).toISOString() : new Date().toISOString(),
         due_date: formData.due_date || null,
         notes: formData.notes || null,
         status: "pending",
@@ -360,6 +363,7 @@ const CreditManagement = () => {
       party_name: credit.party_name,
       credit_type: credit.credit_type,
       total_amount: credit.total_amount.toString(),
+      credit_date: credit.created_at ? credit.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       due_date: credit.due_date || "",
       notes: credit.notes || "",
     });
@@ -491,6 +495,16 @@ const CreditManagement = () => {
                         min="1"
                         value={formData.total_amount}
                         onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credit_date">Credit Date *</Label>
+                      <Input
+                        id="credit_date"
+                        type="date"
+                        required
+                        value={formData.credit_date}
+                        onChange={(e) => setFormData({ ...formData, credit_date: e.target.value })}
                       />
                     </div>
                     <div>
