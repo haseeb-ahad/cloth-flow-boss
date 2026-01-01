@@ -17,6 +17,7 @@ import Invoice from "./pages/Invoice";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import Credits from "./pages/Credits";
+import CreditManagement from "./pages/CreditManagement";
 import Customers from "./pages/Customers";
 import Settings from "./pages/Settings";
 import Workers from "./pages/Workers";
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/inventory" element={<ProtectedRoute feature="inventory" requirePermission="view"><Layout><Inventory /></Layout></ProtectedRoute>} />
               <Route path="/sales" element={<ProtectedRoute feature="sales" requirePermission="view"><Layout><Sales /></Layout></ProtectedRoute>} />
               <Route path="/credits" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><Credits /></Layout></ProtectedRoute>} />
+              <Route path="/credit-management" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><CreditManagement /></Layout></ProtectedRoute>} />
               <Route path="/cash-credit" element={<ProtectedRoute feature="credits" requirePermission="create"><Layout><CashCredit /></Layout></ProtectedRoute>} />
               <Route path="/customers" element={<ProtectedRoute feature="customers" requirePermission="view"><Layout><Customers /></Layout></ProtectedRoute>} />
               <Route path="/receive-payment" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><ReceivePayment /></Layout></ProtectedRoute>} />
