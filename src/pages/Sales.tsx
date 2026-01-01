@@ -218,9 +218,12 @@ const Sales = () => {
     }
 
     if (dateFilter) {
-      filtered = filtered.filter(sale => 
-        sale.created_at.startsWith(dateFilter)
-      );
+      filtered = filtered.filter(sale => {
+        // Convert created_at to local date string for comparison
+        const saleDate = new Date(sale.created_at);
+        const saleDateStr = saleDate.toLocaleDateString('en-CA'); // Format: YYYY-MM-DD
+        return saleDateStr === dateFilter;
+      });
     }
 
     setFilteredSales(filtered);
