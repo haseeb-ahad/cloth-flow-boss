@@ -58,6 +58,7 @@ const CreditManagement = () => {
   // Form state
   const [formData, setFormData] = useState({
     party_name: "",
+    party_phone: "",
     credit_type: "given" as "given" | "taken",
     total_amount: "",
     credit_date: new Date().toISOString().split('T')[0],
@@ -162,6 +163,7 @@ const CreditManagement = () => {
   const resetForm = () => {
     setFormData({
       party_name: "",
+      party_phone: "",
       credit_type: activeTab,
       total_amount: "",
       credit_date: new Date().toISOString().split('T')[0],
@@ -188,6 +190,7 @@ const CreditManagement = () => {
     try {
       const { error } = await supabase.from("credits").insert({
         customer_name: formData.party_name,
+        customer_phone: formData.party_phone || null,
         credit_type: formData.credit_type,
         amount: amount,
         paid_amount: 0,
@@ -361,6 +364,7 @@ const CreditManagement = () => {
     setSelectedCredit(credit);
     setFormData({
       party_name: credit.party_name,
+      party_phone: "",
       credit_type: credit.credit_type,
       total_amount: credit.total_amount.toString(),
       credit_date: credit.created_at ? credit.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -469,6 +473,16 @@ const CreditManagement = () => {
                         placeholder={activeTab === "given" ? "Customer name" : "Supplier name"}
                         value={formData.party_name}
                         onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="party_phone">Phone Number</Label>
+                      <Input
+                        id="party_phone"
+                        type="tel"
+                        placeholder="Phone number"
+                        value={formData.party_phone}
+                        onChange={(e) => setFormData({ ...formData, party_phone: e.target.value })}
                       />
                     </div>
                     <div>
