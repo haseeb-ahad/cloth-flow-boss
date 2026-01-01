@@ -29,6 +29,7 @@ interface CreditEntry {
   paid_amount: number;
   remaining_amount: number;
   due_date: string | null;
+  date_complete: string | null;
   status: string;
   notes: string | null;
   created_at: string;
@@ -74,6 +75,7 @@ const CreditManagement = () => {
     total_amount: "",
     credit_date: new Date().toISOString().split('T')[0],
     due_date: "",
+    date_complete: "",
     notes: "",
   });
 
@@ -258,6 +260,7 @@ const CreditManagement = () => {
       total_amount: "",
       credit_date: new Date().toISOString().split('T')[0],
       due_date: "",
+      date_complete: "",
       notes: "",
     });
   };
@@ -459,6 +462,7 @@ const CreditManagement = () => {
       total_amount: credit.total_amount.toString(),
       credit_date: credit.created_at ? credit.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       due_date: credit.due_date || "",
+      date_complete: credit.date_complete || "",
       notes: credit.notes || "",
     });
     setIsEditDialogOpen(true);
@@ -749,6 +753,15 @@ const CreditManagement = () => {
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_date_complete">Date Complete</Label>
+              <Input
+                id="edit_date_complete"
+                type="date"
+                value={formData.date_complete}
+                onChange={(e) => setFormData({ ...formData, date_complete: e.target.value })}
               />
             </div>
             <div>
