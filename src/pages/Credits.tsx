@@ -12,13 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard, Banknote, Wallet } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard, Banknote, Wallet, BookOpen } from "lucide-react";
 import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CreditManagement from "@/components/credits/CreditManagement";
 // Credit now represents a sale/invoice with remaining balance
 interface Credit {
   id: string;
@@ -90,6 +91,7 @@ interface PaymentRecord {
 
 const Credits = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
+  const [mainTab, setMainTab] = useState<"invoices" | "management">("invoices");
   const { formatDate, formatDateInput } = useTimezone();
   
   // Permission checks
@@ -981,12 +983,33 @@ const Credits = () => {
           <AnimatedLogoLoader size="lg" showMessage message="Loading credits..." />
         </div>
       )}
+      
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">Credit Management</h1>
-          <p className="text-muted-foreground mt-1 text-base">Track customer loans and payments</p>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">Credits</h1>
+          <p className="text-muted-foreground mt-1 text-base">Track customer loans, invoices, and credit management</p>
         </div>
-        <div className="flex gap-3">
+      </div>
+
+      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "invoices" | "management")}>
+        <TabsList className="grid w-full sm:w-auto grid-cols-2">
+          <TabsTrigger value="invoices" className="gap-2">
+            <CreditCard className="h-4 w-4" />
+            Invoice Credits
+          </TabsTrigger>
+          <TabsTrigger value="management" className="gap-2">
+            <BookOpen className="h-4 w-4" />
+            Credit Management
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="management" className="mt-6">
+          <CreditManagement />
+        </TabsContent>
+
+        <TabsContent value="invoices" className="mt-6">
+          {/* Existing Invoice Credits Content */}
+          <div className="flex items-center justify-end gap-3">
           <Button 
             onClick={fetchCredits} 
             variant="outline" 
@@ -1068,9 +1091,7 @@ const Credits = () => {
           </DialogContent>
         </Dialog>
           )}
-        </div>
-      </div>
-
+          </div>
       <Card className="p-4">
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
@@ -1772,6 +1793,8 @@ const Credits = () => {
           )}
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
