@@ -311,7 +311,7 @@ const SalesReport = ({ className }: SalesReportProps) => {
                     <>
                       <TableRow
                         key={sale.id}
-                        className="cursor-pointer hover:bg-muted/50"
+                        className={`cursor-pointer hover:bg-muted/50 ${isExpanded ? 'bg-primary/10' : ''}`}
                         onClick={() => toggleExpand(sale.id)}
                       >
                         <TableCell>
