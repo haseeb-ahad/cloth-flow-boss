@@ -173,9 +173,12 @@ const CreditManagement = () => {
     setFormData({ ...formData, party_name: value });
     
     if (value.length > 0) {
-      const filtered = customerSuggestions.filter(c =>
-        c.name.toLowerCase().includes(value.toLowerCase())
-      );
+      const searchValue = value.toLowerCase().replace(/\s+/g, '');
+      const filtered = customerSuggestions.filter(c => {
+        const nameMatch = c.name.toLowerCase().replace(/\s+/g, '').includes(searchValue);
+        const phoneMatch = c.phone?.replace(/\s+/g, '').includes(searchValue);
+        return nameMatch || phoneMatch;
+      });
       setFilteredSuggestions(filtered);
       setShowSuggestions(filtered.length > 0);
     } else {
@@ -562,9 +565,12 @@ const CreditManagement = () => {
                         onChange={(e) => handlePartyNameChange(e.target.value)}
                         onFocus={() => {
                           if (formData.party_name.length > 0) {
-                            const filtered = customerSuggestions.filter(c =>
-                              c.name.toLowerCase().includes(formData.party_name.toLowerCase())
-                            );
+                            const searchValue = formData.party_name.toLowerCase().replace(/\s+/g, '');
+                            const filtered = customerSuggestions.filter(c => {
+                              const nameMatch = c.name.toLowerCase().replace(/\s+/g, '').includes(searchValue);
+                              const phoneMatch = c.phone?.replace(/\s+/g, '').includes(searchValue);
+                              return nameMatch || phoneMatch;
+                            });
                             setFilteredSuggestions(filtered);
                             setShowSuggestions(filtered.length > 0);
                           }
