@@ -532,12 +532,18 @@ const CreditManagement = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "given" | "taken")}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <TabsList className="grid w-full sm:w-auto grid-cols-2">
-            <TabsTrigger value="given" className="gap-2">
+          <TabsList className="grid w-full sm:w-auto grid-cols-2 bg-transparent gap-2">
+            <TabsTrigger 
+              value="given" 
+              className="gap-2 data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=inactive]:bg-muted border data-[state=active]:border-green-300 data-[state=inactive]:border-border"
+            >
               <ArrowDownCircle className="h-4 w-4" />
               Credit Given
             </TabsTrigger>
-            <TabsTrigger value="taken" className="gap-2">
+            <TabsTrigger 
+              value="taken" 
+              className="gap-2 data-[state=active]:bg-red-100 data-[state=active]:text-red-700 data-[state=inactive]:bg-muted border data-[state=active]:border-red-300 data-[state=inactive]:border-border"
+            >
               <ArrowUpCircle className="h-4 w-4" />
               Credit Taken
             </TabsTrigger>
