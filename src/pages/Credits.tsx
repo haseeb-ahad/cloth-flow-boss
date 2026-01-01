@@ -258,11 +258,11 @@ const Credits = () => {
         .neq("payment_status", "paid")
         .order("created_at", { ascending: true }); // Oldest first for FIFO display
 
-      // Fetch from credits table for cash credits - only with remaining > 0
+      // Fetch from credits table for cash credits AND credit given - only with remaining > 0
       const { data: cashCreditsData } = await supabase
         .from("credits")
         .select("*")
-        .eq("credit_type", "cash")
+        .in("credit_type", ["cash", "given"])
         .gt("remaining_amount", 0)
         .order("created_at", { ascending: true });
 
@@ -1102,6 +1102,7 @@ const Credits = () => {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="invoice">Invoice Credit</SelectItem>
                 <SelectItem value="cash">Cash Credit</SelectItem>
+                <SelectItem value="given">Credit Given</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1129,10 +1130,11 @@ const Credits = () => {
             // Skip customers with no remaining balance
             if (totalRemaining <= 0) return null;
 
-            // Check if any credits for this customer are cash or invoice credits
+            // Check if any credits for this customer are cash, invoice, or given credits
             const hasCashCredit = customerCredits.some(credit => credit.credit_type === "cash");
             const hasInvoiceCredit = customerCredits.some(credit => credit.credit_type === "invoice");
-            const hasAnyLabel = hasCashCredit || hasInvoiceCredit;
+            const hasCreditGiven = customerCredits.some(credit => credit.credit_type === "given");
+            const hasAnyLabel = hasCashCredit || hasInvoiceCredit || hasCreditGiven;
 
             return (
               <Collapsible key={key} open={isExpanded} onOpenChange={() => toggleCustomer(key)}>
@@ -1148,6 +1150,12 @@ const Credits = () => {
                       <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md text-xs font-medium">
                         <CreditCard className="h-3.5 w-3.5" />
                         <span>Invoice Credit</span>
+                      </div>
+                    )}
+                    {hasCreditGiven && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-success/20 text-success rounded-md text-xs font-medium">
+                        <Wallet className="h-3.5 w-3.5" />
+                        <span>Credit Given</span>
                       </div>
                     )}
                   </div>
