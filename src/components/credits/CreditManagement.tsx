@@ -24,6 +24,7 @@ interface CustomerSuggestion {
 interface CreditEntry {
   id: string;
   party_name: string;
+  party_phone: string | null;
   credit_type: "given" | "taken";
   total_amount: number;
   paid_amount: number;
@@ -211,6 +212,7 @@ const CreditManagement = () => {
       const mappedCredits: CreditEntry[] = (data || []).map(credit => ({
         id: credit.id,
         party_name: credit.customer_name,
+        party_phone: credit.customer_phone || null,
         credit_type: credit.credit_type as "given" | "taken",
         total_amount: credit.amount,
         paid_amount: credit.paid_amount || 0,
@@ -332,6 +334,8 @@ const CreditManagement = () => {
         .from("credits")
         .update({
           customer_name: formData.party_name,
+          customer_phone: formData.party_phone || null,
+          credit_type: formData.credit_type,
           amount: amount,
           remaining_amount: Math.max(0, newRemaining),
           due_date: formData.due_date || null,
@@ -459,7 +463,7 @@ const CreditManagement = () => {
     setSelectedCredit(credit);
     setFormData({
       party_name: credit.party_name,
-      party_phone: "",
+      party_phone: credit.party_phone || "",
       credit_type: credit.credit_type,
       total_amount: credit.total_amount.toString(),
       credit_date: credit.created_at ? credit.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -733,6 +737,30 @@ const CreditManagement = () => {
               />
             </div>
             <div>
+              <Label htmlFor="edit_party_phone">Phone Number</Label>
+              <Input
+                id="edit_party_phone"
+                placeholder="Phone number"
+                value={formData.party_phone}
+                onChange={(e) => setFormData({ ...formData, party_phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_credit_type">Credit Type *</Label>
+              <Select
+                value={formData.credit_type}
+                onValueChange={(value: "given" | "taken") => setFormData({ ...formData, credit_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="given">Credit Given (To Receive)</SelectItem>
+                  <SelectItem value="taken">Credit Taken (To Pay)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="edit_total_amount">Total Amount *</Label>
               <Input
                 id="edit_total_amount"
@@ -749,21 +777,22 @@ const CreditManagement = () => {
               )}
             </div>
             <div>
+              <Label htmlFor="edit_credit_date">Credit Date *</Label>
+              <Input
+                id="edit_credit_date"
+                type="date"
+                required
+                value={formData.credit_date}
+                onChange={(e) => setFormData({ ...formData, credit_date: e.target.value })}
+              />
+            </div>
+            <div>
               <Label htmlFor="edit_due_date">Due Date</Label>
               <Input
                 id="edit_due_date"
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit_date_complete">Date Complete</Label>
-              <Input
-                id="edit_date_complete"
-                type="date"
-                value={formData.date_complete}
-                onChange={(e) => setFormData({ ...formData, date_complete: e.target.value })}
               />
             </div>
             <div>
