@@ -1333,8 +1333,8 @@ const Invoice = () => {
                     key={idx}
                     className="px-3 py-2 hover:bg-muted cursor-pointer"
                     onMouseDown={() => {
-                      setCustomerName(customer.name);
-                      setCustomerPhone(customer.phone || "");
+                      setCustomerName(customer.name.trim());
+                      setCustomerPhone(customer.phone?.trim() || "");
                       setShowCustomerSuggestions(false);
                     }}
                   >
