@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, Trash2, Search, RefreshCw, Download, Upload, FileText, ImageIcon } from "lucide-react";
+import SalesReport from "@/components/sales/SalesReport";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
@@ -321,6 +322,7 @@ const Sales = () => {
           </span>
         </div>
         <div className="flex gap-2">
+          <SalesReport />
           <input
             type="file"
             ref={fileInputRef}
