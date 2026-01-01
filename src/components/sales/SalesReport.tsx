@@ -71,6 +71,10 @@ const SalesReport = ({ className }: SalesReportProps) => {
       if (dateFilter === "today") {
         filterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         filterEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      } else if (dateFilter === "yesterday") {
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        filterStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        filterEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
       } else if (dateFilter === "7days") {
         filterStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         filterEnd = now;
@@ -80,13 +84,20 @@ const SalesReport = ({ className }: SalesReportProps) => {
       } else if (dateFilter === "90days") {
         filterStart = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         filterEnd = now;
-      } else if (dateFilter === "custom" && startDate && endDate) {
-        filterStart = new Date(startDate);
-        filterEnd = new Date(endDate + "T23:59:59");
+      } else if (dateFilter === "custom") {
+        if (startDate) {
+          filterStart = new Date(startDate + "T00:00:00");
+        }
+        if (endDate) {
+          filterEnd = new Date(endDate + "T23:59:59");
+        }
       }
 
-      if (filterStart && filterEnd) {
-        query = query.gte("created_at", filterStart.toISOString()).lte("created_at", filterEnd.toISOString());
+      if (filterStart) {
+        query = query.gte("created_at", filterStart.toISOString());
+      }
+      if (filterEnd) {
+        query = query.lte("created_at", filterEnd.toISOString());
       }
 
       const { data: salesData } = await query;
@@ -190,6 +201,7 @@ const SalesReport = ({ className }: SalesReportProps) => {
               <SelectContent>
                 <SelectItem value="all">All Time</SelectItem>
                 <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
                 <SelectItem value="7days">Last 7 Days</SelectItem>
                 <SelectItem value="30days">Last 30 Days</SelectItem>
                 <SelectItem value="90days">Last 90 Days</SelectItem>
