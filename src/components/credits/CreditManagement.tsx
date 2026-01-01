@@ -68,13 +68,19 @@ const CreditManagement = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionRef = useRef<HTMLDivElement>(null);
 
+  // Get current local date
+  const getLocalDate = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     party_name: "",
     party_phone: "",
     credit_type: "given" as "given" | "taken",
     total_amount: "",
-    credit_date: new Date().toISOString().split('T')[0],
+    credit_date: getLocalDate(),
     due_date: "",
     date_complete: "",
     notes: "",
@@ -82,7 +88,7 @@ const CreditManagement = () => {
 
   const [paymentData, setPaymentData] = useState<PaymentFormData>({
     amount: "",
-    payment_date: new Date().toISOString().split('T')[0],
+    payment_date: getLocalDate(),
     notes: "",
   });
 
@@ -256,12 +262,15 @@ const CreditManagement = () => {
   };
 
   const resetForm = () => {
+    const today = new Date();
+    const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
     setFormData({
       party_name: "",
       party_phone: "",
       credit_type: activeTab,
       total_amount: "",
-      credit_date: new Date().toISOString().split('T')[0],
+      credit_date: localDate,
       due_date: "",
       date_complete: "",
       notes: "",
@@ -387,7 +396,7 @@ const CreditManagement = () => {
     setSelectedCredit(credit);
     setPaymentData({
       amount: "",
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: getLocalDate(),
       notes: "",
     });
     setIsPaymentDialogOpen(true);
