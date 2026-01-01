@@ -798,6 +798,7 @@ const CreditList = ({
             <TableHead className="text-right">Total Amount</TableHead>
             <TableHead className="text-right">Paid Amount</TableHead>
             <TableHead className="text-right">Remaining</TableHead>
+            <TableHead>Credit Date</TableHead>
             <TableHead>Due Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-center">Actions</TableHead>
@@ -816,6 +817,9 @@ const CreditList = ({
               <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
               <TableCell className="text-right font-semibold text-warning">
                 Rs. {credit.remaining_amount.toLocaleString()}
+              </TableCell>
+              <TableCell>
+                {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
               </TableCell>
               <TableCell>
                 {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
