@@ -1199,9 +1199,12 @@ const Credits = () => {
                         {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell className="font-medium">{credit.invoice_number}</TableCell>
-                            <TableCell>
-                              <Badge variant={credit.credit_type === "cash" ? "secondary" : "outline"} className="text-xs">
-                                {credit.credit_type === "cash" ? "Cash" : "Invoice"}
+                          <TableCell>
+                              <Badge 
+                                variant={credit.credit_type === "cash" ? "secondary" : credit.credit_type === "given" ? "success" : "outline"} 
+                                className="text-xs"
+                              >
+                                {credit.credit_type === "cash" ? "Cash" : credit.credit_type === "given" ? "Credit Given" : "Invoice"}
                               </Badge>
                             </TableCell>
                             <TableCell>{formatDate(credit.created_at)}</TableCell>
