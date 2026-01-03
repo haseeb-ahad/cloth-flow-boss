@@ -253,12 +253,9 @@ const CreditManagement = () => {
     let filtered = credits.filter(c => c.credit_type === activeTab);
     
     if (searchTerm) {
-      const searchValue = searchTerm.trim().toLowerCase().replace(/\s+/g, '');
-      filtered = filtered.filter(c => {
-        const nameMatch = c.party_name.trim().toLowerCase().replace(/\s+/g, '').includes(searchValue);
-        const phoneMatch = c.party_phone?.replace(/\s+/g, '').includes(searchValue);
-        return nameMatch || phoneMatch;
-      });
+      filtered = filtered.filter(c => 
+        c.party_name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
     setFilteredCredits(filtered);

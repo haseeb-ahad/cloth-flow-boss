@@ -195,12 +195,9 @@ const Invoice = () => {
 
   const getFilteredCustomers = () => {
     if (!customerName) return [];
-    const searchValue = customerName.trim().toLowerCase().replace(/\s+/g, '');
-    return customerSuggestions.filter(customer => {
-      const nameMatch = customer.name.trim().toLowerCase().replace(/\s+/g, '').includes(searchValue);
-      const phoneMatch = customer.phone?.replace(/\s+/g, '').includes(searchValue);
-      return nameMatch || phoneMatch;
-    }).slice(0, 5);
+    return customerSuggestions.filter(customer => 
+      customer.name.toLowerCase().includes(customerName.toLowerCase())
+    ).slice(0, 5);
   };
 
   const loadSaleData = async (saleId: string) => {
