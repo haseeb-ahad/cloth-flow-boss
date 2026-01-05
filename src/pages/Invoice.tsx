@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw } from "lucide-react";
+import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw, ScanLine } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import PrintInvoice from "@/components/PrintInvoice";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import QRScanner from "@/components/inventory/QRScanner";
 
 // DEBUG FLAG - Set to false after confirming fix
 const DEBUG_MODE = true;
@@ -420,6 +421,83 @@ const Invoice = () => {
       };
       setItems([...currentItems, newItem]);
     }
+  };
+
+  // Handle QR code scan - add product to invoice
+  const handleQRScan = async (scannedData: string) => {
+    debugLog("📱 QR SCAN: Received data:", scannedData);
+    
+    // Find product by SKU first, then by ID
+    let product = products.find(p => (p as any).sku === scannedData);
+    
+    if (!product) {
+      // Try to find by ID
+      product = products.find(p => p.id === scannedData);
+    }
+    
+    if (!product) {
+      // Fetch from database in case products list is outdated
+      const { data: fetchedProduct } = await supabase
+        .from("products")
+        .select("*")
+        .or(`sku.eq.${scannedData},id.eq.${scannedData}`)
+        .maybeSingle();
+      
+      if (fetchedProduct) {
+        product = {
+          id: fetchedProduct.id,
+          name: fetchedProduct.name,
+          selling_price: fetchedProduct.selling_price,
+          purchase_price: fetchedProduct.purchase_price,
+          stock_quantity: fetchedProduct.stock_quantity,
+          quantity_type: fetchedProduct.quantity_type || "Unit",
+          category: fetchedProduct.category,
+        };
+        // Update products list
+        setProducts(prev => [...prev, product!]);
+      }
+    }
+    
+    if (!product) {
+      toast.error("Product not found! Please check the QR code.");
+      return;
+    }
+    
+    // Check if product already exists in invoice
+    const existingItemIndex = items.findIndex(item => item.product_id === product!.id && !item.is_return);
+    
+    if (existingItemIndex !== -1) {
+      // Increase quantity of existing item
+      const newItems = [...items];
+      const existingItem = newItems[existingItemIndex];
+      const newQuantity = existingItem.quantity + 1;
+      newItems[existingItemIndex] = {
+        ...existingItem,
+        quantity: newQuantity,
+        total_price: existingItem.unit_price * newQuantity,
+      };
+      setItems(newItems);
+      toast.success(`${product.name} quantity increased to ${newQuantity}`);
+    } else {
+      // Add new item
+      const newItem: InvoiceItem = {
+        product_id: product.id,
+        product_name: product.name,
+        quantity: 1,
+        unit_price: product.selling_price,
+        purchase_price: product.purchase_price,
+        total_price: product.selling_price,
+        quantity_type: product.quantity_type || "Unit",
+        is_return: false,
+      };
+      
+      // Remove empty items before adding
+      const filteredItems = items.filter(item => item.product_id !== "");
+      setItems([...filteredItems, newItem]);
+      toast.success(`${product.name} added to invoice`);
+    }
+    
+    debugLog("✅ QR SCAN: Product added/updated in invoice");
   };
 
   const updateItem = (index: number, field: string, value: any) => {
@@ -1415,17 +1493,24 @@ const Invoice = () => {
         </div>
 
         <div className="space-y-4 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-semibold">Items</h3>
               <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
                 Total: {items.length}
               </span>
             </div>
-            <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving || isLoadingItems}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
+            <div className="flex gap-2">
+              <QRScanner 
+                onScan={handleQRScan} 
+                buttonText="Scan QR"
+                buttonVariant="default"
+              />
+              <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving || isLoadingItems}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
           </div>
 
           {isLoadingItems ? (
