@@ -616,13 +616,16 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           id: string
+          image_url: string | null
           is_deleted: boolean | null
           name: string
           owner_id: string | null
           purchase_price: number
           quantity_type: string | null
           selling_price: number
+          sku: string | null
           stock_quantity: number
+          supplier_name: string | null
           updated_at: string | null
         }
         Insert: {
@@ -631,13 +634,16 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
           is_deleted?: boolean | null
           name: string
           owner_id?: string | null
           purchase_price: number
           quantity_type?: string | null
           selling_price: number
+          sku?: string | null
           stock_quantity?: number
+          supplier_name?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -646,13 +652,16 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
           is_deleted?: boolean | null
           name?: string
           owner_id?: string | null
           purchase_price?: number
           quantity_type?: string | null
           selling_price?: number
+          sku?: string | null
           stock_quantity?: number
+          supplier_name?: string | null
           updated_at?: string | null
         }
         Relationships: []

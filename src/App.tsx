@@ -23,6 +23,7 @@ import Settings from "./pages/Settings";
 import Workers from "./pages/Workers";
 import ReceivePayment from "./pages/ReceivePayment";
 import Expenses from "./pages/Expenses";
+import PublicProduct from "./pages/PublicProduct";
 
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/update-password" element={<UpdatePassword />} />
+              <Route path="/product/:productId" element={<PublicProduct />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute adminOnly><Layout><Index /></Layout></ProtectedRoute>} />

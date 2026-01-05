@@ -10,9 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload, PackageSearch, DollarSign, TrendingUp } from "lucide-react";
+import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload, PackageSearch, DollarSign, TrendingUp, Image as ImageIcon } from "lucide-react";
 import { exportInventoryToCSV, parseInventoryCSV } from "@/lib/csvExport";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import ProductQRCode from "@/components/inventory/ProductQRCode";
+import ProductImageUpload from "@/components/inventory/ProductImageUpload";
 
 interface Product {
   id: string;
@@ -24,6 +26,9 @@ interface Product {
   category: string | null;
   quantity_type: string;
   created_at: string | null;
+  sku: string | null;
+  supplier_name: string | null;
+  image_url: string | null;
 }
 
 interface StockStats {
@@ -74,7 +79,18 @@ const Inventory = () => {
     stock_quantity: "",
     category: "",
     quantity_type: "Unit",
+    sku: "",
+    supplier_name: "",
+    image_url: "",
   });
+
+  // Generate unique SKU
+  const generateSKU = () => {
+    const prefix = formData.category ? formData.category.substring(0, 3).toUpperCase() : "PRD";
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+  };
 
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,9 +108,11 @@ const Inventory = () => {
 
       let imported = 0;
       for (const product of parsedProducts) {
+        const sku = `IMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
         const { error } = await supabase.from("products").insert({
           ...product,
           owner_id: ownerId,
+          sku,
         });
         if (!error) imported++;
       }
@@ -193,7 +211,9 @@ const Inventory = () => {
     if (searchTerm) {
       filtered = filtered.filter(product => 
         (product.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (product.category?.toLowerCase().includes(searchTerm.toLowerCase()))
+        (product.category?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.sku?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -234,6 +254,9 @@ const Inventory = () => {
     
     if (!confirm(confirmMessage)) return;
     
+    // Auto-generate SKU if not provided
+    const sku = formData.sku || generateSKU();
+    
     const productData = {
       name: formData.name,
       description: formData.description || null,
@@ -242,14 +265,32 @@ const Inventory = () => {
       stock_quantity: parseFloat(formData.stock_quantity),
       category: formData.category || null,
       quantity_type: formData.quantity_type,
+      sku: sku,
+      supplier_name: formData.supplier_name || null,
+      image_url: formData.image_url || null,
     };
 
+    setIsSaving(true);
     try {
       if (editingProduct) {
-        await supabase.from("products").update(productData).eq("id", editingProduct.id);
+        const { error } = await supabase.from("products").update(productData).eq("id", editingProduct.id);
+        if (error) {
+          if (error.code === '23505') {
+            toast.error("SKU already exists. Please use a different SKU.");
+            return;
+          }
+          throw error;
+        }
         toast.success("Product updated successfully!");
       } else {
-        await supabase.from("products").insert({ ...productData, owner_id: ownerId });
+        const { error } = await supabase.from("products").insert({ ...productData, owner_id: ownerId });
+        if (error) {
+          if (error.code === '23505') {
+            toast.error("SKU already exists. Please use a different SKU.");
+            return;
+          }
+          throw error;
+        }
         toast.success("Product added successfully!");
       }
       
@@ -258,6 +299,8 @@ const Inventory = () => {
       setIsDialogOpen(false);
     } catch (error) {
       toast.error("Failed to save product");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -271,6 +314,9 @@ const Inventory = () => {
       stock_quantity: product.stock_quantity.toString(),
       category: product.category || "",
       quantity_type: product.quantity_type || "Unit",
+      sku: product.sku || "",
+      supplier_name: product.supplier_name || "",
+      image_url: product.image_url || "",
     });
     setIsDialogOpen(true);
   };
@@ -344,6 +390,9 @@ const Inventory = () => {
       stock_quantity: "",
       category: "",
       quantity_type: "Unit",
+      sku: "",
+      supplier_name: "",
+      image_url: "",
     });
     setEditingProduct(null);
   };
@@ -375,9 +424,9 @@ const Inventory = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-muted-foreground">Manage your products and stock</p>
+          <p className="text-muted-foreground">Manage your products and stock with QR codes</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <input
             type="file"
             ref={fileInputRef}
@@ -419,12 +468,23 @@ const Inventory = () => {
                   Add product
                 </Button>
               </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingProduct ? "Edit product" : "Add new product"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
+                {/* Product Image */}
+                <div className="md:row-span-2">
+                  <Label>Product Image</Label>
+                  <ProductImageUpload
+                    currentImageUrl={formData.image_url}
+                    onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+                    onImageRemoved={() => setFormData({ ...formData, image_url: "" })}
+                  />
+                </div>
+                
+                {/* Product Name */}
                 <div>
                   <Label htmlFor="name">Product name *</Label>
                   <Input
@@ -435,6 +495,30 @@ const Inventory = () => {
                     placeholder="Enter product name"
                   />
                 </div>
+                
+                {/* SKU */}
+                <div>
+                  <Label htmlFor="sku">SKU / Product Code</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="sku"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
+                      placeholder="Auto-generated if empty"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setFormData({ ...formData, sku: generateSKU() })}
+                      title="Generate SKU"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Category */}
                 <div>
                   <Label htmlFor="category">Category</Label>
                   <Input
@@ -442,6 +526,17 @@ const Inventory = () => {
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     placeholder="Enter category"
+                  />
+                </div>
+                
+                {/* Supplier */}
+                <div>
+                  <Label htmlFor="supplier_name">Supplier Name</Label>
+                  <Input
+                    id="supplier_name"
+                    value={formData.supplier_name}
+                    onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                    placeholder="Enter supplier name"
                   />
                 </div>
               </div>
@@ -456,7 +551,7 @@ const Inventory = () => {
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-4">
                 <div>
                   <Label htmlFor="purchase_price">Purchase price *</Label>
                   <Input
@@ -493,26 +588,25 @@ const Inventory = () => {
                     placeholder="0"
                   />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="quantity_type">Quantity Type *</Label>
-                <Input
-                  id="quantity_type"
-                  required
-                  list="quantity-type-options"
-                  value={formData.quantity_type}
-                  onChange={(e) => setFormData({ ...formData, quantity_type: e.target.value })}
-                  placeholder="Type or select quantity type"
-                />
-                <datalist id="quantity-type-options">
-                  <option value="Meter" />
-                  <option value="Than" />
-                  <option value="Suit" />
-                  <option value="Unit" />
-                  <option value="Piece" />
-                  <option value="Kg" />
-                </datalist>
+                <div>
+                  <Label htmlFor="quantity_type">Quantity Type *</Label>
+                  <Input
+                    id="quantity_type"
+                    required
+                    list="quantity-type-options"
+                    value={formData.quantity_type}
+                    onChange={(e) => setFormData({ ...formData, quantity_type: e.target.value })}
+                    placeholder="Type or select quantity type"
+                  />
+                  <datalist id="quantity-type-options">
+                    <option value="Meter" />
+                    <option value="Than" />
+                    <option value="Suit" />
+                    <option value="Unit" />
+                    <option value="Piece" />
+                    <option value="Kg" />
+                  </datalist>
+                </div>
               </div>
 
               <div className="flex gap-2">
@@ -643,7 +737,7 @@ const Inventory = () => {
       <Card className="p-4">
         <div className="grid gap-4 md:grid-cols-3 mb-4">
           <div>
-            <Label>Search by Name or Category</Label>
+            <Label>Search by Name, SKU, Category or Supplier</Label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -683,58 +777,84 @@ const Inventory = () => {
       </Card>
 
       <Card className="p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">ID</TableHead>
-              <TableHead>Product name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Purchase price</TableHead>
-              <TableHead className="text-right">Selling price</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
-              <TableHead className="text-center">Type</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProducts.map((product, index) => (
-              <TableRow key={product.id}>
-                <TableCell className="font-semibold text-muted-foreground">
-                  {index + 1}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-primary" />
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">#</TableHead>
+                <TableHead className="w-16">Image</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Supplier</TableHead>
+                <TableHead className="text-right">Purchase</TableHead>
+                <TableHead className="text-right">Selling</TableHead>
+                <TableHead className="text-right">Stock</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.map((product, index) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-semibold text-muted-foreground">
+                    {index + 1}
+                  </TableCell>
+                  <TableCell>
+                    {product.image_url ? (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div>
                       <div className="font-medium">{product.name}</div>
                       {product.description && (
-                        <div className="text-sm text-muted-foreground">{product.description}</div>
+                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">{product.description}</div>
                       )}
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>{product.category || "-"}</TableCell>
-                <TableCell className="text-right">Rs. {product.purchase_price.toFixed(2)}</TableCell>
-                <TableCell className="text-right text-success font-semibold">
-                  Rs. {product.selling_price.toFixed(2)}
-                </TableCell>
-                <TableCell className="text-right font-semibold">{product.stock_quantity}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="outline">{product.quantity_type}</Badge>
-                </TableCell>
-                <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
-                <TableCell className="text-center">
-                  {canEdit && (
-                    <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {product.sku || "-"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{product.category || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">{product.supplier_name || "-"}</TableCell>
+                  <TableCell className="text-right">Rs. {product.purchase_price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right text-success font-semibold">
+                    Rs. {product.selling_price.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {product.stock_quantity} <span className="text-xs text-muted-foreground">{product.quantity_type}</span>
+                  </TableCell>
+                  <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      <ProductQRCode 
+                        productId={product.id} 
+                        productName={product.name}
+                        sku={product.sku || undefined}
+                      />
+                      {canEdit && (
+                        <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
     </div>
   );
