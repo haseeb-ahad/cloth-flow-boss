@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { ScanLine, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,12 +16,32 @@ const QRScanner = ({ onScan, buttonText = "Scan QR", buttonVariant = "outline" }
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerContainerRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
 
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState();
+        if (state === 2) { // SCANNING state
+          await scannerRef.current.stop();
+        }
+      } catch (err) {
+        console.log("Error stopping scanner:", err);
+      }
+      
+      // Only clear if still mounted
+      if (isMountedRef.current) {
+        try {
+          scannerRef.current.clear();
+        } catch (err) {
+          console.log("Error clearing scanner:", err);
+        }
+      }
+      scannerRef.current = null;
+    }
+    if (isMountedRef.current) {
+      setIsScanning(false);
+    }
   }, []);
 
   const startScanner = async () => {
@@ -29,11 +49,19 @@ const QRScanner = ({ onScan, buttonText = "Scan QR", buttonVariant = "outline" }
       setError(null);
       setIsScanning(true);
 
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const element = document.getElementById("qr-reader");
+      if (!element) {
+        throw new Error("Scanner container not found");
+      }
+
       // Create scanner instance
       const html5QrCode = new Html5Qrcode("qr-reader");
       scannerRef.current = html5QrCode;
 
-      const qrCodeSuccessCallback = (decodedText: string) => {
+      const qrCodeSuccessCallback = async (decodedText: string) => {
         console.log("QR Code scanned:", decodedText);
         
         // Extract product ID or SKU from URL
@@ -45,9 +73,10 @@ const QRScanner = ({ onScan, buttonText = "Scan QR", buttonVariant = "outline" }
           productIdentifier = parts[parts.length - 1];
         }
         
+        // Stop scanner first, then close dialog
+        await stopScanner();
         onScan(productIdentifier);
         toast.success("Product scanned successfully!");
-        stopScanner();
         setIsOpen(false);
       };
 
@@ -77,28 +106,13 @@ const QRScanner = ({ onScan, buttonText = "Scan QR", buttonVariant = "outline" }
     }
   };
 
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        const state = scannerRef.current.getState();
-        if (state === 2) { // SCANNING state
-          await scannerRef.current.stop();
-        }
-        scannerRef.current.clear();
-      } catch (err) {
-        console.log("Error stopping scanner:", err);
-      }
-      scannerRef.current = null;
-    }
-    setIsScanning(false);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
+  const handleOpenChange = async (open: boolean) => {
     if (!open) {
-      stopScanner();
+      // Stop scanner before closing dialog
+      await stopScanner();
       setError(null);
     }
+    setIsOpen(open);
   };
 
   return (
@@ -115,13 +129,15 @@ const QRScanner = ({ onScan, buttonText = "Scan QR", buttonVariant = "outline" }
             <Camera className="h-5 w-5" />
             Scan Product QR Code
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Use your camera to scan a product QR code
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col items-center space-y-4 py-4">
           {/* Scanner container */}
           <div 
             id="qr-reader" 
-            ref={scannerContainerRef}
             className="w-full max-w-[300px] aspect-square bg-muted rounded-lg overflow-hidden relative"
           >
             {!isScanning && !error && (
