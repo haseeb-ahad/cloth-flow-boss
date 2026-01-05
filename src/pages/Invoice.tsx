@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import PrintInvoice from "@/components/PrintInvoice";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import QRScanner from "@/components/inventory/QRScanner";
+import InvoiceQRScanner from "@/components/invoice/InvoiceQRScanner";
 
 // DEBUG FLAG - Set to false after confirming fix
 const DEBUG_MODE = true;
@@ -75,6 +76,7 @@ const Invoice = () => {
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [originalItems, setOriginalItems] = useState<InvoiceItem[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [additionalPayment, setAdditionalPayment] = useState("");
   const [isFullPayment, setIsFullPayment] = useState(false);
@@ -226,6 +228,7 @@ const Invoice = () => {
           console.error("Sale has no items:", sale.invoice_number);
           return;
         }
+        setCurrentSaleId(sale.id);
         setInvoiceNumber(sale.invoice_number);
         setCustomerName(sale.customer_name || "");
         setCustomerPhone(sale.customer_phone || "");
@@ -1039,9 +1042,17 @@ const Invoice = () => {
       });
     }
 
+    // Set saleId for QR code before printing
+    setCurrentSaleId(sale.id);
+    setInvoiceNumber(newInvoiceNumber);
+    
     toast.success("Invoice created successfully!");
-    printInvoice(newInvoiceNumber);
-    resetForm();
+    
+    // Delay print to ensure QR code is generated
+    setTimeout(() => {
+      printInvoice(newInvoiceNumber);
+      resetForm();
+    }, 100);
   };
 
   const updateSale = async () => {
@@ -1365,6 +1376,8 @@ const Invoice = () => {
     setDescription("");
     setImageFile(null);
     setImagePreview(null);
+    setCurrentSaleId(null);
+    setInvoiceNumber("");
     fetchProducts();
   };
 
@@ -1376,20 +1389,23 @@ const Invoice = () => {
         </div>
       )}
 
-      <div className="flex items-center gap-4">
-        {editSaleId && (
-          <Button onClick={() => navigate("/sales")} variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            {editSaleId ? "Edit sale" : "Create invoice"}
-          </h1>
-          <p className="text-muted-foreground">
-            {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
-          </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          {editSaleId && (
+            <Button onClick={() => navigate("/sales")} variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              {editSaleId ? "Edit sale" : "Create invoice"}
+            </h1>
+            <p className="text-muted-foreground">
+              {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
+            </p>
+          </div>
         </div>
+        <InvoiceQRScanner buttonText="Scan Invoice" buttonVariant="outline" />
       </div>
 
       <Card className="p-6">
@@ -2039,6 +2055,7 @@ const Invoice = () => {
         paidAmount={Number(paidAmount) || 0}
         settings={receiptSettings}
         timezone={timezone}
+        saleId={currentSaleId || editSaleId || undefined}
       />
     </div>
   );

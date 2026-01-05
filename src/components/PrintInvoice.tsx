@@ -1,5 +1,6 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { formatDateInTimezone } from "@/contexts/TimezoneContext";
+import QRCode from "qrcode";
 
 interface InvoiceItem {
   product_id: string;
@@ -34,10 +35,38 @@ interface PrintInvoiceProps {
   paidAmount: number;
   settings?: ReceiptSettings;
   timezone?: string;
+  saleId?: string;
 }
 
 const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
-  ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, paidAmount, settings, timezone = "Asia/Karachi" }, ref) => {
+  ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, paidAmount, settings, timezone = "Asia/Karachi", saleId }, ref) => {
+    const [qrDataUrl, setQrDataUrl] = useState<string>("");
+    
+    // Generate QR code for invoice
+    useEffect(() => {
+      const generateQR = async () => {
+        if (!saleId) return;
+        
+        const invoiceUrl = `${window.location.origin}/invoice?edit=${saleId}`;
+        
+        try {
+          const dataUrl = await QRCode.toDataURL(invoiceUrl, {
+            width: 80,
+            margin: 1,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
+          });
+          setQrDataUrl(dataUrl);
+        } catch (error) {
+          console.error("Error generating invoice QR code:", error);
+        }
+      };
+
+      generateQR();
+    }, [saleId]);
+    
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
     const dueAmount = finalAmount - (paidAmount || 0);
@@ -348,6 +377,16 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
 
           {/* Footer */}
           <div className="footer-section">
+            {qrDataUrl && (
+              <div style={{ marginBottom: '8px' }}>
+                <img 
+                  src={qrDataUrl} 
+                  alt="Invoice QR Code" 
+                  style={{ width: '70px', height: '70px', margin: '0 auto', display: 'block' }} 
+                />
+                <div style={{ fontSize: '8px', color: '#666', marginTop: '2px' }}>Scan for details</div>
+              </div>
+            )}
             <div className="thank-you">{thankYouMessage}</div>
             <div className="footer-message">{footerMessage}</div>
           </div>
