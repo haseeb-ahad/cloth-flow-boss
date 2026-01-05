@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { QrCode, Download, Printer } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductQRCodeProps {
   productId: string;
@@ -14,29 +16,107 @@ interface ProductQRCodeProps {
 const ProductQRCode = ({ productId, productName, sku, size = 200 }: ProductQRCodeProps) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const { ownerId } = useAuth();
 
   // Generate QR code URL - uses the product SKU or ID for scanning
   const productUrl = `${window.location.origin}/product/${sku || productId}`;
+
+  // Fetch shop logo
+  useEffect(() => {
+    const fetchLogo = async () => {
+      if (!ownerId) return;
+      
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("logo_url")
+          .eq("owner_id", ownerId)
+          .maybeSingle();
+        
+        if (data?.logo_url) {
+          setLogoUrl(data.logo_url);
+        }
+      } catch (error) {
+        console.error("Error fetching shop logo:", error);
+      }
+    };
+
+    if (isOpen) {
+      fetchLogo();
+    }
+  }, [isOpen, ownerId]);
 
   useEffect(() => {
     if (isOpen) {
       generateQRCode();
     }
-  }, [isOpen, productId, sku]);
+  }, [isOpen, productId, sku, logoUrl]);
 
   const generateQRCode = async () => {
     try {
-      const dataUrl = await QRCode.toDataURL(productUrl, {
-        width: size,
+      const baseQrDataUrl = await QRCode.toDataURL(productUrl, {
+        width: size * 2, // Higher resolution for better quality
         margin: 2,
         color: {
           dark: "#000000",
           light: "#ffffff",
         },
-        errorCorrectionLevel: "H",
+        errorCorrectionLevel: "H", // High error correction for logo overlay
       });
-      setQrDataUrl(dataUrl);
+
+      if (!logoUrl) {
+        setQrDataUrl(baseQrDataUrl);
+        return;
+      }
+
+      // Create canvas to overlay logo
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        setQrDataUrl(baseQrDataUrl);
+        return;
+      }
+
+      const qrImage = new Image();
+      qrImage.crossOrigin = "anonymous";
+      
+      qrImage.onload = () => {
+        canvas.width = qrImage.width;
+        canvas.height = qrImage.height;
+        
+        // Draw QR code
+        ctx.drawImage(qrImage, 0, 0);
+        
+        // Load and draw logo
+        const logo = new Image();
+        logo.crossOrigin = "anonymous";
+        
+        logo.onload = () => {
+          // Logo size is 25% of QR code
+          const logoSize = qrImage.width * 0.25;
+          const logoX = (qrImage.width - logoSize) / 2;
+          const logoY = (qrImage.height - logoSize) / 2;
+          
+          // Draw white background for logo
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(logoX - 4, logoY - 4, logoSize + 8, logoSize + 8);
+          
+          // Draw logo
+          ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+          
+          setQrDataUrl(canvas.toDataURL("image/png"));
+        };
+        
+        logo.onerror = () => {
+          // If logo fails to load, use QR without logo
+          setQrDataUrl(baseQrDataUrl);
+        };
+        
+        logo.src = logoUrl;
+      };
+      
+      qrImage.src = baseQrDataUrl;
     } catch (error) {
       console.error("Error generating QR code:", error);
     }
