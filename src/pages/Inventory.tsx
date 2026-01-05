@@ -9,12 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload, PackageSearch, DollarSign, TrendingUp, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Package, RefreshCw, Search, Download, Upload, PackageSearch, DollarSign, TrendingUp, Image as ImageIcon, Printer } from "lucide-react";
 import { exportInventoryToCSV, parseInventoryCSV } from "@/lib/csvExport";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import ProductQRCode from "@/components/inventory/ProductQRCode";
 import ProductImageUpload from "@/components/inventory/ProductImageUpload";
+import BatchQRPrint from "@/components/inventory/BatchQRPrint";
 
 interface Product {
   id: string;
@@ -54,6 +56,8 @@ const Inventory = () => {
   const canDelete = userRole === "admin" || hasPermission("inventory", "delete");
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [showBatchQR, setShowBatchQR] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -434,6 +438,16 @@ const Inventory = () => {
             onChange={handleImportCSV}
             className="hidden"
           />
+          {selectedProducts.size > 0 && (
+            <Button 
+              onClick={() => setShowBatchQR(true)} 
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary/10"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print QR ({selectedProducts.size})
+            </Button>
+          )}
           {canCreate && (
             <Button 
               onClick={() => fileInputRef.current?.click()} 
@@ -781,6 +795,18 @@ const Inventory = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={filteredProducts.length > 0 && selectedProducts.size === filteredProducts.length}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+                      } else {
+                        setSelectedProducts(new Set());
+                      }
+                    }}
+                  />
+                </TableHead>
                 <TableHead className="w-12">#</TableHead>
                 <TableHead className="w-16">Image</TableHead>
                 <TableHead>Product</TableHead>
@@ -796,7 +822,21 @@ const Inventory = () => {
             </TableHeader>
             <TableBody>
               {filteredProducts.map((product, index) => (
-                <TableRow key={product.id}>
+                <TableRow key={product.id} className={selectedProducts.has(product.id) ? "bg-muted/50" : ""}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedProducts.has(product.id)}
+                      onCheckedChange={(checked) => {
+                        const newSelected = new Set(selectedProducts);
+                        if (checked) {
+                          newSelected.add(product.id);
+                        } else {
+                          newSelected.delete(product.id);
+                        }
+                        setSelectedProducts(newSelected);
+                      }}
+                    />
+                  </TableCell>
                   <TableCell className="font-semibold text-muted-foreground">
                     {index + 1}
                   </TableCell>
@@ -856,6 +896,13 @@ const Inventory = () => {
           </Table>
         </div>
       </Card>
+
+      {/* Batch QR Print Dialog */}
+      <BatchQRPrint
+        selectedProducts={filteredProducts.filter(p => selectedProducts.has(p.id))}
+        isOpen={showBatchQR}
+        onClose={() => setShowBatchQR(false)}
+      />
     </div>
   );
 };
