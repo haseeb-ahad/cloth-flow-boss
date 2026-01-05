@@ -41,31 +41,86 @@ interface PrintInvoiceProps {
 const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
   ({ invoiceNumber, customerName, customerPhone, invoiceDate, items, discount, finalAmount, paidAmount, settings, timezone = "Asia/Karachi", saleId }, ref) => {
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
+    const logoUrl = settings?.logo_url;
     
-    // Generate QR code for invoice
+    // Generate QR code with shop logo overlay
     useEffect(() => {
-      const generateQR = async () => {
+      const generateQRWithLogo = async () => {
         if (!saleId) return;
         
         const invoiceUrl = `${window.location.origin}/invoice?edit=${saleId}`;
         
         try {
-          const dataUrl = await QRCode.toDataURL(invoiceUrl, {
-            width: 80,
+          // Generate QR code with high error correction for logo overlay
+          const baseQrDataUrl = await QRCode.toDataURL(invoiceUrl, {
+            width: 240, // Higher resolution for better quality
             margin: 1,
+            errorCorrectionLevel: "H", // High error correction to allow logo overlay
             color: {
               dark: "#000000",
               light: "#FFFFFF",
             },
           });
-          setQrDataUrl(dataUrl);
+
+          if (!logoUrl) {
+            setQrDataUrl(baseQrDataUrl);
+            return;
+          }
+
+          // Create canvas to overlay logo
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            setQrDataUrl(baseQrDataUrl);
+            return;
+          }
+
+          const qrImage = new Image();
+          qrImage.crossOrigin = "anonymous";
+          
+          qrImage.onload = () => {
+            canvas.width = qrImage.width;
+            canvas.height = qrImage.height;
+            
+            // Draw QR code
+            ctx.drawImage(qrImage, 0, 0);
+            
+            // Load and draw logo
+            const logo = new Image();
+            logo.crossOrigin = "anonymous";
+            
+            logo.onload = () => {
+              // Logo size is 25% of QR code
+              const logoSize = qrImage.width * 0.25;
+              const logoX = (qrImage.width - logoSize) / 2;
+              const logoY = (qrImage.height - logoSize) / 2;
+              
+              // Draw white background for logo
+              ctx.fillStyle = "#FFFFFF";
+              ctx.fillRect(logoX - 4, logoY - 4, logoSize + 8, logoSize + 8);
+              
+              // Draw logo
+              ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+              
+              setQrDataUrl(canvas.toDataURL("image/png"));
+            };
+            
+            logo.onerror = () => {
+              // If logo fails to load, use QR without logo
+              setQrDataUrl(baseQrDataUrl);
+            };
+            
+            logo.src = logoUrl;
+          };
+          
+          qrImage.src = baseQrDataUrl;
         } catch (error) {
           console.error("Error generating invoice QR code:", error);
         }
       };
 
-      generateQR();
-    }, [saleId]);
+      generateQRWithLogo();
+    }, [saleId, logoUrl]);
     
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
@@ -82,7 +137,7 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
     const ownerNames = settings?.owner_names || ["Owner Name"];
     const thankYouMessage = settings?.thank_you_message || "Thank You!";
     const footerMessage = settings?.footer_message || "Get Well Soon";
-    const logoUrl = settings?.logo_url;
+    const shopLogoUrl = settings?.logo_url;
     const workerName = settings?.worker_name;
     const workerPhone = settings?.worker_phone;
 
@@ -310,8 +365,8 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(
         <div className="receipt-content">
           {/* Header with Logo */}
           <div className="receipt-header">
-            {logoUrl && (
-              <img src={logoUrl} alt="Business Logo" className="receipt-logo" />
+            {shopLogoUrl && (
+              <img src={shopLogoUrl} alt="Business Logo" className="receipt-logo" />
             )}
             <div className="shop-name">{shopName}</div>
             <div className="shop-address">{shopAddress}</div>
