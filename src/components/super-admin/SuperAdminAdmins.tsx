@@ -196,8 +196,21 @@ const SuperAdminAdmins = () => {
       admin.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admin.store_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const status = admin.subscription?.status || "free";
-    const matchesStatus = statusFilter === "all" || status === statusFilter;
+    // Calculate effective status based on end_date
+    const endDate = admin.subscription?.end_date;
+    const isExpired = endDate && new Date(endDate) < new Date();
+    const dbStatus = admin.subscription?.status;
+    
+    let effectiveStatus: string;
+    if (!admin.subscription || !dbStatus) {
+      effectiveStatus = "free";
+    } else if (isExpired && dbStatus !== "free") {
+      effectiveStatus = "expired";
+    } else {
+      effectiveStatus = dbStatus;
+    }
+
+    const matchesStatus = statusFilter === "all" || effectiveStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
