@@ -42,6 +42,8 @@ interface AdminUser {
   subscription: {
     status: string;
     amount_paid: number;
+    end_date: string | null;
+    is_trial: boolean;
   } | null;
   plan: {
     name: string;
@@ -103,9 +105,16 @@ const SuperAdminDashboard = () => {
       const adminsList = data?.admins || [];
       setAdmins(adminsList);
 
-      const activeCount = adminsList.filter(
-        (a: AdminUser) => a.subscription?.status === "active"
-      ).length;
+      // Count only truly active subscriptions (not expired based on end_date)
+      const activeCount = adminsList.filter((a: AdminUser) => {
+        if (!a.subscription) return false;
+        const status = a.subscription.status;
+        const endDate = a.subscription.end_date;
+        const isExpired = endDate && new Date(endDate) < new Date();
+        
+        // Only count as active if status is active AND not expired
+        return status === "active" && !isExpired;
+      }).length;
       const totalRevenue = adminsList.reduce(
         (sum: number, a: AdminUser) => sum + (a.subscription?.amount_paid || 0),
         0
