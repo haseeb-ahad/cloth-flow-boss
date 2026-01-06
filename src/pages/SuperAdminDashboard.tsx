@@ -68,14 +68,49 @@ const SuperAdminDashboard = () => {
       return;
     }
     
-    // Auto-generate super admin user ID if not exists
-    let storedUserId = localStorage.getItem("superAdminUserId");
-    if (!storedUserId) {
-      storedUserId = crypto.randomUUID();
-      localStorage.setItem("superAdminUserId", storedUserId);
-    }
-    setSuperAdminUserId(storedUserId);
+    // Auto-generate super admin user ID if not exists and save to DB
+    const initSuperAdminId = async () => {
+      let storedUserId = localStorage.getItem("superAdminUserId");
+      if (!storedUserId) {
+        storedUserId = crypto.randomUUID();
+        localStorage.setItem("superAdminUserId", storedUserId);
+      }
+      setSuperAdminUserId(storedUserId);
+      
+      // Ensure the ID is saved to the database
+      try {
+        const { data: existing } = await supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", "super_admin_user_ids")
+          .maybeSingle();
+        
+        if (!existing) {
+          // Create new setting
+          await supabase.from("system_settings").insert({
+            setting_key: "super_admin_user_ids",
+            setting_value: JSON.stringify([storedUserId])
+          });
+        } else {
+          // Update existing to include this ID if not present
+          let ids: string[] = [];
+          try {
+            ids = JSON.parse(existing.setting_value || "[]");
+          } catch { ids = []; }
+          
+          if (!ids.includes(storedUserId)) {
+            ids.push(storedUserId);
+            await supabase.from("system_settings")
+              .update({ setting_value: JSON.stringify(ids) })
+              .eq("setting_key", "super_admin_user_ids");
+          }
+        }
+      } catch (error) {
+        console.error("Error saving super admin ID:", error);
+      }
+    };
     
+    initSuperAdminId();
     fetchDashboardData();
   }, [navigate]);
 
