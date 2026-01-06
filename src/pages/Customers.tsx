@@ -12,6 +12,7 @@ import { Search, RefreshCw, Users, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { exportCustomersToCSV, parseCustomersCSV } from "@/lib/csvExport";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { fetchCustomerSuggestions as fetchCustomersFromTable, getOrCreateCustomer, cleanCustomerName } from "@/lib/customerUtils";
 
 interface CustomerWithTotals {
   name: string;
@@ -85,20 +86,38 @@ const Customers = () => {
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
-      // Fetch all sales data
+      // First get the list of customers from the centralized customers table
+      const customerList = await fetchCustomersFromTable();
+      
+      // Fetch all sales data for credit calculations
       const { data: salesData } = await supabase
         .from("sales")
         .select("customer_name, customer_phone, final_amount, paid_amount, created_at")
         .not("customer_name", "is", null)
         .order("created_at", { ascending: true });
 
-      // Create a map to aggregate customer data
+      // Create a map to aggregate customer data using normalized names
       const customerMap = new Map<string, CustomerWithTotals>();
 
+      // Initialize with customers from the customers table
+      customerList.forEach(c => {
+        const normalizedName = c.name.toLowerCase().trim().replace(/\s+/g, ' ');
+        customerMap.set(normalizedName, {
+          name: c.name,
+          phone: c.phone,
+          total_credit: 0,
+          total_paid: 0,
+          remaining_balance: 0,
+          oldest_unpaid_date: null,
+        });
+      });
+
+      // Aggregate sales data
       salesData?.forEach((sale) => {
         if (!sale.customer_name) return;
 
-        const existing = customerMap.get(sale.customer_name);
+        const normalizedName = sale.customer_name.toLowerCase().trim().replace(/\s+/g, ' ');
+        const existing = customerMap.get(normalizedName);
         const remainingAmount = sale.final_amount - (sale.paid_amount || 0);
         const isUnpaid = remainingAmount > 0;
 
@@ -110,8 +129,13 @@ const Customers = () => {
           if (isUnpaid && (!existing.oldest_unpaid_date || sale.created_at < existing.oldest_unpaid_date)) {
             existing.oldest_unpaid_date = sale.created_at;
           }
+          // Update phone if we have one now
+          if (sale.customer_phone && !existing.phone) {
+            existing.phone = sale.customer_phone;
+          }
         } else {
-          customerMap.set(sale.customer_name, {
+          // Customer not in customers table yet (legacy data)
+          customerMap.set(normalizedName, {
             name: sale.customer_name,
             phone: sale.customer_phone,
             total_credit: sale.final_amount,

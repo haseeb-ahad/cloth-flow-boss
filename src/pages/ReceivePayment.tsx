@@ -14,6 +14,7 @@ import { Banknote, RefreshCw, Calendar, User, Download, Upload, ImagePlus, X } f
 import { toast } from "sonner";
 import { exportPaymentsToCSV, parsePaymentsCSV } from "@/lib/csvExport";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 
 interface Customer {
   name: string;
@@ -145,24 +146,9 @@ const ReceivePayment = () => {
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
-      const { data: salesData } = await supabase
-        .from("sales")
-        .select("customer_name, customer_phone")
-        .not("customer_name", "is", null);
-
-      const customerMap = new Map<string, string | null>();
-      salesData?.forEach((s) => {
-        if (s.customer_name && !customerMap.has(s.customer_name)) {
-          customerMap.set(s.customer_name, s.customer_phone);
-        }
-      });
-
-      const uniqueCustomers = Array.from(customerMap.entries()).map(([name, phone]) => ({
-        name,
-        phone,
-      }));
-
-      setCustomers(uniqueCustomers);
+      // Fetch from centralized customers table
+      const customerData = await fetchCustomersFromTable();
+      setCustomers(customerData.map(c => ({ name: c.name, phone: c.phone })));
     } catch (error) {
       toast.error("Failed to fetch customers");
     } finally {
