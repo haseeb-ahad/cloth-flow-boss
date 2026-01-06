@@ -36,6 +36,7 @@ import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import SubscriptionActivatedPopup from "@/components/subscription/SubscriptionActivatedPopup";
 import useSubscriptionNotification from "@/hooks/useSubscriptionNotification";
+import { useAdminPresence } from "@/hooks/useAdminPresence";
 
 interface LayoutProps {
   children: ReactNode;
@@ -57,6 +58,9 @@ const Layout = ({ children }: LayoutProps) => {
   
   // Subscription activation popup
   const { showActivationPopup, setShowActivationPopup, subscriptionData } = useSubscriptionNotification();
+  
+  // Admin presence tracking - sends heartbeat every 30 seconds
+  useAdminPresence();
 
   useEffect(() => {
     const fetchAppSettings = async () => {

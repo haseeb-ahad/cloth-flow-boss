@@ -53,6 +53,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { AdminStatusIndicator } from "@/components/admin/AdminStatusIndicator";
+import { useAdminPresenceSubscription } from "@/hooks/useAdminPresenceSubscription";
 
 interface AdminUser {
   id: string;
@@ -94,6 +96,9 @@ const SuperAdminAdmins = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Admin presence subscription for real-time online/offline status
+  const { getPresence, isOnline } = useAdminPresenceSubscription();
 
   // Dialog states
   const [assignPlanDialog, setAssignPlanDialog] = useState(false);
@@ -310,6 +315,7 @@ const SuperAdminAdmins = () => {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Admin</TableHead>
+                  <TableHead>Online Status</TableHead>
                   <TableHead>Store Name</TableHead>
                   <TableHead>Current Plan</TableHead>
                   <TableHead>Status</TableHead>
@@ -319,12 +325,24 @@ const SuperAdminAdmins = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAdmins.map((admin) => (
+                {filteredAdmins.map((admin) => {
+                  const presence = getPresence(admin.id);
+                  const adminIsOnline = isOnline(admin.id);
+                  
+                  return (
                   <TableRow key={admin.id} className="group">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
-                          {(admin.full_name || admin.email).charAt(0).toUpperCase()}
+                        <div className="relative">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+                            {(admin.full_name || admin.email).charAt(0).toUpperCase()}
+                          </div>
+                          {/* Online indicator dot on avatar */}
+                          <span 
+                            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                              adminIsOnline ? 'bg-green-500' : 'bg-gray-400'
+                            }`}
+                          />
                         </div>
                         <div>
                           <p className="font-medium text-slate-900">
@@ -333,6 +351,12 @@ const SuperAdminAdmins = () => {
                           <p className="text-sm text-slate-500">{admin.email}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <AdminStatusIndicator 
+                        status={adminIsOnline ? 'online' : 'offline'} 
+                        lastSeen={presence?.last_seen}
+                      />
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {admin.store_name || "—"}
@@ -399,7 +423,8 @@ const SuperAdminAdmins = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
