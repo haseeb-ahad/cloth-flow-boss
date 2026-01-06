@@ -93,6 +93,17 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [desktopEnabled, setDesktopEnabled] = useState(false);
   const previousCountRef = useRef(0);
+  const soundEnabledRef = useRef(soundEnabled);
+  const desktopEnabledRef = useRef(desktopEnabled);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    desktopEnabledRef.current = desktopEnabled;
+  }, [desktopEnabled]);
 
   useEffect(() => {
     if (!superAdminUserId) return;
@@ -150,11 +161,11 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
           if (latestNotif && !latestNotif.is_read) {
             const isUrgent = latestNotif.type === "high_priority" || latestNotif.category === "duplicate_attempt";
             
-            if (soundEnabled) {
+            if (soundEnabledRef.current) {
               playNotificationSound(isUrgent ? "urgent" : "normal");
             }
             
-            if (desktopEnabled) {
+            if (desktopEnabledRef.current) {
               showDesktopNotification(latestNotif.title, latestNotif.message, isUrgent);
             }
           }
