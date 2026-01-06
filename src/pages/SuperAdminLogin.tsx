@@ -26,6 +26,14 @@ const SuperAdminLogin = () => {
 
     if (username === SUPER_ADMIN_USERNAME && password === SUPER_ADMIN_PASSWORD) {
       localStorage.setItem("superAdminAuth", "true");
+      
+      // Generate or retrieve a consistent super admin user ID for notifications
+      let superAdminUserId = localStorage.getItem("superAdminUserId");
+      if (!superAdminUserId) {
+        superAdminUserId = crypto.randomUUID();
+        localStorage.setItem("superAdminUserId", superAdminUserId);
+      }
+      
       toast.success("Welcome, Super Admin!");
       navigate("/super-admin");
     } else {

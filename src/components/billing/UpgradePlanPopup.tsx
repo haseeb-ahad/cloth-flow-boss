@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { generateImageHash } from "@/lib/imageHash";
 
 interface Plan {
   id: string;
@@ -64,6 +65,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -73,6 +75,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
       setSelectedPlan(null);
       setProofFile(null);
       setProofPreview(null);
+      setDuplicateError(null);
     }
   }, [open]);
 
@@ -101,7 +104,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
     setIsLoading(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -115,6 +118,36 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File size must be less than 5MB");
       return;
+    }
+
+    setDuplicateError(null);
+
+    // Check for duplicate if it's an image
+    if (file.type.startsWith("image/") && user) {
+      try {
+        const imageHash = await generateImageHash(file);
+        
+        // Check with backend
+        const { data, error } = await supabase.functions.invoke("super-admin", {
+          body: {
+            action: "check_duplicate_image",
+            data: {
+              image_hash: imageHash,
+              admin_id: user.id,
+              amount: selectedPlan ? getPlanPrice(selectedPlan) : 0,
+            },
+          },
+        });
+
+        if (data?.is_duplicate) {
+          setDuplicateError(data.message);
+          toast.error(data.message);
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking duplicate:", error);
+        // Continue even if check fails
+      }
     }
 
     setProofFile(file);
@@ -142,6 +175,12 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
 
     setIsSubmitting(true);
     try {
+      // Generate image hash for storage
+      let imageHash = "";
+      if (proofFile.type.startsWith("image/")) {
+        imageHash = await generateImageHash(proofFile);
+      }
+
       // Upload proof to storage
       const fileExt = proofFile.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -158,15 +197,47 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
         .getPublicUrl(fileName);
 
       // Create payment request
-      const { error: insertError } = await supabase.from("payment_requests").insert({
-        admin_id: user.id,
-        plan_id: selectedPlan.id,
-        amount: getPlanPrice(selectedPlan),
-        proof_url: urlData.publicUrl,
-        status: "pending",
-      });
+      const { data: paymentRequest, error: insertError } = await supabase
+        .from("payment_requests")
+        .insert({
+          admin_id: user.id,
+          plan_id: selectedPlan.id,
+          amount: getPlanPrice(selectedPlan),
+          proof_url: urlData.publicUrl,
+          status: "pending",
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+
+      // Save image hash if available
+      if (imageHash) {
+        await supabase.functions.invoke("super-admin", {
+          body: {
+            action: "save_image_hash",
+            data: {
+              image_hash: imageHash,
+              admin_id: user.id,
+              proof_url: urlData.publicUrl,
+              payment_request_id: paymentRequest?.id,
+              amount: getPlanPrice(selectedPlan),
+            },
+          },
+        });
+      }
+
+      // Notify about payment upload
+      await supabase.functions.invoke("super-admin", {
+        body: {
+          action: "notify_payment_uploaded",
+          data: {
+            admin_id: user.id,
+            amount: getPlanPrice(selectedPlan),
+            plan_name: selectedPlan.name,
+          },
+        },
+      });
 
       setStep("success");
       onSuccess?.();
@@ -373,6 +444,20 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
                     >
                       <X className="w-4 h-4" />
                     </Button>
+                  </div>
+                </div>
+              </div>
+            ) : duplicateError ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="p-4 rounded-xl border-2 border-dashed border-red-300 bg-red-50 cursor-pointer"
+              >
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-red-800">Duplicate Screenshot Detected</p>
+                    <p className="text-sm text-red-600 mt-1">{duplicateError}</p>
+                    <p className="text-sm text-red-500 mt-2">Click to upload a different image</p>
                   </div>
                 </div>
               </div>

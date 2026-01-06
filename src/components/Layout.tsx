@@ -33,6 +33,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import SubscriptionActivatedPopup from "@/components/subscription/SubscriptionActivatedPopup";
+import useSubscriptionNotification from "@/hooks/useSubscriptionNotification";
 
 interface LayoutProps {
   children: ReactNode;
@@ -51,6 +54,9 @@ const Layout = ({ children }: LayoutProps) => {
   const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null, description: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Subscription activation popup
+  const { showActivationPopup, setShowActivationPopup, subscriptionData } = useSubscriptionNotification();
 
   useEffect(() => {
     const fetchAppSettings = async () => {
@@ -381,6 +387,9 @@ const Layout = ({ children }: LayoutProps) => {
 
               {/* Right - Actions */}
               <div className="flex items-center gap-3 ml-auto">
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 {/* Plan Status Badge */}
                 {userRole === "admin" && subscriptionStatus && (
                   <div className={cn(
@@ -448,6 +457,16 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav />
+
+        {/* Subscription Activated Popup */}
+        <SubscriptionActivatedPopup
+          open={showActivationPopup}
+          onOpenChange={setShowActivationPopup}
+          planName={subscriptionData?.planName}
+          billingCycle={subscriptionData?.billingCycle}
+          activationDate={subscriptionData?.activationDate}
+          endDate={subscriptionData?.endDate || undefined}
+        />
       </div>
     </TooltipProvider>
   );
