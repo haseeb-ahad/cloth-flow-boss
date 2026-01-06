@@ -294,6 +294,42 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          created_at: string
+          customer_name: string
+          customer_name_normalized: string
+          customer_phone: string | null
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean | null
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          customer_name_normalized: string
+          customer_phone?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          customer_name_normalized?: string
+          customer_phone?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -1102,6 +1138,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      normalize_customer_name: { Args: { name: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "worker"
