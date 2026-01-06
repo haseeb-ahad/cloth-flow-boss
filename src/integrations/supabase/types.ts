@@ -407,6 +407,80 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_image_hashes: {
+        Row: {
+          admin_id: string
+          amount: number | null
+          created_at: string
+          id: string
+          image_hash: string
+          payment_request_id: string | null
+          proof_url: string
+        }
+        Insert: {
+          admin_id: string
+          amount?: number | null
+          created_at?: string
+          id?: string
+          image_hash: string
+          payment_request_id?: string | null
+          proof_url: string
+        }
+        Update: {
+          admin_id?: string
+          amount?: number | null
+          created_at?: string
+          id?: string
+          image_hash?: string
+          payment_request_id?: string | null
+          proof_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_image_hashes_payment_request_id_fkey"
+            columns: ["payment_request_id"]
+            isOneToOne: false
+            referencedRelation: "payment_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_ledger: {
         Row: {
           created_at: string

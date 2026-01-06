@@ -30,6 +30,7 @@ import SuperAdminBankSettings from "@/components/super-admin/SuperAdminBankSetti
 import SuperAdminPaymentRequests from "@/components/super-admin/SuperAdminPaymentRequests";
 import SuperAdminLoaderSettings from "@/components/super-admin/SuperAdminLoaderSettings";
 import SuperAdminSettings from "@/components/super-admin/SuperAdminSettings";
+import SuperAdminNotificationBell from "@/components/notifications/SuperAdminNotificationBell";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface AdminUser {
@@ -52,6 +53,7 @@ const SuperAdminDashboard = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [superAdminUserId, setSuperAdminUserId] = useState<string>("");
   const [stats, setStats] = useState({
     totalAdmins: 0,
     activeSubscriptions: 0,
@@ -61,9 +63,13 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     const isAuth = localStorage.getItem("superAdminAuth");
+    const storedUserId = localStorage.getItem("superAdminUserId");
     if (!isAuth) {
       navigate("/super-admin-login");
       return;
+    }
+    if (storedUserId) {
+      setSuperAdminUserId(storedUserId);
     }
     fetchDashboardData();
   }, [navigate]);
@@ -159,6 +165,11 @@ const SuperAdminDashboard = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              {superAdminUserId && (
+                <SuperAdminNotificationBell superAdminUserId={superAdminUserId} />
+              )}
+              
               <Button
                 variant="ghost"
                 size="sm"

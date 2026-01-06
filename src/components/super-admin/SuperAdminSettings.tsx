@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Lock, Eye, EyeOff, Save } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2 } from "lucide-react";
 
 const SuperAdminSettings = () => {
   const [oldPassword, setOldPassword] = useState("");
@@ -14,6 +15,79 @@ const SuperAdminSettings = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Notification settings
+  const [superAdminUserId, setSuperAdminUserId] = useState("");
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const storedId = localStorage.getItem("superAdminUserId");
+    if (storedId) {
+      setSuperAdminUserId(storedId);
+    }
+    fetchNotificationSettings();
+  }, []);
+
+  const fetchNotificationSettings = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("super-admin", {
+        body: { action: "get_super_admin_ids" }
+      });
+      // Just for display purposes
+    } catch (error) {
+      console.error("Error fetching notification settings:", error);
+    }
+  };
+
+  const saveNotificationSettings = async () => {
+    if (!superAdminUserId) {
+      toast.error("No Super Admin ID found");
+      return;
+    }
+
+    setIsSavingNotifications(true);
+    try {
+      // Save the super admin user ID to system settings
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert({
+          setting_key: "super_admin_user_ids",
+          setting_value: JSON.stringify([superAdminUserId]),
+        }, { onConflict: "setting_key" });
+
+      if (error) {
+        // If upsert fails, try insert/update manually
+        const { data: existing } = await supabase
+          .from("system_settings")
+          .select("id")
+          .eq("setting_key", "super_admin_user_ids")
+          .maybeSingle();
+
+        if (existing) {
+          await supabase.functions.invoke("super-admin", {
+            body: {
+              action: "update_loader_settings",
+              data: { setting_key: "super_admin_user_ids", setting_value: JSON.stringify([superAdminUserId]) }
+            }
+          });
+        }
+      }
+
+      toast.success("Notification settings saved! You will now receive notifications.");
+    } catch (error) {
+      console.error("Error saving notification settings:", error);
+      toast.error("Failed to save notification settings");
+    }
+    setIsSavingNotifications(false);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(superAdminUserId);
+    setCopied(true);
+    toast.success("ID copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleChangePassword = async () => {
     // Validation
@@ -65,6 +139,66 @@ const SuperAdminSettings = () => {
 
   return (
     <div className="space-y-6">
+      {/* Notification Settings */}
+      <Card className="border-0 shadow-sm bg-white max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Bell className="w-5 h-5 text-amber-500" />
+            Notification Settings
+          </CardTitle>
+          <CardDescription>
+            Enable notifications to receive alerts about admin activities
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="superAdminId">Your Super Admin ID</Label>
+            <div className="flex gap-2">
+              <Input
+                id="superAdminId"
+                value={superAdminUserId}
+                readOnly
+                className="font-mono text-xs bg-slate-50"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyToClipboard}
+                className="shrink-0"
+              >
+                {copied ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500">
+              This ID is used to send you notifications about admin registrations, payments, and alerts.
+            </p>
+          </div>
+
+          <Button
+            onClick={saveNotificationSettings}
+            disabled={isSavingNotifications || !superAdminUserId}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+          >
+            {isSavingNotifications ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Bell className="w-4 h-4 mr-2" />
+                Enable Notifications
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Password Change */}
       <Card className="border-0 shadow-sm bg-white max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">

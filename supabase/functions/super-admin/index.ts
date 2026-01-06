@@ -6,6 +6,62 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to get super admin user IDs (you can configure this)
+const SUPER_ADMIN_SETTING_KEY = "super_admin_user_ids";
+
+const getSuperAdminIds = async (supabase: any): Promise<string[]> => {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", SUPER_ADMIN_SETTING_KEY)
+    .maybeSingle();
+  
+  if (data?.setting_value) {
+    try {
+      return JSON.parse(data.setting_value);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+// Helper function to create notification
+const createNotification = async (
+  supabase: any,
+  userId: string,
+  title: string,
+  message: string,
+  type: string,
+  category: string,
+  metadata: Record<string, any> = {}
+) => {
+  console.log(`Creating notification for user ${userId}: ${title}`);
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    title,
+    message,
+    type,
+    category,
+    metadata,
+  });
+};
+
+// Notify all super admins
+const notifySuperAdmins = async (
+  supabase: any,
+  title: string,
+  message: string,
+  type: string,
+  category: string,
+  metadata: Record<string, any> = {}
+) => {
+  const superAdminIds = await getSuperAdminIds(supabase);
+  for (const adminId of superAdminIds) {
+    await createNotification(supabase, adminId, title, message, type, category, metadata);
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,6 +75,140 @@ serve(async (req) => {
     const { action, data } = await req.json();
 
     switch (action) {
+      case "check_duplicate_image": {
+        const { image_hash, admin_id, amount } = data;
+        
+        // Check if this hash exists
+        const { data: existing } = await supabase
+          .from("payment_image_hashes")
+          .select("*, profiles:admin_id(email, full_name)")
+          .eq("image_hash", image_hash)
+          .maybeSingle();
+        
+        if (existing) {
+          // Get admin profile for notification
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, full_name")
+            .eq("user_id", admin_id)
+            .single();
+          
+          // Notify super admins about duplicate attempt
+          await notifySuperAdmins(
+            supabase,
+            "⚠️ Duplicate Payment Screenshot Detected",
+            `${profile?.full_name || profile?.email || "Unknown admin"} attempted to upload a duplicate payment screenshot. Amount: Rs ${amount}`,
+            "high_priority",
+            "duplicate_attempt",
+            {
+              admin_id,
+              admin_email: profile?.email,
+              admin_name: profile?.full_name,
+              amount,
+              original_proof_url: existing.proof_url,
+              original_upload_time: existing.created_at,
+            }
+          );
+          
+          return new Response(
+            JSON.stringify({ 
+              is_duplicate: true, 
+              message: "This payment screenshot has already been used. Please upload a valid proof." 
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ is_duplicate: false }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "save_image_hash": {
+        const { image_hash, admin_id, proof_url, payment_request_id, amount } = data;
+        
+        await supabase.from("payment_image_hashes").insert({
+          image_hash,
+          admin_id,
+          proof_url,
+          payment_request_id,
+          amount,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "notify_payment_uploaded": {
+        const { admin_id, amount, plan_name } = data;
+        
+        // Get admin profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("user_id", admin_id)
+          .single();
+        
+        // Notify super admins
+        await notifySuperAdmins(
+          supabase,
+          "💳 New Payment Proof Uploaded",
+          `${profile?.full_name || profile?.email || "An admin"} has uploaded payment proof for ${plan_name}. Amount: Rs ${amount}`,
+          "info",
+          "payment_upload",
+          { admin_id, amount, plan_name }
+        );
+        
+        // Notify admin
+        await createNotification(
+          supabase,
+          admin_id,
+          "Payment Proof Submitted",
+          `Your payment proof for ${plan_name} (Rs ${amount}) has been submitted and is pending verification.`,
+          "info",
+          "payment_upload",
+          { amount, plan_name }
+        );
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "notify_admin_registered": {
+        const { admin_id, email, full_name } = data;
+        
+        // Notify super admins
+        await notifySuperAdmins(
+          supabase,
+          "👤 New Admin Registered",
+          `${full_name || email} has registered as a new admin.`,
+          "info",
+          "registration",
+          { admin_id, email, full_name }
+        );
+        
+        // Notify admin
+        await createNotification(
+          supabase,
+          admin_id,
+          "Welcome! Registration Successful",
+          "Your account has been created successfully. You have a 7-day free trial to explore all features.",
+          "success",
+          "registration",
+          {}
+        );
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       case "get_all_admins": {
         // Get all admins with their subscriptions and store info
         const { data: roles, error: rolesError } = await supabase
@@ -230,6 +420,17 @@ serve(async (req) => {
               .insert(overrideRecords);
           }
         }
+
+        // Notify admin about subscription activation
+        await createNotification(
+          supabase,
+          admin_id,
+          "🎉 Subscription Activated!",
+          `Your ${plan.name} plan has been activated successfully!`,
+          "success",
+          "subscription_activated",
+          { plan_name: plan.name, end_date, billing_cycle: plan.is_lifetime ? "lifetime" : "monthly" }
+        );
 
         return new Response(JSON.stringify({ subscription }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -511,6 +712,17 @@ serve(async (req) => {
           transaction_id: `BT-${Date.now()}`,
         });
 
+        // Notify admin about approval with subscription_activated category
+        await createNotification(
+          supabase,
+          request.admin_id,
+          "🎉 Payment Approved - Subscription Activated!",
+          `Your payment for ${plan.name} has been approved! Your subscription is now active.`,
+          "success",
+          "subscription_activated",
+          { plan_name: plan.name, end_date: endDate, billing_cycle: plan.is_lifetime ? "lifetime" : "monthly" }
+        );
+
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -518,6 +730,13 @@ serve(async (req) => {
 
       case "reject_payment_request": {
         const { request_id, rejection_reason } = data;
+
+        // Get request details for notification
+        const { data: request } = await supabase
+          .from("payment_requests")
+          .select("admin_id, amount, plan_id, plans(name)")
+          .eq("id", request_id)
+          .single();
 
         const { error } = await supabase
           .from("payment_requests")
@@ -530,6 +749,19 @@ serve(async (req) => {
           .eq("id", request_id);
 
         if (error) throw error;
+
+        // Notify admin about rejection
+        if (request) {
+          await createNotification(
+            supabase,
+            request.admin_id,
+            "❌ Payment Rejected",
+            `Your payment proof has been rejected. Reason: ${rejection_reason || "Payment not verified"}. Please upload a valid payment proof.`,
+            "error",
+            "payment_rejected",
+            { reason: rejection_reason, amount: request.amount }
+          );
+        }
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -649,6 +881,8 @@ serve(async (req) => {
         await supabase.from("payments").delete().eq("admin_id", admin_id);
         await supabase.from("payment_requests").delete().eq("admin_id", admin_id);
         await supabase.from("subscriptions").delete().eq("admin_id", admin_id);
+        await supabase.from("notifications").delete().eq("user_id", admin_id);
+        await supabase.from("payment_image_hashes").delete().eq("admin_id", admin_id);
 
         // 7. Delete user_roles (admin and their workers)
         await supabase.from("user_roles").delete().eq("admin_id", admin_id);
