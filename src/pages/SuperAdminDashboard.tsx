@@ -213,7 +213,7 @@ const SuperAdminDashboard = () => {
       {/* Main Content */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm flex-wrap h-auto">
+          <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm flex-wrap h-auto justify-center">
             <TabsTrigger
               value="dashboard"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4"
