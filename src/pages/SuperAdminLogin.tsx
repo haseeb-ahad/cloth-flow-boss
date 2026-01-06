@@ -8,7 +8,11 @@ import { toast } from "sonner";
 import { Shield, Lock, User, Sparkles, Eye, EyeOff } from "lucide-react";
 
 const SUPER_ADMIN_USERNAME = "superadmin";
-const SUPER_ADMIN_PASSWORD = "admin@super123978cv";
+const DEFAULT_SUPER_ADMIN_PASSWORD = "admin@super123978cv";
+
+const getSuperAdminPassword = () => {
+  return localStorage.getItem("superAdminPassword") || DEFAULT_SUPER_ADMIN_PASSWORD;
+};
 
 const SuperAdminLogin = () => {
   const [username, setUsername] = useState("");
@@ -24,8 +28,12 @@ const SuperAdminLogin = () => {
     // Simulate authentication delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    if (username === SUPER_ADMIN_USERNAME && password === SUPER_ADMIN_PASSWORD) {
+    if (username === SUPER_ADMIN_USERNAME && password === getSuperAdminPassword()) {
       localStorage.setItem("superAdminAuth", "true");
+      // Store the current password if not already stored (first login)
+      if (!localStorage.getItem("superAdminPassword")) {
+        localStorage.setItem("superAdminPassword", DEFAULT_SUPER_ADMIN_PASSWORD);
+      }
       
       // Generate or retrieve a consistent super admin user ID for notifications
       let superAdminUserId = localStorage.getItem("superAdminUserId");
