@@ -6,6 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Retry helper for transient network errors
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 500
+): Promise<T> => {
+  let lastError: any;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable = error?.message?.includes("connection reset") ||
+                          error?.message?.includes("connection error") ||
+                          error?.message?.includes("502") ||
+                          error?.message?.includes("503");
+      if (!isRetryable || i === maxRetries - 1) throw error;
+      const delay = baseDelay * Math.pow(2, i);
+      console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms due to: ${error.message}`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+};
+
 // Helper function to get super admin user IDs (you can configure this)
 const SUPER_ADMIN_SETTING_KEY = "super_admin_user_ids";
 
@@ -921,12 +946,16 @@ serve(async (req) => {
       case "get_super_admin_notifications": {
         const { super_admin_id } = data;
         
-        const { data: notifications, error } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", super_admin_id)
-          .order("created_at", { ascending: false })
-          .limit(50);
+        const fetchNotifications = async () => {
+          return supabase
+            .from("notifications")
+            .select("*")
+            .eq("user_id", super_admin_id)
+            .order("created_at", { ascending: false })
+            .limit(50);
+        };
+        
+        const { data: notifications, error } = await retryWithBackoff(fetchNotifications);
         
         if (error) throw error;
         
