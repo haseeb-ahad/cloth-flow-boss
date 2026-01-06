@@ -7,6 +7,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 
+// Default super admin password (same as in SuperAdminLogin.tsx)
+const DEFAULT_SUPER_ADMIN_PASSWORD = "admin@super123978cv";
+
+const getSuperAdminPassword = () => {
+  return localStorage.getItem("superAdminPassword") || DEFAULT_SUPER_ADMIN_PASSWORD;
+};
+
 const SuperAdminSettings = () => {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -94,8 +101,8 @@ const SuperAdminSettings = () => {
       return;
     }
 
-    // Get stored credentials
-    const storedPassword = localStorage.getItem("superAdminPassword");
+    // Get stored credentials (or use default)
+    const storedPassword = getSuperAdminPassword();
     
     if (oldPassword !== storedPassword) {
       toast.error("Old password is incorrect");
