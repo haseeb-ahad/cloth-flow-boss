@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2 } from "lucide-react";
+import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 
 const SuperAdminSettings = () => {
   const [oldPassword, setOldPassword] = useState("");
@@ -28,6 +28,13 @@ const SuperAdminSettings = () => {
     }
     fetchNotificationSettings();
   }, []);
+
+  const generateSuperAdminId = () => {
+    const newId = crypto.randomUUID();
+    localStorage.setItem("superAdminUserId", newId);
+    setSuperAdminUserId(newId);
+    toast.success("Super Admin ID generated successfully!");
+  };
 
   const fetchNotificationSettings = async () => {
     try {
@@ -158,20 +165,32 @@ const SuperAdminSettings = () => {
                 id="superAdminId"
                 value={superAdminUserId}
                 readOnly
+                placeholder="Click 'Generate ID' to create"
                 className="font-mono text-xs bg-slate-50"
               />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={copyToClipboard}
-                className="shrink-0"
-              >
-                {copied ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
+              {superAdminUserId ? (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={copyToClipboard}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={generateSuperAdminId}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Generate ID
+                </Button>
+              )}
             </div>
             <p className="text-xs text-slate-500">
               This ID is used to send you notifications about admin registrations, payments, and alerts.
