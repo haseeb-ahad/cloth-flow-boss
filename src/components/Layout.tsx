@@ -32,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 
 interface LayoutProps {
   children: ReactNode;
@@ -267,32 +268,32 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </aside>
 
-        {/* Mobile Header with Menu Button */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center gap-3 px-4 lg:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="shrink-0"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+        {/* Mobile Header - Simplified for app-like feel */}
+        <div className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-between px-4 md:hidden safe-area-pt">
           <div className="flex items-center gap-2">
             {appSettings.logo_url ? (
               <img 
                 src={appSettings.logo_url} 
                 alt="Logo" 
-                className="max-w-[120px] max-h-8 object-contain"
+                className="max-w-[100px] max-h-7 object-contain"
               />
             ) : (
               <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary shadow-glow">
                 <Store className="h-4 w-4 text-primary-foreground" />
               </div>
             )}
-            <span className="text-sm font-semibold text-foreground truncate">
+            <span className="text-sm font-semibold text-foreground truncate max-w-[150px]">
               {appSettings.app_name || "Business Manager"}
             </span>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="shrink-0 h-9 w-9"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Mobile Sidebar Overlay */}
@@ -378,11 +379,12 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* Main Content Area */}
         <div className={cn(
-          "flex-1 transition-all duration-300 ease-smooth lg:mt-0 mt-16",
-          sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
+          "flex-1 transition-all duration-300 ease-smooth",
+          "mt-14 mb-16 md:mt-0 md:mb-0", // Mobile: account for header and bottom nav
+          sidebarCollapsed ? "md:ml-[72px]" : "md:ml-64"
         )}>
-          {/* Modern Top Bar */}
-          <header className="sticky top-0 z-30 border-b border-border/50 bg-card/80 backdrop-blur-xl">
+          {/* Modern Top Bar - Hidden on mobile */}
+          <header className="sticky top-0 z-30 border-b border-border/50 bg-card/80 backdrop-blur-xl hidden md:block">
           <div className="flex h-16 items-center justify-end px-4 lg:px-6">
 
               {/* Right - Actions */}
@@ -451,6 +453,9 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
           </main>
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav />
       </div>
     </TooltipProvider>
   );

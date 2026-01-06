@@ -162,6 +162,42 @@
   }
 }
 
+/* Mobile App Styles */
+@layer base {
+  /* Safe area insets for modern devices */
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-pl {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-pr {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Touch-friendly tap targets */
+  @media (max-width: 767px) {
+    button, 
+    [role="button"],
+    a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    input, 
+    select, 
+    textarea {
+      font-size: 16px !important; /* Prevent iOS zoom on focus */
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -170,10 +206,14 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    /* Prevent overscroll bounce for app-like feel */
+    overscroll-behavior: none;
   }
 
   html {
     scroll-behavior: smooth;
+    /* Smooth scrolling with momentum on iOS */
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -463,5 +503,86 @@
   
   header, nav, aside, footer, .no-print {
     display: none !important;
+  }
+}
+
+/* Mobile-specific utilities */
+@layer utilities {
+  /* Full-bleed mobile cards */
+  .mobile-full-bleed {
+    @apply -mx-4 px-4 md:mx-0 md:px-0;
+  }
+  
+  /* Mobile bottom sheet modal */
+  .mobile-bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl shadow-xl max-h-[90vh] overflow-y-auto;
+  }
+  
+  /* Mobile-friendly scrollable container */
+  .mobile-scroll {
+    @apply overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide scrollbar on mobile for cleaner look */
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .mobile-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  /* Mobile card container */
+  .mobile-card-container {
+    @apply space-y-3 md:space-y-0;
+  }
+  
+  /* Responsive text that scales down on mobile */
+  .text-responsive-lg {
+    @apply text-xl md:text-3xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-2xl md:text-4xl;
+  }
+  
+  /* Touch ripple effect */
+  .touch-ripple {
+    @apply relative overflow-hidden;
+  }
+  
+  .touch-ripple::after {
+    content: '';
+    @apply absolute inset-0 bg-foreground/10 opacity-0 transition-opacity;
+  }
+  
+  .touch-ripple:active::after {
+    @apply opacity-100;
+  }
+  
+  /* Mobile-friendly button group */
+  .mobile-button-group {
+    @apply flex flex-wrap gap-2 md:flex-nowrap;
+  }
+  
+  .mobile-button-group > * {
+    @apply flex-1 md:flex-none;
+  }
+  
+  /* Mobile filter row */
+  .mobile-filter-row {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-3;
+  }
+  
+  /* Mobile stat card */
+  .mobile-stat-card {
+    @apply p-4 md:p-6;
+  }
+  
+  /* Responsive grid for stats */
+  .stats-grid {
+    @apply grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4;
   }
 }
