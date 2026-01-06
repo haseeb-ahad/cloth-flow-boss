@@ -53,7 +53,7 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -67,6 +67,25 @@ export default function Signup() {
       });
 
       if (error) throw error;
+
+      // Notify super admin about new registration
+      if (signUpData.user) {
+        try {
+          await supabase.functions.invoke("super-admin", {
+            body: {
+              action: "notify_admin_registered",
+              data: {
+                admin_id: signUpData.user.id,
+                admin_email: formData.email,
+                admin_name: formData.fullName,
+              },
+            },
+          });
+        } catch (notifyError) {
+          console.error("Failed to send notification:", notifyError);
+          // Don't fail signup if notification fails
+        }
+      }
 
       toast.success("Account created successfully! Please login.");
       navigate("/login");
