@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ interface StockStats {
 
 const Inventory = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
+  const isMobile = useIsMobile();
   
   // Permission checks
   const canCreate = userRole === "admin" || hasPermission("inventory", "create");
@@ -424,11 +426,12 @@ const Inventory = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      {/* Header - Mobile Responsive */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-muted-foreground">Manage your products and stock with QR codes</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Inventory Management</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Manage your products and stock with QR codes</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <input
@@ -656,9 +659,9 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Stock Stats Cards */}
-      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-fr w-full">
-        <Card className="hover:shadow-lg transition-all duration-300">
+      {/* Stock Stats Cards - Mobile Grid */}
+      <div className="grid gap-3 md:gap-5 grid-cols-2 lg:grid-cols-5 auto-rows-fr w-full">
+        <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold tracking-wide">Stock Cost</CardTitle>
             <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
@@ -748,10 +751,11 @@ const Inventory = () => {
         </Card>
       </div>
 
+      {/* Search and Filters - Mobile Optimized */}
       <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-3 mb-4">
+        <div className="mobile-filter-row mb-4">
           <div>
-            <Label>Search by Name, SKU, Category or Supplier</Label>
+            <Label className="text-xs md:text-sm">Search by Name, SKU, Category or Supplier</Label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -763,7 +767,7 @@ const Inventory = () => {
             </div>
           </div>
           <div>
-            <Label>Filter by Category</Label>
+            <Label className="text-xs md:text-sm">Filter by Category</Label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All categories" />
@@ -790,112 +794,204 @@ const Inventory = () => {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={filteredProducts.length > 0 && selectedProducts.size === filteredProducts.length}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
-                      } else {
-                        setSelectedProducts(new Set());
-                      }
-                    }}
-                  />
-                </TableHead>
-                <TableHead className="w-12">#</TableHead>
-                <TableHead className="w-16">Image</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead className="text-right">Purchase</TableHead>
-                <TableHead className="text-right">Selling</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product, index) => (
-                <TableRow key={product.id} className={selectedProducts.has(product.id) ? "bg-muted/50" : ""}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedProducts.has(product.id)}
-                      onCheckedChange={(checked) => {
-                        const newSelected = new Set(selectedProducts);
-                        if (checked) {
-                          newSelected.add(product.id);
-                        } else {
-                          newSelected.delete(product.id);
-                        }
-                        setSelectedProducts(newSelected);
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell className="font-semibold text-muted-foreground">
-                    {index + 1}
-                  </TableCell>
-                  <TableCell>
+      {/* Products List - Mobile Cards or Desktop Table */}
+      {isMobile ? (
+        // Mobile Card Layout
+        <div className="space-y-3">
+          {filteredProducts.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground">
+              No products found
+            </Card>
+          ) : (
+            filteredProducts.map((product) => (
+              <Card key={product.id} className="p-4 active:scale-[0.98] transition-transform">
+                <div className="flex items-start gap-3">
+                  {/* Product Image */}
+                  <div className="flex-shrink-0">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
                         alt={product.name}
-                        className="w-10 h-10 rounded-lg object-cover"
+                        className="w-16 h-16 rounded-xl object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{product.name}</div>
-                      {product.description && (
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">{product.description}</div>
-                      )}
+                  </div>
+                  
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {product.category || "Uncategorized"} • {product.sku || "No SKU"}
+                        </p>
+                      </div>
+                      {getStockBadge(product.stock_quantity)}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {product.sku || "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{product.category || "-"}</TableCell>
-                  <TableCell className="text-muted-foreground">{product.supplier_name || "-"}</TableCell>
-                  <TableCell className="text-right">Rs. {product.purchase_price.toFixed(2)}</TableCell>
-                  <TableCell className="text-right text-success font-semibold">
-                    Rs. {product.selling_price.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {product.stock_quantity} <span className="text-xs text-muted-foreground">{product.quantity_type}</span>
-                  </TableCell>
-                  <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <ProductQRCode 
-                        productId={product.id} 
-                        productName={product.name}
-                        sku={product.sku || undefined}
-                      />
-                      {canEdit && (
-                        <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
+                    
+                    {/* Details Grid */}
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Purchase</p>
+                        <p className="text-xs font-medium">Rs. {product.purchase_price.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Selling</p>
+                        <p className="text-xs font-semibold text-success">Rs. {product.selling_price.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Stock</p>
+                        <p className="text-xs font-semibold">{product.stock_quantity} {product.quantity_type}</p>
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+                
+                {/* Actions */}
+                <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
+                  <Checkbox
+                    checked={selectedProducts.has(product.id)}
+                    onCheckedChange={(checked) => {
+                      const newSelected = new Set(selectedProducts);
+                      if (checked) {
+                        newSelected.add(product.id);
+                      } else {
+                        newSelected.delete(product.id);
+                      }
+                      setSelectedProducts(newSelected);
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <ProductQRCode 
+                      productId={product.id} 
+                      productName={product.name}
+                      sku={product.sku || undefined}
+                    />
+                    {canEdit && (
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(product)}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
-      </Card>
+      ) : (
+        // Desktop Table Layout
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filteredProducts.length > 0 && selectedProducts.size === filteredProducts.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+                        } else {
+                          setSelectedProducts(new Set());
+                        }
+                      }}
+                    />
+                  </TableHead>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead className="w-16">Image</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead className="text-right">Purchase</TableHead>
+                  <TableHead className="text-right">Selling</TableHead>
+                  <TableHead className="text-right">Stock</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product, index) => (
+                  <TableRow key={product.id} className={selectedProducts.has(product.id) ? "bg-muted/50" : ""}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedProducts.has(product.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelected = new Set(selectedProducts);
+                          if (checked) {
+                            newSelected.add(product.id);
+                          } else {
+                            newSelected.delete(product.id);
+                          }
+                          setSelectedProducts(newSelected);
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="font-semibold text-muted-foreground">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>
+                      {product.image_url ? (
+                        <img 
+                          src={product.image_url} 
+                          alt={product.name}
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        {product.description && (
+                          <div className="text-sm text-muted-foreground truncate max-w-[200px]">{product.description}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {product.sku || "-"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{product.category || "-"}</TableCell>
+                    <TableCell className="text-muted-foreground">{product.supplier_name || "-"}</TableCell>
+                    <TableCell className="text-right">Rs. {product.purchase_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-success font-semibold">
+                      Rs. {product.selling_price.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {product.stock_quantity} <span className="text-xs text-muted-foreground">{product.quantity_type}</span>
+                    </TableCell>
+                    <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <ProductQRCode 
+                          productId={product.id} 
+                          productName={product.name}
+                          sku={product.sku || undefined}
+                        />
+                        {canEdit && (
+                          <Button size="icon" variant="outline" onClick={() => handleEdit(product)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
 
       {/* Batch QR Print Dialog */}
       <BatchQRPrint
