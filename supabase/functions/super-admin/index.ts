@@ -913,6 +913,96 @@ serve(async (req) => {
         });
       }
 
+      case "get_super_admin_notifications": {
+        const { super_admin_id } = data;
+        
+        const { data: notifications, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", super_admin_id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        
+        if (error) throw error;
+        
+        return new Response(JSON.stringify({ notifications: notifications || [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "mark_notification_read": {
+        const { notification_id } = data;
+        
+        await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("id", notification_id);
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "mark_all_notifications_read": {
+        const { super_admin_id } = data;
+        
+        await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("user_id", super_admin_id)
+          .eq("is_read", false);
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "delete_notification": {
+        const { notification_id } = data;
+        
+        await supabase
+          .from("notifications")
+          .delete()
+          .eq("id", notification_id);
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "save_super_admin_id": {
+        const { super_admin_id } = data;
+        
+        const { data: existing } = await supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", SUPER_ADMIN_SETTING_KEY)
+          .maybeSingle();
+        
+        if (!existing) {
+          await supabase.from("system_settings").insert({
+            setting_key: SUPER_ADMIN_SETTING_KEY,
+            setting_value: JSON.stringify([super_admin_id])
+          });
+        } else {
+          let ids: string[] = [];
+          try {
+            ids = JSON.parse(existing.setting_value || "[]");
+          } catch { ids = []; }
+          
+          if (!ids.includes(super_admin_id)) {
+            ids.push(super_admin_id);
+            await supabase.from("system_settings")
+              .update({ setting_value: JSON.stringify(ids) })
+              .eq("setting_key", SUPER_ADMIN_SETTING_KEY);
+          }
+        }
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       default:
         throw new Error("Unknown action");
     }
