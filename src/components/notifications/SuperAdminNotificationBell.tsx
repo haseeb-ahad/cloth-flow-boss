@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, X, AlertTriangle, CheckCircle2, Info, User, CreditCard, Shield, Volume2, VolumeX } from "lucide-react";
+import { Bell, Check, X, AlertTriangle, CheckCircle2, Info, User, CreditCard, Shield, Volume2, VolumeX, MonitorSmartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -57,15 +57,55 @@ const playNotificationSound = (type: "normal" | "urgent") => {
   }
 };
 
+// Request browser notification permission
+const requestNotificationPermission = async () => {
+  if ("Notification" in window && Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+};
+
+// Show desktop notification
+const showDesktopNotification = (title: string, message: string, isUrgent: boolean) => {
+  if ("Notification" in window && Notification.permission === "granted") {
+    const notification = new Notification(title, {
+      body: message,
+      icon: "/favicon.ico",
+      tag: "super-admin-notification",
+      requireInteraction: isUrgent,
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+
+    // Auto-close after 5 seconds for non-urgent
+    if (!isUrgent) {
+      setTimeout(() => notification.close(), 5000);
+    }
+  }
+};
+
 const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotificationBellProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [desktopEnabled, setDesktopEnabled] = useState(false);
   const previousCountRef = useRef(0);
 
   useEffect(() => {
     if (!superAdminUserId) return;
+    
+    // Check and request notification permission
+    if ("Notification" in window) {
+      setDesktopEnabled(Notification.permission === "granted");
+      if (Notification.permission === "default") {
+        requestNotificationPermission().then(() => {
+          setDesktopEnabled(Notification.permission === "granted");
+        });
+      }
+    }
     
     fetchNotifications();
 
@@ -76,6 +116,17 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
       clearInterval(interval);
     };
   }, [superAdminUserId]);
+
+  const toggleDesktopNotifications = async () => {
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+      setDesktopEnabled(!desktopEnabled);
+    } else if (Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      setDesktopEnabled(permission === "granted");
+    }
+  };
 
   const fetchNotifications = async () => {
     if (!superAdminUserId) return;
@@ -93,12 +144,19 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
         setNotifications(notifs);
         const newUnreadCount = notifs.filter((n) => !n.is_read).length;
         
-        // Play sound if there are new unread notifications
-        if (soundEnabled && newUnreadCount > previousCountRef.current && previousCountRef.current >= 0) {
+        // Play sound and show desktop notification if there are new unread notifications
+        if (newUnreadCount > previousCountRef.current && previousCountRef.current >= 0) {
           const latestNotif = notifs[0];
           if (latestNotif && !latestNotif.is_read) {
             const isUrgent = latestNotif.type === "high_priority" || latestNotif.category === "duplicate_attempt";
-            playNotificationSound(isUrgent ? "urgent" : "normal");
+            
+            if (soundEnabled) {
+              playNotificationSound(isUrgent ? "urgent" : "normal");
+            }
+            
+            if (desktopEnabled) {
+              showDesktopNotification(latestNotif.title, latestNotif.message, isUrgent);
+            }
           }
         }
         previousCountRef.current = newUnreadCount;
@@ -222,9 +280,21 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
             <Button
               variant="ghost"
               size="sm"
+              className={cn(
+                "h-7 w-7 p-0 hover:bg-white/10",
+                desktopEnabled ? "text-white" : "text-white/50"
+              )}
+              onClick={toggleDesktopNotifications}
+              title={desktopEnabled ? "Desktop alerts on" : "Desktop alerts off"}
+            >
+              <MonitorSmartphone className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/10"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              title={soundEnabled ? "Mute notifications" : "Unmute notifications"}
+              title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
             >
               {soundEnabled ? (
                 <Volume2 className="h-3.5 w-3.5" />
