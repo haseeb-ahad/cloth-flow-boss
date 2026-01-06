@@ -75,6 +75,14 @@ serve(async (req) => {
     const { action, data } = await req.json();
 
     switch (action) {
+      case "get_super_admin_ids": {
+        const superAdminIds = await getSuperAdminIds(supabase);
+        return new Response(
+          JSON.stringify({ super_admin_ids: superAdminIds }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       case "check_duplicate_image": {
         const { image_hash, admin_id, amount } = data;
         
