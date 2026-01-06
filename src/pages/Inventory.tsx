@@ -674,7 +674,7 @@ const Inventory = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-all duration-300">
+        <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold tracking-wide">Stock Sell Worth</CardTitle>
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
@@ -687,7 +687,7 @@ const Inventory = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-all duration-300">
+        <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold tracking-wide">Sell Profit</CardTitle>
             <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
@@ -700,7 +700,7 @@ const Inventory = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-all duration-300">
+        <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold tracking-wide">Total Stock</CardTitle>
             <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center ring-4 ring-accent/5">
@@ -729,7 +729,7 @@ const Inventory = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-all duration-300">
+        <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold tracking-wide">Products Overview</CardTitle>
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
