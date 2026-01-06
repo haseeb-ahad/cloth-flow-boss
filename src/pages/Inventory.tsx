@@ -662,52 +662,52 @@ const Inventory = () => {
       {/* Stock Stats Cards - Mobile Grid */}
       <div className="grid gap-1.5 md:gap-2 grid-cols-2 lg:grid-cols-5 auto-rows-fr w-full">
         <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
             <CardTitle className="text-sm font-semibold tracking-wide">Stock Cost</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center ring-4 ring-destructive/5">
-              <PackageSearch className="h-5 w-5 text-destructive" />
+            <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center ring-2 ring-destructive/5">
+              <PackageSearch className="h-4 w-4 text-destructive" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stockStats.stockCost)}</div>
-            <p className="text-xs text-muted-foreground mt-1 font-medium">Total purchase cost</p>
+          <CardContent className="p-3 pt-0">
+            <div className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{formatCurrency(stockStats.stockCost)}</div>
+            <p className="text-xs text-muted-foreground mt-0.5 font-medium">Total purchase cost</p>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
             <CardTitle className="text-sm font-semibold tracking-wide">Stock Sell Worth</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
-              <DollarSign className="h-5 w-5 text-primary" />
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/5">
+              <DollarSign className="h-4 w-4 text-primary" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stockStats.stockSellWorth)}</div>
-            <p className="text-xs text-muted-foreground mt-1 font-medium">Total selling price value</p>
+          <CardContent className="p-3 pt-0">
+            <div className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{formatCurrency(stockStats.stockSellWorth)}</div>
+            <p className="text-xs text-muted-foreground mt-0.5 font-medium">Total selling price value</p>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
             <CardTitle className="text-sm font-semibold tracking-wide">Sell Profit</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center ring-4 ring-success/5">
-              <TrendingUp className="h-5 w-5 text-success" />
+            <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center ring-2 ring-success/5">
+              <TrendingUp className="h-4 w-4 text-success" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-success tracking-tight">{formatCurrency(stockStats.sellProfit)}</div>
-            <p className="text-xs text-muted-foreground mt-1 font-medium">Potential profit margin</p>
+          <CardContent className="p-3 pt-0">
+            <div className="text-xl sm:text-2xl font-bold text-success tracking-tight">{formatCurrency(stockStats.sellProfit)}</div>
+            <p className="text-xs text-muted-foreground mt-0.5 font-medium">Potential profit margin</p>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
             <CardTitle className="text-sm font-semibold tracking-wide">Total Stock</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center ring-4 ring-accent/5">
-              <PackageSearch className="h-5 w-5 text-accent-foreground" />
+            <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center ring-2 ring-accent/5">
+              <PackageSearch className="h-4 w-4 text-accent-foreground" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-0">
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground font-medium">Unit:</span>
@@ -730,21 +730,21 @@ const Inventory = () => {
         </Card>
 
         <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
             <CardTitle className="text-sm font-semibold tracking-wide">Products Overview</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-4 ring-primary/5">
-              <Package className="h-5 w-5 text-primary" />
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/5">
+              <Package className="h-4 w-4 text-primary" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-3 pt-0">
+            <div className="space-y-1.5">
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">Total Products</p>
-                <div className="text-2xl font-bold text-foreground tracking-tight">{stockStats.totalProducts}</div>
+                <p className="text-xs text-muted-foreground font-medium mb-0.5">Total Products</p>
+                <div className="text-xl font-bold text-foreground tracking-tight">{stockStats.totalProducts}</div>
               </div>
-              <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground font-medium mb-1">Low Stock Items</p>
-                <div className="text-2xl font-bold text-destructive tracking-tight">{stockStats.lowStockCount}</div>
+              <div className="pt-1.5 border-t border-border">
+                <p className="text-xs text-muted-foreground font-medium mb-0.5">Low Stock Items</p>
+                <div className="text-xl font-bold text-destructive tracking-tight">{stockStats.lowStockCount}</div>
               </div>
             </div>
           </CardContent>
