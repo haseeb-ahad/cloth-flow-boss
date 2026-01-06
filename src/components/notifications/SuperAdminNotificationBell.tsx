@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Bell, Check, X, AlertTriangle, CheckCircle2, Info, User, CreditCard, Shield } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bell, Check, X, AlertTriangle, CheckCircle2, Info, User, CreditCard, Shield, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,10 +27,44 @@ interface SuperAdminNotificationBellProps {
   superAdminUserId: string;
 }
 
+// Sound URLs (using Web Audio API for reliability)
+const playNotificationSound = (type: "normal" | "urgent") => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    if (type === "urgent") {
+      // Urgent: Double beep, higher pitch
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(0, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.15);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } else {
+      // Normal: Single pleasant beep
+      oscillator.frequency.setValueAtTime(587.33, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.15);
+    }
+  } catch (error) {
+    console.log("Audio not supported:", error);
+  }
+};
+
 const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotificationBellProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const previousCountRef = useRef(0);
 
   useEffect(() => {
     if (!superAdminUserId) return;
@@ -43,13 +77,22 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications',
           filter: `user_id=eq.${superAdminUserId}`,
         },
-        () => {
-          fetchNotifications();
+        (payload) => {
+          const newNotification = payload.new as Notification;
+          setNotifications((prev) => [newNotification, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+          
+          // Play sound for new notification
+          if (soundEnabled) {
+            const isUrgent = newNotification.type === "high_priority" || 
+                            newNotification.category === "duplicate_attempt";
+            playNotificationSound(isUrgent ? "urgent" : "normal");
+          }
         }
       )
       .subscribe();
@@ -57,7 +100,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [superAdminUserId]);
+  }, [superAdminUserId, soundEnabled]);
 
   const fetchNotifications = async () => {
     if (!superAdminUserId) return;
@@ -71,7 +114,14 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
 
     if (!error && data) {
       setNotifications(data as Notification[]);
-      setUnreadCount(data.filter((n: any) => !n.is_read).length);
+      const newUnreadCount = data.filter((n: any) => !n.is_read).length;
+      
+      // Play sound if there are new unread notifications since last check
+      if (soundEnabled && newUnreadCount > previousCountRef.current && previousCountRef.current > 0) {
+        playNotificationSound("normal");
+      }
+      previousCountRef.current = newUnreadCount;
+      setUnreadCount(newUnreadCount);
     }
   };
 
@@ -163,17 +213,32 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
               </Badge>
             )}
           </div>
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs h-7 text-white/80 hover:text-white hover:bg-white/10"
-              onClick={markAllAsRead}
+              className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/10"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? "Mute notifications" : "Unmute notifications"}
             >
-              <Check className="h-3 w-3 mr-1" />
-              Mark all read
+              {soundEnabled ? (
+                <Volume2 className="h-3.5 w-3.5" />
+              ) : (
+                <VolumeX className="h-3.5 w-3.5" />
+              )}
             </Button>
-          )}
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7 text-white/80 hover:text-white hover:bg-white/10"
+                onClick={markAllAsRead}
+              >
+                <Check className="h-3 w-3 mr-1" />
+                Mark all read
+              </Button>
+            )}
+          </div>
         </div>
 
         <ScrollArea className="h-[350px] sm:h-[400px]">

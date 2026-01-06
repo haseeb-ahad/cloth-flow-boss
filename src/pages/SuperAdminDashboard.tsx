@@ -63,14 +63,19 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     const isAuth = localStorage.getItem("superAdminAuth");
-    const storedUserId = localStorage.getItem("superAdminUserId");
     if (!isAuth) {
       navigate("/super-admin-login");
       return;
     }
-    if (storedUserId) {
-      setSuperAdminUserId(storedUserId);
+    
+    // Auto-generate super admin user ID if not exists
+    let storedUserId = localStorage.getItem("superAdminUserId");
+    if (!storedUserId) {
+      storedUserId = crypto.randomUUID();
+      localStorage.setItem("superAdminUserId", storedUserId);
     }
+    setSuperAdminUserId(storedUserId);
+    
     fetchDashboardData();
   }, [navigate]);
 
