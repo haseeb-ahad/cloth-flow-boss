@@ -188,16 +188,21 @@ serve(async (req) => {
       }
 
       case "notify_admin_registered": {
-        const { admin_id, email, full_name } = data;
+        // Support both naming conventions (email/full_name OR admin_email/admin_name)
+        const admin_id = data.admin_id;
+        const email = data.email || data.admin_email;
+        const full_name = data.full_name || data.admin_name;
+        
+        console.log(`Notifying super admins about new registration: ${full_name || email}`);
         
         // Notify super admins
         await notifySuperAdmins(
           supabase,
           "👤 New Admin Registered",
-          `${full_name || email} has registered as a new admin.`,
+          `${full_name || email || "A new user"} has registered as a new admin.`,
           "info",
           "registration",
-          { admin_id, email, full_name }
+          { admin_id, admin_email: email, admin_name: full_name }
         );
         
         // Notify admin
