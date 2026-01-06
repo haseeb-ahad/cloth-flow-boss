@@ -269,7 +269,7 @@ const Layout = ({ children }: LayoutProps) => {
         </aside>
 
         {/* Mobile Header - Simplified for app-like feel */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-between px-4 md:hidden safe-area-pt">
+        <div className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-center px-4 md:hidden safe-area-pt">
           <div className="flex items-center gap-2">
             {appSettings.logo_url ? (
               <img 
@@ -286,14 +286,6 @@ const Layout = ({ children }: LayoutProps) => {
               {appSettings.app_name || "Business Manager"}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="shrink-0 h-9 w-9"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
         </div>
 
         {/* Mobile Sidebar Overlay */}
