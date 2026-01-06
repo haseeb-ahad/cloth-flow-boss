@@ -34,32 +34,11 @@ const SuperAdminSettings = () => {
     localStorage.setItem("superAdminUserId", newId);
     setSuperAdminUserId(newId);
     
-    // Auto-save to database immediately
+    // Auto-save to database via edge function
     try {
-      const { data: existing } = await supabase
-        .from("system_settings")
-        .select("setting_value")
-        .eq("setting_key", "super_admin_user_ids")
-        .maybeSingle();
-      
-      if (!existing) {
-        await supabase.from("system_settings").insert({
-          setting_key: "super_admin_user_ids",
-          setting_value: JSON.stringify([newId])
-        });
-      } else {
-        let ids: string[] = [];
-        try {
-          ids = JSON.parse(existing.setting_value || "[]");
-        } catch { ids = []; }
-        
-        if (!ids.includes(newId)) {
-          ids.push(newId);
-          await supabase.from("system_settings")
-            .update({ setting_value: JSON.stringify(ids) })
-            .eq("setting_key", "super_admin_user_ids");
-        }
-      }
+      await supabase.functions.invoke("super-admin", {
+        body: { action: "save_super_admin_id", data: { super_admin_id: newId } }
+      });
       toast.success("Super Admin ID generated and saved!");
     } catch (error) {
       console.error("Error saving ID:", error);
@@ -68,14 +47,7 @@ const SuperAdminSettings = () => {
   };
 
   const fetchNotificationSettings = async () => {
-    try {
-      const { data } = await supabase.functions.invoke("super-admin", {
-        body: { action: "get_super_admin_ids" }
-      });
-      // Just for display purposes
-    } catch (error) {
-      console.error("Error fetching notification settings:", error);
-    }
+    // Just for display
   };
 
   const saveNotificationSettings = async () => {
@@ -86,35 +58,9 @@ const SuperAdminSettings = () => {
 
     setIsSavingNotifications(true);
     try {
-      // Check existing settings
-      const { data: existing } = await supabase
-        .from("system_settings")
-        .select("*")
-        .eq("setting_key", "super_admin_user_ids")
-        .maybeSingle();
-
-      if (!existing) {
-        // Create new
-        await supabase.from("system_settings").insert({
-          setting_key: "super_admin_user_ids",
-          setting_value: JSON.stringify([superAdminUserId])
-        });
-      } else {
-        // Update existing - add this ID if not present
-        let ids: string[] = [];
-        try {
-          ids = JSON.parse(existing.setting_value || "[]");
-        } catch { ids = []; }
-        
-        if (!ids.includes(superAdminUserId)) {
-          ids.push(superAdminUserId);
-        }
-        
-        await supabase.from("system_settings")
-          .update({ setting_value: JSON.stringify(ids) })
-          .eq("setting_key", "super_admin_user_ids");
-      }
-
+      await supabase.functions.invoke("super-admin", {
+        body: { action: "save_super_admin_id", data: { super_admin_id: superAdminUserId } }
+      });
       toast.success("Notifications enabled! You will now receive alerts.");
     } catch (error) {
       console.error("Error saving notification settings:", error);
@@ -122,6 +68,7 @@ const SuperAdminSettings = () => {
     }
     setIsSavingNotifications(false);
   };
+
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(superAdminUserId);

@@ -77,34 +77,11 @@ const SuperAdminDashboard = () => {
       }
       setSuperAdminUserId(storedUserId);
       
-      // Ensure the ID is saved to the database
+      // Save to database via edge function
       try {
-        const { data: existing } = await supabase
-          .from("system_settings")
-          .select("setting_value")
-          .eq("setting_key", "super_admin_user_ids")
-          .maybeSingle();
-        
-        if (!existing) {
-          // Create new setting
-          await supabase.from("system_settings").insert({
-            setting_key: "super_admin_user_ids",
-            setting_value: JSON.stringify([storedUserId])
-          });
-        } else {
-          // Update existing to include this ID if not present
-          let ids: string[] = [];
-          try {
-            ids = JSON.parse(existing.setting_value || "[]");
-          } catch { ids = []; }
-          
-          if (!ids.includes(storedUserId)) {
-            ids.push(storedUserId);
-            await supabase.from("system_settings")
-              .update({ setting_value: JSON.stringify(ids) })
-              .eq("setting_key", "super_admin_user_ids");
-          }
-        }
+        await supabase.functions.invoke("super-admin", {
+          body: { action: "save_super_admin_id", data: { super_admin_id: storedUserId } }
+        });
       } catch (error) {
         console.error("Error saving super admin ID:", error);
       }

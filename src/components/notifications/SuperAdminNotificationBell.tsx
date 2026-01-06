@@ -27,7 +27,7 @@ interface SuperAdminNotificationBellProps {
   superAdminUserId: string;
 }
 
-// Sound URLs (using Web Audio API for reliability)
+// Sound using Web Audio API
 const playNotificationSound = (type: "normal" | "urgent") => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -38,7 +38,6 @@ const playNotificationSound = (type: "normal" | "urgent") => {
     gainNode.connect(audioContext.destination);
     
     if (type === "urgent") {
-      // Urgent: Double beep, higher pitch
       oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
       oscillator.frequency.setValueAtTime(0, audioContext.currentTime + 0.1);
       oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.15);
@@ -47,7 +46,6 @@ const playNotificationSound = (type: "normal" | "urgent") => {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } else {
-      // Normal: Single pleasant beep
       oscillator.frequency.setValueAtTime(587.33, audioContext.currentTime);
       gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
@@ -71,92 +69,99 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
     
     fetchNotifications();
 
-    // Real-time subscription
-    const channel = supabase
-      .channel('superadmin-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${superAdminUserId}`,
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          setNotifications((prev) => [newNotification, ...prev]);
-          setUnreadCount((prev) => prev + 1);
-          
-          // Play sound for new notification
-          if (soundEnabled) {
-            const isUrgent = newNotification.type === "high_priority" || 
-                            newNotification.category === "duplicate_attempt";
-            playNotificationSound(isUrgent ? "urgent" : "normal");
-          }
-        }
-      )
-      .subscribe();
+    // Poll for new notifications every 10 seconds
+    const interval = setInterval(fetchNotifications, 10000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [superAdminUserId, soundEnabled]);
+  }, [superAdminUserId]);
 
   const fetchNotifications = async () => {
     if (!superAdminUserId) return;
     
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", superAdminUserId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    try {
+      const { data, error } = await supabase.functions.invoke("super-admin", {
+        body: { 
+          action: "get_super_admin_notifications", 
+          data: { super_admin_id: superAdminUserId } 
+        }
+      });
 
-    if (!error && data) {
-      setNotifications(data as Notification[]);
-      const newUnreadCount = data.filter((n: any) => !n.is_read).length;
-      
-      // Play sound if there are new unread notifications since last check
-      if (soundEnabled && newUnreadCount > previousCountRef.current && previousCountRef.current > 0) {
-        playNotificationSound("normal");
+      if (!error && data?.notifications) {
+        const notifs = data.notifications as Notification[];
+        setNotifications(notifs);
+        const newUnreadCount = notifs.filter((n) => !n.is_read).length;
+        
+        // Play sound if there are new unread notifications
+        if (soundEnabled && newUnreadCount > previousCountRef.current && previousCountRef.current >= 0) {
+          const latestNotif = notifs[0];
+          if (latestNotif && !latestNotif.is_read) {
+            const isUrgent = latestNotif.type === "high_priority" || latestNotif.category === "duplicate_attempt";
+            playNotificationSound(isUrgent ? "urgent" : "normal");
+          }
+        }
+        previousCountRef.current = newUnreadCount;
+        setUnreadCount(newUnreadCount);
       }
-      previousCountRef.current = newUnreadCount;
-      setUnreadCount(newUnreadCount);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
     }
   };
 
   const markAsRead = async (notificationId: string) => {
-    await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("id", notificationId);
-    
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
+    try {
+      await supabase.functions.invoke("super-admin", {
+        body: { 
+          action: "mark_notification_read", 
+          data: { notification_id: notificationId } 
+        }
+      });
+      
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking as read:", error);
+    }
   };
 
   const markAllAsRead = async () => {
     if (!superAdminUserId) return;
     
-    await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", superAdminUserId)
-      .eq("is_read", false);
-    
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    try {
+      await supabase.functions.invoke("super-admin", {
+        body: { 
+          action: "mark_all_notifications_read", 
+          data: { super_admin_id: superAdminUserId } 
+        }
+      });
+      
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all as read:", error);
+    }
   };
 
   const deleteNotification = async (notificationId: string) => {
-    await supabase
-      .from("notifications")
-      .delete()
-      .eq("id", notificationId);
-    
-    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    try {
+      await supabase.functions.invoke("super-admin", {
+        body: { 
+          action: "delete_notification", 
+          data: { notification_id: notificationId } 
+        }
+      });
+      
+      const wasUnread = notifications.find(n => n.id === notificationId)?.is_read === false;
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      if (wasUnread) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
   };
 
   const getIcon = (type: string, category: string) => {
@@ -248,6 +253,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
                 <Bell className="h-6 w-6 text-slate-400" />
               </div>
               <p className="text-sm text-slate-500">No notifications yet</p>
+              <p className="text-xs text-slate-400 mt-1">New admin registrations will appear here</p>
             </div>
           ) : (
             <div className="divide-y">
