@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_presence: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          last_seen: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          last_seen?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           app_name: string | null
@@ -1068,6 +1095,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_admin_offline: { Args: never; Returns: undefined }
       get_owner_id: { Args: { user_id: string }; Returns: string }
       get_user_role: {
         Args: { user_id: string }

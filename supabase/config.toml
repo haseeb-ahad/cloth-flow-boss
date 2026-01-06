@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.super-admin]
 verify_jwt = false
+
+[functions.admin-presence]
+verify_jwt = false
