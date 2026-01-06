@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search } from "lucide-react";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 
 interface CustomerSuggestion {
   name: string;
@@ -138,44 +139,9 @@ const CreditManagement = () => {
   }, []);
 
   const fetchCustomerSuggestions = async () => {
-    try {
-      // Fetch from sales
-      const { data: salesData } = await supabase
-        .from("sales")
-        .select("customer_name, customer_phone")
-        .not("customer_name", "is", null);
-
-      // Fetch from credits
-      const { data: creditsData } = await supabase
-        .from("credits")
-        .select("customer_name, customer_phone");
-
-      // Fetch from payment_ledger
-      const { data: ledgerData } = await supabase
-        .from("payment_ledger")
-        .select("customer_name, customer_phone");
-
-      // Combine and deduplicate by name
-      const allCustomers: CustomerSuggestion[] = [];
-      const customerMap = new Map<string, string | null>();
-
-      [...(salesData || []), ...(creditsData || []), ...(ledgerData || [])].forEach(item => {
-        const name = item.customer_name?.trim();
-        if (name && !customerMap.has(name.toLowerCase())) {
-          customerMap.set(name.toLowerCase(), item.customer_phone);
-          allCustomers.push({ name, phone: item.customer_phone });
-        } else if (name && item.customer_phone && !customerMap.get(name.toLowerCase())) {
-          // Update phone if we have one now
-          customerMap.set(name.toLowerCase(), item.customer_phone);
-          const existing = allCustomers.find(c => c.name.toLowerCase() === name.toLowerCase());
-          if (existing) existing.phone = item.customer_phone;
-        }
-      });
-
-      setCustomerSuggestions(allCustomers);
-    } catch (error) {
-      console.error("Error fetching customer suggestions:", error);
-    }
+    // Fetch from centralized customers table
+    const customers = await fetchCustomersFromTable();
+    setCustomerSuggestions(customers.map(c => ({ name: c.name, phone: c.phone })));
   };
 
   const handlePartyNameChange = (value: string) => {
@@ -291,11 +257,33 @@ const CreditManagement = () => {
       return;
     }
 
+    if (!formData.party_name.trim()) {
+      toast.error("Customer name is required");
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // Normalize and register customer
+      const cleanedName = cleanCustomerName(formData.party_name);
+      let finalCustomerName = cleanedName;
+      let finalCustomerPhone = formData.party_phone || null;
+
+      if (ownerId) {
+        const customerResult = await getOrCreateCustomer(cleanedName, finalCustomerPhone, ownerId);
+        if (customerResult.success && customerResult.customer) {
+          finalCustomerName = customerResult.customer.customer_name;
+          finalCustomerPhone = customerResult.customer.customer_phone;
+        } else if (!customerResult.success && customerResult.error) {
+          toast.error(customerResult.error);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from("credits").insert({
-        customer_name: formData.party_name,
-        customer_phone: formData.party_phone || null,
+        customer_name: finalCustomerName,
+        customer_phone: finalCustomerPhone,
         credit_type: formData.credit_type,
         amount: amount,
         paid_amount: 0,
@@ -313,6 +301,7 @@ const CreditManagement = () => {
       setIsAddDialogOpen(false);
       resetForm();
       fetchCredits();
+      fetchCustomerSuggestions(); // Refresh customer list
     } catch (error) {
       console.error("Error adding credit:", error);
       toast.error("Failed to add credit entry");
@@ -334,16 +323,34 @@ const CreditManagement = () => {
       return;
     }
 
+    if (!formData.party_name.trim()) {
+      toast.error("Customer name is required");
+      return;
+    }
+
     const newRemaining = amount - selectedCredit.paid_amount;
     const newStatus = newRemaining <= 0 ? "paid" : (selectedCredit.paid_amount > 0 ? "partial" : "pending");
 
     setIsLoading(true);
     try {
+      // Normalize and register customer
+      const cleanedName = cleanCustomerName(formData.party_name);
+      let finalCustomerName = cleanedName;
+      let finalCustomerPhone = formData.party_phone || null;
+
+      if (ownerId) {
+        const customerResult = await getOrCreateCustomer(cleanedName, finalCustomerPhone, ownerId);
+        if (customerResult.success && customerResult.customer) {
+          finalCustomerName = customerResult.customer.customer_name;
+          finalCustomerPhone = customerResult.customer.customer_phone;
+        }
+      }
+
       const { error } = await supabase
         .from("credits")
         .update({
-          customer_name: formData.party_name,
-          customer_phone: formData.party_phone || null,
+          customer_name: finalCustomerName,
+          customer_phone: finalCustomerPhone,
           credit_type: formData.credit_type,
           amount: amount,
           remaining_amount: Math.max(0, newRemaining),
@@ -361,6 +368,7 @@ const CreditManagement = () => {
       setSelectedCredit(null);
       resetForm();
       fetchCredits();
+      fetchCustomerSuggestions(); // Refresh customer list
     } catch (error) {
       console.error("Error updating credit:", error);
       toast.error("Failed to update credit");

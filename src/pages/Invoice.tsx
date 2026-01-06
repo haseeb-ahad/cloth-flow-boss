@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,22 +173,8 @@ const Invoice = () => {
   }, [editSaleId]);
 
   const fetchCustomerNames = async () => {
-    const { data: salesData } = await supabase.from("sales").select("customer_name, customer_phone").not("customer_name", "is", null);
-    const { data: creditsData } = await supabase.from("credits").select("customer_name, customer_phone");
-    
-    const customerMap = new Map<string, string | null>();
-    salesData?.forEach(s => {
-      if (s.customer_name && !customerMap.has(s.customer_name)) {
-        customerMap.set(s.customer_name, s.customer_phone);
-      }
-    });
-    creditsData?.forEach(c => {
-      if (c.customer_name && !customerMap.has(c.customer_name)) {
-        customerMap.set(c.customer_name, c.customer_phone);
-      }
-    });
-    
-    const customers = Array.from(customerMap.entries()).map(([name, phone]) => ({ name, phone }));
+    // Fetch from centralized customers table
+    const customers = await fetchCustomersFromTable();
     setCustomerSuggestions(customers);
   };
 
@@ -928,12 +915,25 @@ const Invoice = () => {
     // Upload image if provided
     const uploadedImageUrl = await uploadImage();
 
+    // Normalize and register customer if name provided
+    let finalCustomerName = customerName ? cleanCustomerName(customerName) : null;
+    let finalCustomerPhone = customerPhone || null;
+    
+    if (finalCustomerName && ownerId) {
+      const customerResult = await getOrCreateCustomer(finalCustomerName, finalCustomerPhone, ownerId);
+      if (customerResult.success && customerResult.customer) {
+        // Use the stored customer name (may be from existing customer)
+        finalCustomerName = customerResult.customer.customer_name;
+        finalCustomerPhone = customerResult.customer.customer_phone;
+      }
+    }
+
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
         invoice_number: newInvoiceNumber,
-        customer_name: customerName || null,
-        customer_phone: customerPhone || null,
+        customer_name: finalCustomerName,
+        customer_phone: finalCustomerPhone,
         total_amount: totalAmount,
         discount: discount,
         final_amount: finalAmount,
@@ -1030,8 +1030,8 @@ const Invoice = () => {
       const creditAmount = finalAmount - paid;
       await supabase.from("credits").insert({
         sale_id: sale.id,
-        customer_name: customerName || "Walk-in Customer",
-        customer_phone: customerPhone || null,
+        customer_name: finalCustomerName || "Walk-in Customer",
+        customer_phone: finalCustomerPhone,
         amount: creditAmount,
         paid_amount: 0,
         remaining_amount: creditAmount,
