@@ -790,19 +790,19 @@ const Dashboard = () => {
         </div>
 
         {/* KPI Cards with Mini Sparklines */}
-        <div className="grid gap-1.5 md:gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '100ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Sale</CardTitle>
-              <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ShoppingCart className="h-4 w-4 text-blue-500" />
+              <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ShoppingCart className="h-5 w-5 text-blue-500" />
               </div>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
+            <CardContent>
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{getDateRangeLabel()}</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
                 <MiniSparkline data={sparklineData.sales} color="#3b82f6" />
               </div>
@@ -810,17 +810,17 @@ const Dashboard = () => {
           </Card>
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '150ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Profit</CardTitle>
-              <div className="h-8 w-8 rounded-xl bg-purple-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <TrendingUp className="h-4 w-4 text-purple-500" />
+              <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
               </div>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
+            <CardContent>
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-xl sm:text-2xl font-bold text-purple-500 tracking-tight">{formatCurrency(stats.totalProfit)}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{getDateRangeLabel()}</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-purple-500 tracking-tight">{formatCurrency(stats.totalProfit)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
                 <MiniSparkline data={sparklineData.profit} color="#8b5cf6" />
               </div>
@@ -828,17 +828,17 @@ const Dashboard = () => {
           </Card>
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '200ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Credit</CardTitle>
-              <div className="h-8 w-8 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <CreditCard className="h-4 w-4 text-indigo-500" />
+              <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CreditCard className="h-5 w-5 text-indigo-500" />
               </div>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
+            <CardContent>
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-xl sm:text-2xl font-bold text-indigo-500 tracking-tight">{formatCurrency(stats.totalCredit)}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{getDateRangeLabel()}</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-indigo-500 tracking-tight">{formatCurrency(stats.totalCredit)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
                 <MiniSparkline data={sparklineData.credit} color="#6366f1" />
               </div>
