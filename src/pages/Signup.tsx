@@ -8,8 +8,10 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
+import { Store } from "lucide-react";
 
 const signupSchema = z.object({
+  storeName: z.string().min(2, "Store name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -26,6 +28,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
+    storeName: "",
     email: "",
     phoneNumber: "",
     fullName: "",
@@ -60,6 +63,7 @@ export default function Signup() {
           data: {
             phone_number: formData.phoneNumber,
             full_name: formData.fullName,
+            store_name: formData.storeName,
             role: "admin", // Only admins can sign up through this form
           },
           emailRedirectTo: `${window.location.origin}/dashboard`,
@@ -67,6 +71,14 @@ export default function Signup() {
       });
 
       if (error) throw error;
+
+      // Save store info to database
+      if (signUpData.user) {
+        await supabase.from("store_info").upsert({
+          admin_id: signUpData.user.id,
+          store_name: formData.storeName,
+        });
+      }
 
       // Notify super admin about new registration
       if (signUpData.user) {
@@ -112,6 +124,23 @@ export default function Signup() {
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="storeName">Store Name</Label>
+            <div className="relative">
+              <Store className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="storeName"
+                type="text"
+                placeholder="Enter your store name"
+                className="pl-10"
+                value={formData.storeName}
+                onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
+                disabled={loading}
+              />
+            </div>
+            {errors.storeName && <p className="text-sm text-destructive">{errors.storeName}</p>}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <div className="relative">
