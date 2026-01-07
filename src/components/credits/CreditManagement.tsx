@@ -505,7 +505,7 @@ const CreditManagement = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 w-full overflow-x-hidden">
+    <div className="space-y-4 md:space-y-6 w-full max-w-full overflow-hidden">
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <AnimatedLogoLoader size="lg" showMessage message="Loading..." />
@@ -554,160 +554,160 @@ const CreditManagement = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "given" | "taken")}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full max-w-full">
-          <TabsList className="grid w-full sm:w-auto grid-cols-2 bg-transparent gap-2 max-w-full">
-            <TabsTrigger 
-              value="given" 
-              className="gap-2 data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=inactive]:bg-muted border data-[state=active]:border-green-300 data-[state=inactive]:border-border"
-            >
-              <ArrowDownCircle className="h-4 w-4" />
-              Credit Given
-            </TabsTrigger>
-            <TabsTrigger 
-              value="taken" 
-              className="gap-2 data-[state=active]:bg-red-100 data-[state=active]:text-red-700 data-[state=inactive]:bg-muted border data-[state=active]:border-red-300 data-[state=inactive]:border-border"
-            >
-              <ArrowUpCircle className="h-4 w-4" />
-              Credit Taken
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex items-center justify-between gap-2 w-full">
+            <TabsList className="grid grid-cols-2 bg-transparent gap-2 flex-1">
+              <TabsTrigger 
+                value="given" 
+                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=inactive]:bg-muted border data-[state=active]:border-green-300 data-[state=inactive]:border-border"
+              >
+                <ArrowDownCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Credit Given</span>
+                <span className="sm:hidden">Given</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="taken" 
+                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-red-100 data-[state=active]:text-red-700 data-[state=inactive]:bg-muted border data-[state=active]:border-red-300 data-[state=inactive]:border-border"
+              >
+                <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Credit Taken</span>
+                <span className="sm:hidden">Taken</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="flex gap-3 w-full sm:w-auto">
-            <Button 
-              onClick={fetchCredits} 
-              variant="outline" 
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            </Button>
-            {canCreate && (
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" onClick={() => setFormData({ ...formData, credit_type: activeTab })}>
-                    <Plus className="h-3.5 w-3.5 mr-1.5" />
-                    Add Credit
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Credit Entry</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAddCredit} className="space-y-4">
-                    <div className="relative" ref={suggestionRef}>
-                      <Label htmlFor="party_name">Party Name *</Label>
-                      <Input
-                        id="party_name"
-                        required
-                        placeholder={activeTab === "given" ? "Customer name" : "Supplier name"}
-                        value={formData.party_name}
-                        onChange={(e) => handlePartyNameChange(e.target.value)}
-                        onFocus={() => {
-                          if (formData.party_name.length > 0) {
-                            const searchValue = formData.party_name.toLowerCase().replace(/\s+/g, '');
-                            const filtered = customerSuggestions.filter(c => {
-                              const nameMatch = c.name.toLowerCase().replace(/\s+/g, '').includes(searchValue);
-                              const phoneMatch = c.phone?.replace(/\s+/g, '').includes(searchValue);
-                              return nameMatch || phoneMatch;
-                            });
-                            setFilteredSuggestions(filtered);
-                            setShowSuggestions(filtered.length > 0);
-                          }
-                        }}
-                        autoComplete="off"
-                      />
-                      {showSuggestions && filteredSuggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {filteredSuggestions.map((customer, index) => (
-                            <div
-                              key={index}
-                              className="px-3 py-2 hover:bg-accent cursor-pointer flex justify-between items-center"
-                              onClick={() => selectCustomer(customer)}
-                            >
-                              <span className="font-medium">{customer.name}</span>
-                              {customer.phone && (
-                                <span className="text-xs text-muted-foreground">{customer.phone}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="party_phone">Phone Number</Label>
-                      <Input
-                        id="party_phone"
-                        type="tel"
-                        placeholder="Phone number"
-                        value={formData.party_phone}
-                        onChange={(e) => setFormData({ ...formData, party_phone: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="credit_type">Credit Type *</Label>
-                      <Select
-                        value={formData.credit_type}
-                        onValueChange={(v) => setFormData({ ...formData, credit_type: v as "given" | "taken" })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="given">Credit Given (To Receive)</SelectItem>
-                          <SelectItem value="taken">Credit Taken (To Pay)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="total_amount">Total Amount *</Label>
-                      <Input
-                        id="total_amount"
-                        type="number"
-                        required
-                        min="1"
-                        value={formData.total_amount}
-                        onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="credit_date">Credit Date *</Label>
-                      <Input
-                        id="credit_date"
-                        type="date"
-                        required
-                        value={formData.credit_date}
-                        onChange={(e) => setFormData({ ...formData, credit_date: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="due_date">Due Date</Label>
-                      <Input
-                        id="due_date"
-                        type="date"
-                        value={formData.due_date}
-                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="notes">Note (Optional)</Label>
-                      <Textarea
-                        id="notes"
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        placeholder="Any additional notes..."
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      Add Credit Entry
+            <div className="flex gap-2 shrink-0">
+              <Button 
+                onClick={fetchCredits} 
+                variant="outline" 
+                size="icon"
+                className="h-9 w-9"
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+              {canCreate && (
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="icon" className="h-9 w-9" onClick={() => setFormData({ ...formData, credit_type: activeTab })}>
+                      <Plus className="h-4 w-4" />
                     </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            )}
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Credit Entry</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAddCredit} className="space-y-4">
+                      <div className="relative" ref={suggestionRef}>
+                        <Label htmlFor="party_name">Party Name *</Label>
+                        <Input
+                          id="party_name"
+                          required
+                          placeholder={activeTab === "given" ? "Customer name" : "Supplier name"}
+                          value={formData.party_name}
+                          onChange={(e) => handlePartyNameChange(e.target.value)}
+                          onFocus={() => {
+                            if (formData.party_name.length > 0) {
+                              const searchValue = formData.party_name.toLowerCase().replace(/\s+/g, '');
+                              const filtered = customerSuggestions.filter(c => {
+                                const nameMatch = c.name.toLowerCase().replace(/\s+/g, '').includes(searchValue);
+                                const phoneMatch = c.phone?.replace(/\s+/g, '').includes(searchValue);
+                                return nameMatch || phoneMatch;
+                              });
+                              setFilteredSuggestions(filtered);
+                              setShowSuggestions(filtered.length > 0);
+                            }
+                          }}
+                          autoComplete="off"
+                        />
+                        {showSuggestions && filteredSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                            {filteredSuggestions.map((customer, index) => (
+                              <div
+                                key={index}
+                                className="px-3 py-2 hover:bg-accent cursor-pointer flex justify-between items-center"
+                                onClick={() => selectCustomer(customer)}
+                              >
+                                <span className="font-medium">{customer.name}</span>
+                                {customer.phone && (
+                                  <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="party_phone">Phone Number</Label>
+                        <Input
+                          id="party_phone"
+                          type="tel"
+                          placeholder="Phone number"
+                          value={formData.party_phone}
+                          onChange={(e) => setFormData({ ...formData, party_phone: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="credit_type">Credit Type *</Label>
+                        <Select
+                          value={formData.credit_type}
+                          onValueChange={(v) => setFormData({ ...formData, credit_type: v as "given" | "taken" })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="given">Credit Given (To Receive)</SelectItem>
+                            <SelectItem value="taken">Credit Taken (To Pay)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="total_amount">Total Amount *</Label>
+                        <Input
+                          id="total_amount"
+                          type="number"
+                          required
+                          min="1"
+                          value={formData.total_amount}
+                          onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="credit_date">Credit Date *</Label>
+                        <Input
+                          id="credit_date"
+                          type="date"
+                          required
+                          value={formData.credit_date}
+                          onChange={(e) => setFormData({ ...formData, credit_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="due_date">Due Date</Label>
+                        <Input
+                          id="due_date"
+                          type="date"
+                          value={formData.due_date}
+                          onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="notes">Note (Optional)</Label>
+                        <Textarea
+                          id="notes"
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="Any additional notes..."
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        Add Credit Entry
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
-        </div>
-
         {/* Search */}
         <Card className="p-4 mt-4 w-full max-w-full">
           <div className="relative w-full max-w-sm">
@@ -983,80 +983,145 @@ const CreditList = ({
   }
 
   return (
-    <Card className="w-full max-w-full overflow-x-auto">
-      <Table className="w-full">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Party Name</TableHead>
-            <TableHead className="text-right">Total Amount</TableHead>
-            <TableHead className="text-right">Paid Amount</TableHead>
-            <TableHead className="text-right">Remaining</TableHead>
-            <TableHead>Credit Date</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-center">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {credits.map((credit) => (
-            <TableRow key={credit.id}>
-              <TableCell className="font-medium">
-                {credit.party_name}
+    <>
+      {/* Mobile/Tablet Card View */}
+      <div className="lg:hidden space-y-3">
+        {credits.map((credit) => (
+          <Card key={credit.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-sm truncate">{credit.party_name}</p>
                 {credit.notes && (
-                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">{credit.notes}</p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{credit.notes}</p>
                 )}
-              </TableCell>
-              <TableCell className="text-right">Rs. {credit.total_amount.toLocaleString()}</TableCell>
-              <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
-              <TableCell className="text-right font-semibold text-warning">
-                Rs. {credit.remaining_amount.toLocaleString()}
-              </TableCell>
-              <TableCell>
-                {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
-              </TableCell>
-              <TableCell>
-                {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
-              </TableCell>
-              <TableCell>{getStatusBadge(credit.status)}</TableCell>
-              <TableCell>
-                <div className="flex items-center justify-center gap-1">
-                  {credit.remaining_amount > 0 && canEdit && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onPayment(credit)}
-                      className="gap-1"
-                    >
-                      <DollarSign className="h-3.5 w-3.5" />
-                      {type === "given" ? "Receive" : "Pay"}
-                    </Button>
-                  )}
-                  {canEdit && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => onEdit(credit)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => onDelete(credit.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </TableCell>
+              </div>
+              {getStatusBadge(credit.status)}
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+              <div className="bg-muted/50 rounded-lg p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+                <p className="text-xs font-semibold">Rs. {credit.total_amount.toLocaleString()}</p>
+              </div>
+              <div className="bg-success/10 rounded-lg p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Paid</p>
+                <p className="text-xs font-semibold text-success">Rs. {credit.paid_amount.toLocaleString()}</p>
+              </div>
+              <div className="bg-warning/10 rounded-lg p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Due</p>
+                <p className="text-xs font-bold text-warning">Rs. {credit.remaining_amount.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t">
+              <div className="text-xs text-muted-foreground">
+                <span>{credit.created_at ? formatDate(credit.created_at.split('T')[0]) : '-'}</span>
+                {credit.due_date && <span className="ml-2">Due: {formatDate(credit.due_date)}</span>}
+              </div>
+              <div className="flex items-center gap-1">
+                {credit.remaining_amount > 0 && canEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onPayment(credit)}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    <DollarSign className="h-3 w-3" />
+                    {type === "given" ? "Receive" : "Pay"}
+                  </Button>
+                )}
+                {canEdit && (
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(credit)}>
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(credit.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <Card className="hidden lg:block w-full overflow-x-auto">
+        <Table className="w-full">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Party Name</TableHead>
+              <TableHead className="text-right">Total Amount</TableHead>
+              <TableHead className="text-right">Paid Amount</TableHead>
+              <TableHead className="text-right">Remaining</TableHead>
+              <TableHead>Credit Date</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {credits.map((credit) => (
+              <TableRow key={credit.id}>
+                <TableCell className="font-medium">
+                  {credit.party_name}
+                  {credit.notes && (
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{credit.notes}</p>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">Rs. {credit.total_amount.toLocaleString()}</TableCell>
+                <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
+                <TableCell className="text-right font-semibold text-warning">
+                  Rs. {credit.remaining_amount.toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
+                </TableCell>
+                <TableCell>
+                  {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
+                </TableCell>
+                <TableCell>{getStatusBadge(credit.status)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-center gap-1">
+                    {credit.remaining_amount > 0 && canEdit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onPayment(credit)}
+                        className="gap-1"
+                      >
+                        <DollarSign className="h-3.5 w-3.5" />
+                        {type === "given" ? "Receive" : "Pay"}
+                      </Button>
+                    )}
+                    {canEdit && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onEdit(credit)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => onDelete(credit.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </>
   );
 };
 
