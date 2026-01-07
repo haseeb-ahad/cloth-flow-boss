@@ -313,21 +313,21 @@ export default function Workers() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 w-full overflow-x-hidden">
       {loading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <AnimatedLogoLoader size="lg" showMessage message="Loading workers..." />
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
-          <Users className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Manage Workers</h1>
+          <Users className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Manage Workers</h1>
         </div>
         <Dialog open={addWorkerOpen} onOpenChange={setAddWorkerOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button size="sm">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Add Worker
             </Button>
           </DialogTrigger>

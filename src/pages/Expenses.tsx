@@ -593,15 +593,15 @@ export default function Expenses() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 w-full overflow-x-hidden">
       {(expensesLoading || profitLoading || expensesTotalLoading) && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <AnimatedLogoLoader size="lg" showMessage message="Loading expenses..." />
         </div>
       )}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-3xl font-bold">Expenses</h1>
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold">Expenses</h1>
+          <div className="flex gap-3 flex-wrap">
             <input
               type="file"
               ref={fileInputRef}
@@ -613,29 +613,31 @@ export default function Expenses() {
               <Button 
                 onClick={() => fileInputRef.current?.click()} 
                 variant="outline"
+                size="sm"
                 disabled={expensesLoading || isImporting}
               >
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="h-3.5 w-3.5 mr-1.5" />
                 {isImporting ? "Importing..." : "Import CSV"}
               </Button>
             )}
             <Button 
               onClick={handleExportCSV} 
               variant="outline"
+              size="sm"
               disabled={expensesLoading || expenses.length === 0}
             >
               {expensesLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
               ) : (
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-3.5 w-3.5 mr-1.5" />
               )}
               Export CSV
             </Button>
             {hasPermission("expenses", "create") && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button size="sm">
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
                   Add Expense
                 </Button>
               </DialogTrigger>
