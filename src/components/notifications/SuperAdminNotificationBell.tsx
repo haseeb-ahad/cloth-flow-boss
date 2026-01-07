@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Bell, Check, X, AlertTriangle, CheckCircle2, Info, User, CreditCard, Shield, Volume2, VolumeX, MonitorSmartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-
+import { useAppBadge } from "@/hooks/useAppBadge";
 interface Notification {
   id: string;
   title: string;
@@ -164,6 +164,9 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
   const previousCountRef = useRef(0);
   const soundEnabledRef = useRef(soundEnabled);
   const desktopEnabledRef = useRef(desktopEnabled);
+  
+  // App badge hook for WhatsApp-style notification dot
+  const { setAppBadge, clearAppBadge } = useAppBadge();
 
   // Keep refs in sync with state and persist to localStorage
   useEffect(() => {
@@ -264,6 +267,13 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
         }
         previousCountRef.current = newUnreadCount;
         setUnreadCount(newUnreadCount);
+        
+        // Update app badge (WhatsApp-style notification dot)
+        if (newUnreadCount > 0) {
+          setAppBadge(newUnreadCount);
+        } else {
+          clearAppBadge();
+        }
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -282,7 +292,15 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      const newCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newCount);
+      
+      // Update app badge
+      if (newCount > 0) {
+        setAppBadge(newCount);
+      } else {
+        clearAppBadge();
+      }
     } catch (error) {
       console.error("Error marking as read:", error);
     }
@@ -301,6 +319,9 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
       
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
+      
+      // Clear app badge
+      clearAppBadge();
     } catch (error) {
       console.error("Error marking all as read:", error);
     }
