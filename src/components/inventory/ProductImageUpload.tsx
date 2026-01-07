@@ -95,7 +95,7 @@ const ProductImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute top-2 right-2 h-6 w-6"
+            className="absolute top-1 right-1 h-5 w-5 rounded-full"
             onClick={handleRemoveImage}
           >
             <X className="h-3 w-3" />
