@@ -269,27 +269,27 @@ const SuperAdminAdmins = () => {
     
     return (
       <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm space-y-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
-                {(admin.full_name || admin.email).charAt(0).toUpperCase()}
-              </div>
-              <span 
-                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                  adminIsOnline ? 'bg-green-500' : 'bg-gray-400'
-                }`}
-              />
+        <div className="flex items-start gap-3">
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+              {(admin.full_name || admin.email).charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <p className="font-medium text-slate-900 truncate">{admin.full_name || "Unnamed"}</p>
-              <p className="text-xs text-slate-500 truncate">{admin.email}</p>
-            </div>
+            <span 
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                adminIsOnline ? 'bg-green-500' : 'bg-gray-400'
+              }`}
+            />
           </div>
-          <AdminStatusIndicator 
-            status={adminIsOnline ? 'online' : 'offline'} 
-            lastSeen={presence?.last_seen}
-          />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-slate-900 truncate">{admin.full_name || "Unnamed"}</p>
+            <p className="text-xs text-slate-500 truncate">{admin.email}</p>
+          </div>
+          <div className="shrink-0">
+            <AdminStatusIndicator 
+              status={adminIsOnline ? 'online' : 'offline'} 
+              lastSeen={presence?.last_seen}
+            />
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-2 text-sm">
