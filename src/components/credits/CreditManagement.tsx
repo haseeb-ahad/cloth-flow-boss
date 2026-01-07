@@ -548,8 +548,8 @@ const CreditManagement = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "given" | "taken")}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <TabsList className="grid w-full sm:w-auto grid-cols-2 bg-transparent gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full max-w-full">
+          <TabsList className="grid w-full sm:w-auto grid-cols-2 bg-transparent gap-2 max-w-full">
             <TabsTrigger 
               value="given" 
               className="gap-2 data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=inactive]:bg-muted border data-[state=active]:border-green-300 data-[state=inactive]:border-border"
@@ -703,14 +703,14 @@ const CreditManagement = () => {
         </div>
 
         {/* Search */}
-        <Card className="p-4 mt-4">
-          <div className="relative max-w-sm">
+        <Card className="p-4 mt-4 w-full max-w-full">
+          <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by party name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
+              className="pl-9 w-full"
             />
           </div>
         </Card>
@@ -977,8 +977,8 @@ const CreditList = ({
   }
 
   return (
-    <Card className="overflow-hidden">
-      <Table>
+    <Card className="w-full max-w-full overflow-x-auto">
+      <Table className="w-full">
         <TableHeader>
           <TableRow>
             <TableHead>Party Name</TableHead>
