@@ -536,36 +536,36 @@ export default function Workers() {
               {FEATURES.map((feature) => (
                 <Card key={feature} className="p-3 space-y-2">
                   <p className="font-medium text-sm text-foreground">{FEATURE_LABELS[feature] || feature}</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    <div className="flex items-center gap-3">
                       <Switch
                         checked={permissions[feature]?.can_view || false}
                         onCheckedChange={() => togglePermission(feature, "can_view")}
-                        className="scale-75"
+                        className="shrink-0"
                       />
                       <span className="text-xs text-muted-foreground">View</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Switch
                         checked={permissions[feature]?.can_create || false}
                         onCheckedChange={() => togglePermission(feature, "can_create")}
-                        className="scale-75"
+                        className="shrink-0"
                       />
                       <span className="text-xs text-muted-foreground">Create</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Switch
                         checked={permissions[feature]?.can_edit || false}
                         onCheckedChange={() => togglePermission(feature, "can_edit")}
-                        className="scale-75"
+                        className="shrink-0"
                       />
                       <span className="text-xs text-muted-foreground">Edit</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Switch
                         checked={permissions[feature]?.can_delete || false}
                         onCheckedChange={() => togglePermission(feature, "can_delete")}
-                        className="scale-75"
+                        className="shrink-0"
                       />
                       <span className="text-xs text-muted-foreground">Delete</span>
                     </div>
