@@ -27,10 +27,55 @@ interface SuperAdminNotificationBellProps {
   superAdminUserId: string;
 }
 
-// Sound using Web Audio API
-const playNotificationSound = (type: "normal" | "urgent") => {
+// Global audio context for mobile compatibility
+let globalAudioContext: AudioContext | null = null;
+let audioUnlocked = false;
+
+const getAudioContext = () => {
+  if (!globalAudioContext) {
+    globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  return globalAudioContext;
+};
+
+// Unlock audio for mobile - must be called on user interaction
+const unlockAudio = async () => {
+  if (audioUnlocked) return true;
+  
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = getAudioContext();
+    
+    // Resume if suspended (required for mobile)
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+    
+    // Play a silent sound to unlock
+    const buffer = audioContext.createBuffer(1, 1, 22050);
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+    
+    audioUnlocked = true;
+    localStorage.setItem('audio_unlocked', 'true');
+    return true;
+  } catch (error) {
+    console.log("Failed to unlock audio:", error);
+    return false;
+  }
+};
+
+// Sound using Web Audio API
+const playNotificationSound = async (type: "normal" | "urgent") => {
+  try {
+    const audioContext = getAudioContext();
+    
+    // Try to resume if suspended
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+    
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -90,30 +135,48 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [desktopEnabled, setDesktopEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('superadmin_sound_enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [desktopEnabled, setDesktopEnabled] = useState(() => {
+    const saved = localStorage.getItem('superadmin_desktop_enabled');
+    return saved !== null ? saved === 'true' : false;
+  });
+  const [showActivationBanner, setShowActivationBanner] = useState(false);
   const previousCountRef = useRef(0);
   const soundEnabledRef = useRef(soundEnabled);
   const desktopEnabledRef = useRef(desktopEnabled);
 
-  // Keep refs in sync with state
+  // Keep refs in sync with state and persist to localStorage
   useEffect(() => {
     soundEnabledRef.current = soundEnabled;
+    localStorage.setItem('superadmin_sound_enabled', String(soundEnabled));
   }, [soundEnabled]);
 
   useEffect(() => {
     desktopEnabledRef.current = desktopEnabled;
+    localStorage.setItem('superadmin_desktop_enabled', String(desktopEnabled));
   }, [desktopEnabled]);
 
   useEffect(() => {
     if (!superAdminUserId) return;
     
+    // Check if audio needs to be unlocked on mobile
+    const wasUnlocked = localStorage.getItem('audio_unlocked') === 'true';
+    if (!wasUnlocked && soundEnabled) {
+      setShowActivationBanner(true);
+    }
+    
     // Check and request notification permission
     if ("Notification" in window) {
-      setDesktopEnabled(Notification.permission === "granted");
-      if (Notification.permission === "default") {
+      if (Notification.permission === "granted") {
+        setDesktopEnabled(prev => prev || localStorage.getItem('superadmin_desktop_enabled') === 'true');
+      } else if (Notification.permission === "default") {
         requestNotificationPermission().then(() => {
-          setDesktopEnabled(Notification.permission === "granted");
+          if (Notification.permission === "granted") {
+            setDesktopEnabled(true);
+          }
         });
       }
     }
@@ -127,6 +190,15 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
       clearInterval(interval);
     };
   }, [superAdminUserId]);
+
+  // Handle bell click to unlock audio
+  const handleBellClick = async () => {
+    if (!audioUnlocked) {
+      await unlockAudio();
+      setShowActivationBanner(false);
+    }
+    setIsOpen(!isOpen);
+  };
 
   const toggleDesktopNotifications = async () => {
     if (!("Notification" in window)) return;
@@ -261,17 +333,38 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0 hover:bg-slate-100">
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
+    <>
+      {/* Mobile activation banner */}
+      {showActivationBanner && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white px-4 py-2 text-center text-sm md:hidden">
+          <button 
+            onClick={async () => {
+              await unlockAudio();
+              setShowActivationBanner(false);
+            }}
+            className="underline font-medium"
+          >
+            Tap here to enable notification sounds
+          </button>
+        </div>
+      )}
+      
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="relative h-9 w-9 p-0 hover:bg-slate-100"
+            onClick={handleBellClick}
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
       <PopoverContent 
         className="w-80 sm:w-96 p-0" 
         align="end"
@@ -391,6 +484,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
         </ScrollArea>
       </PopoverContent>
     </Popover>
+    </>
   );
 };
 
