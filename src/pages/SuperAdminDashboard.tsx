@@ -32,6 +32,7 @@ import SuperAdminLoaderSettings from "@/components/super-admin/SuperAdminLoaderS
 import SuperAdminSettings from "@/components/super-admin/SuperAdminSettings";
 import SuperAdminNotificationBell from "@/components/notifications/SuperAdminNotificationBell";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
+import SuperAdminBottomNav from "@/components/super-admin/SuperAdminBottomNav";
 
 interface AdminUser {
   id: string;
@@ -211,71 +212,72 @@ const SuperAdminDashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 safe-area-pb">
+      <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 md:pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6 lg:space-y-8">
-          {/* Scrollable tabs container for mobile */}
-          <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
-            <div className="flex justify-start sm:justify-center min-w-max sm:min-w-0">
-              <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm inline-flex sm:flex-wrap h-auto gap-1">
+          {/* Desktop tabs - hidden on mobile/tablet */}
+          <div className="hidden md:block overflow-x-auto scrollbar-hide">
+            <div className="flex justify-center">
+              <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm inline-flex flex-wrap h-auto gap-1">
                 <TabsTrigger
                   value="dashboard"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Dashboard</span>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
                 </TabsTrigger>
                 <TabsTrigger
                   value="admins"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Admins</span>
+                  <Users className="w-4 h-4 mr-2" />
+                  Admins
                 </TabsTrigger>
                 <TabsTrigger
                   value="plans"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Plans</span>
+                  <Package className="w-4 h-4 mr-2" />
+                  Plans
                 </TabsTrigger>
                 <TabsTrigger
                   value="payments"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Payments</span>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Payments
                 </TabsTrigger>
                 <TabsTrigger
                   value="payment-requests"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <FileCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Bank Transfers</span>
+                  <FileCheck className="w-4 h-4 mr-2" />
+                  Bank Transfers
                 </TabsTrigger>
                 <TabsTrigger
                   value="bank-settings"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Bank Settings</span>
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Bank Settings
                 </TabsTrigger>
                 <TabsTrigger
                   value="loader-settings"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <Type className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Loader Logo</span>
+                  <Type className="w-4 h-4 mr-2" />
+                  Loader Logo
                 </TabsTrigger>
                 <TabsTrigger
                   value="settings"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-2 sm:px-4 text-xs sm:text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
-                  <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Settings</span>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
                 </TabsTrigger>
               </TabsList>
             </div>
           </div>
+
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6 lg:space-y-8">
@@ -435,6 +437,9 @@ const SuperAdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Mobile/Tablet Bottom Navigation */}
+      <SuperAdminBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
