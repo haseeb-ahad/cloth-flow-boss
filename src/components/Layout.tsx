@@ -289,7 +289,7 @@ const Layout = ({ children }: LayoutProps) => {
         </aside>
 
         {/* Mobile/Tablet Header - Simplified for app-like feel */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-center px-4 lg:hidden safe-area-pt">
+        <div className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-between px-4 lg:hidden safe-area-pt">
           <div className="flex items-center gap-2">
             {appSettings.logo_url ? (
               <img 
@@ -302,9 +302,20 @@ const Layout = ({ children }: LayoutProps) => {
                 <Store className="h-4 w-4 text-primary-foreground" />
               </div>
             )}
-            <span className="text-sm font-semibold text-foreground truncate max-w-[150px]">
+            <span className="text-sm font-semibold text-foreground truncate max-w-[120px]">
               {appSettings.app_name || "Business Manager"}
             </span>
+          </div>
+          
+          {/* Theme Toggle for Mobile */}
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 border border-border/50">
+            <Sun className="h-3.5 w-3.5 text-muted-foreground" />
+            <Switch
+              checked={theme === "dark"}
+              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              className="scale-75"
+            />
+            <Moon className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
         </div>
 
