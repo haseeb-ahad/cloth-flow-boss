@@ -513,33 +513,33 @@ const CreditManagement = () => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4 bg-success/10 border-success/30">
+      <div className="grid grid-cols-1 gap-3 w-full">
+        <Card className="p-3 md:p-4 bg-success/10 border-success/30 w-full">
           <div className="flex items-center gap-3">
-            <ArrowDownCircle className="h-8 w-8 text-success" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Credit Given</p>
-              <p className="text-2xl font-bold text-success">Rs. {totalCreditGiven.toLocaleString()}</p>
+            <ArrowDownCircle className="h-6 w-6 md:h-8 md:w-8 text-success flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Credit Given</p>
+              <p className="text-xl md:text-2xl font-bold text-success">Rs. {totalCreditGiven.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Money to receive</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-destructive/10 border-destructive/30">
+        <Card className="p-3 md:p-4 bg-destructive/10 border-destructive/30 w-full">
           <div className="flex items-center gap-3">
-            <ArrowUpCircle className="h-8 w-8 text-destructive" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Credit Taken</p>
-              <p className="text-2xl font-bold text-destructive">Rs. {totalCreditTaken.toLocaleString()}</p>
+            <ArrowUpCircle className="h-6 w-6 md:h-8 md:w-8 text-destructive flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Credit Taken</p>
+              <p className="text-xl md:text-2xl font-bold text-destructive">Rs. {totalCreditTaken.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Money to pay</p>
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-warning/10 border-warning/30">
+        <Card className="p-3 md:p-4 bg-warning/10 border-warning/30 w-full">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="h-8 w-8 text-warning" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Overdue</p>
-              <p className="text-2xl font-bold text-warning">Rs. {totalOverdue.toLocaleString()}</p>
+            <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-warning flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Overdue</p>
+              <p className="text-xl md:text-2xl font-bold text-warning">Rs. {totalOverdue.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Past due date</p>
             </div>
           </div>
@@ -566,20 +566,21 @@ const CreditManagement = () => {
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-3 w-full sm:w-auto">
             <Button 
               onClick={fetchCredits} 
               variant="outline" 
-              size="icon"
+              size="sm"
+              className="h-8 w-8 p-0"
               disabled={isLoading}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
             {canCreate && (
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setFormData({ ...formData, credit_type: activeTab })}>
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button size="sm" onClick={() => setFormData({ ...formData, credit_type: activeTab })}>
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
                     Add Credit
                   </Button>
                 </DialogTrigger>
