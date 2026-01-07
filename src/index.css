@@ -186,7 +186,7 @@
     button, 
     [role="button"],
     a {
-      min-height: 44px;
+      min-height: 22px;
       min-width: 44px;
     }
     
