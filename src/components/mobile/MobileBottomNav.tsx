@@ -45,16 +45,6 @@ const MobileBottomNav = () => {
       { path: "/settings", icon: Settings, label: "Settings", feature: null, adminOnly: false },
     ];
 
-    // If userRole is not loaded yet, show default items for better UX
-    if (!userRole) {
-      return [
-        { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", feature: null, adminOnly: true },
-        { path: "/invoice", icon: ShoppingCart, label: "Invoice", feature: "invoice", adminOnly: false },
-        { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
-        { path: "/settings", icon: Settings, label: "Settings", feature: null, adminOnly: false },
-      ];
-    }
-
     return items.filter(item => {
       if (userRole === "worker" && item.adminOnly) return false;
       if (item.feature) {
