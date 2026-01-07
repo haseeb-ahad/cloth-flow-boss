@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ const Invoice = () => {
   const [searchParams] = useSearchParams();
   const { ownerId, hasPermission, userRole } = useAuth();
   const { timezone, formatDateInput } = useTimezone();
+  const { t } = useLanguage();
   const editSaleId = searchParams.get("edit");
   
   // Permission checks
@@ -1403,27 +1405,27 @@ const Invoice = () => {
           )}
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              {editSaleId ? "Edit sale" : "Create invoice"}
+              {editSaleId ? t("editSale") : t("createInvoice")}
             </h1>
             <p className="text-muted-foreground">
-              {editSaleId ? "Modify sale details and products" : "Generate a new sale receipt"}
+              {editSaleId ? t("modifySale") : t("generateReceipt")}
             </p>
           </div>
         </div>
-        <InvoiceQRScanner buttonText="Scan Invoice" buttonVariant="outline" />
+        <InvoiceQRScanner buttonText={t("scanInvoice")} buttonVariant="outline" />
       </div>
 
       <Card className="p-6">
         <div className="grid gap-4 md:grid-cols-2 mb-6">
           <div className="relative">
-            <Label htmlFor="customerName">Customer name (Optional)</Label>
+            <Label htmlFor="customerName">{t("customerNameOptional")}</Label>
             <Input
               id="customerName"
               value={customerName}
               onChange={(e) => handleCustomerNameChange(e.target.value)}
               onFocus={() => setShowCustomerSuggestions(true)}
               onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 200)}
-              placeholder="Enter customer name"
+              placeholder={t("enterCustomerName")}
             />
             {showCustomerSuggestions && getFilteredCustomers().length > 0 && (
               <Card className="absolute z-50 w-full mt-1 max-h-[200px] overflow-auto">
@@ -1447,12 +1449,12 @@ const Invoice = () => {
             )}
           </div>
           <div>
-            <Label htmlFor="customerPhone">Customer phone (Optional)</Label>
+            <Label htmlFor="customerPhone">{t("customerPhoneOptional")}</Label>
             <Input
               id="customerPhone"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="Enter phone number"
+              placeholder={t("enterPhoneNumber")}
             />
           </div>
         </div>
@@ -1460,17 +1462,17 @@ const Invoice = () => {
         {/* Description and Image Upload */}
         <div className="grid gap-4 md:grid-cols-2 mb-6">
           <div>
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description">{t("descriptionOptional")}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add notes or description for this invoice..."
+              placeholder={t("addNotesDescription")}
               rows={3}
             />
           </div>
           <div>
-            <Label>Upload image (Optional)</Label>
+            <Label>{t("uploadImageOptional")}</Label>
             <div className="flex flex-col gap-2">
               <input
                 type="file"
@@ -1505,7 +1507,7 @@ const Invoice = () => {
                 >
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Click to upload image</span>
+                    <span className="text-sm text-muted-foreground">{t("clickToUploadImage")}</span>
                   </div>
                 </Button>
               )}
@@ -1516,20 +1518,20 @@ const Invoice = () => {
         <div className="space-y-4 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold">Items</h3>
+              <h3 className="text-lg font-semibold">{t("items")}</h3>
               <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                Total: {items.length}
+                {t("total")}: {items.length}
               </span>
             </div>
             <div className="flex gap-2">
               <QRScanner 
                 onScan={handleQRScan} 
-                buttonText="Scan QR"
+                buttonText={t("scanQR")}
                 buttonVariant="default"
               />
               <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving || isLoadingItems}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Item
+                {t("addItem")}
               </Button>
             </div>
           </div>
@@ -1538,7 +1540,7 @@ const Invoice = () => {
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-3">
                 <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground">Loading items...</p>
+                <p className="text-sm text-muted-foreground">{t("loadingItems")}</p>
               </div>
             </div>
           ) : (
@@ -1561,10 +1563,10 @@ const Invoice = () => {
                     <Label className={cn("mb-2", errors?.product && "text-red-500 font-semibold")}>
                       {item.is_return ? (
                         <span className="flex items-center gap-2">
-                          Product <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">RETURN</span>
+                          {t("product")} <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">{t("return").toUpperCase()}</span>
                         </span>
                       ) : (
-                        <>Product {errors?.product && <span className="text-red-500">*</span>}</>
+                        <>{t("product")} {errors?.product && <span className="text-red-500">*</span>}</>
                       )}
                     </Label>
                     {item.is_return ? (
@@ -1630,7 +1632,7 @@ const Invoice = () => {
                   </div>
                   <div className="flex flex-col">
                     <Label className={cn("mb-2", errors?.quantity && "text-red-500 font-semibold")}>
-                      Quantity {errors?.quantity && <span className="text-red-500">*</span>}
+                      {t("quantity")} {errors?.quantity && <span className="text-red-500">*</span>}
                     </Label>
                     <Input
                       ref={(el) => { quantityInputRefs.current[index] = el; }}
@@ -1666,12 +1668,12 @@ const Invoice = () => {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <Label className="mb-2">Type</Label>
+                    <Label className="mb-2">{t("type")}</Label>
                     <Input type="text" value={item.quantity_type} disabled className="text-xs" />
                   </div>
                   <div className="flex flex-col">
                     <Label className={cn("mb-2", errors?.price && "text-red-500 font-semibold")}>
-                      Price {errors?.price && <span className="text-red-500">*</span>}
+                      {t("price")} {errors?.price && <span className="text-red-500">*</span>}
                     </Label>
                     <Input 
                       type="number" 
@@ -1704,16 +1706,16 @@ const Invoice = () => {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <Label className="mb-2">Cost</Label>
+                    <Label className="mb-2">{t("cost")}</Label>
                     <Input type="number" value={(item.purchase_price * item.quantity).toFixed(2)} disabled className="text-destructive font-medium" />
                   </div>
                   <div className="flex flex-col">
-                    <Label className="mb-2">Profit</Label>
+                    <Label className="mb-2">{t("profit")}</Label>
                     <Input type="number" value={((item.unit_price - item.purchase_price) * item.quantity).toFixed(2)} disabled className="text-success font-medium" />
                   </div>
                   <div className="flex flex-col">
-                    <Label className="mb-2">Total</Label>
-                    <Input 
+                    <Label className="mb-2">{t("total")}</Label>
+                    <Input
                       type="number" 
                       value={item.total_price || ""} 
                       onFocus={(e) => {
@@ -1734,7 +1736,7 @@ const Invoice = () => {
                   {/* Only show return button for non-return items */}
                   {!item.is_return && (
                     <div className="flex flex-col items-center">
-                      <Label className="mb-2 opacity-0">Return</Label>
+                      <Label className="mb-2 opacity-0">{t("return")}</Label>
                       <Button
                         type="button"
                         variant="outline"
@@ -1751,14 +1753,14 @@ const Invoice = () => {
                   {/* Show indicator for return items */}
                   {item.is_return && (
                     <div className="flex flex-col items-center">
-                      <Label className="mb-2 opacity-0">Return</Label>
+                      <Label className="mb-2 opacity-0">{t("return")}</Label>
                       <div className="h-9 w-9 flex items-center justify-center bg-orange-500 text-white rounded-md">
                         <RotateCcw className="h-4 w-4" />
                       </div>
                     </div>
                   )}
                   <div className="flex flex-col">
-                    <Label className="mb-2 opacity-0">Action</Label>
+                    <Label className="mb-2 opacity-0">{t("action")}</Label>
                     <Button onClick={() => removeItem(index)} variant="destructive" size="icon" disabled={isSaving}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1772,7 +1774,7 @@ const Invoice = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
           <div>
-            <Label htmlFor="invoiceDate">Invoice date</Label>
+            <Label htmlFor="invoiceDate">{t("invoiceDate")}</Label>
             <Input
               id="invoiceDate"
               type="date"
@@ -1781,22 +1783,22 @@ const Invoice = () => {
             />
           </div>
           <div>
-            <Label htmlFor="paymentMethod">Payment method</Label>
+            <Label htmlFor="paymentMethod">{t("paymentMethod")}</Label>
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="online">Online Transfer</SelectItem>
-                <SelectItem value="credit">Credit</SelectItem>
-                <SelectItem value="installment">Installment</SelectItem>
+                <SelectItem value="cash">{t("cash")}</SelectItem>
+                <SelectItem value="card">{t("card")}</SelectItem>
+                <SelectItem value="online">{t("online")}</SelectItem>
+                <SelectItem value="credit">{t("credit")}</SelectItem>
+                <SelectItem value="installment">{t("installment")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
             <div>
-              <Label htmlFor="discount">Discount</Label>
+              <Label htmlFor="discount">{t("discount")}</Label>
               <Input
                 id="discount"
                 type="number"
@@ -1806,9 +1808,9 @@ const Invoice = () => {
               />
             </div>
             <div>
-              <Label htmlFor="paidAmount">Paid amount (Optional)</Label>
+              <Label htmlFor="paidAmount">{t("paidAmount")}</Label>
               <div className="text-xs text-muted-foreground mb-1 font-medium">
-                Current total: Rs. {calculateFinalAmount().toFixed(2)}
+                {t("currentTotal")}: Rs. {calculateFinalAmount().toFixed(2)}
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox 
@@ -1824,7 +1826,7 @@ const Invoice = () => {
                   }}
                 />
                 <label htmlFor="fullPayment" className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                  Full payment
+                  {t("fullPayment")}
                   {isFullPayment && (
                     <CheckCircle className="h-4 w-4 text-green-500 animate-in fade-in zoom-in duration-300" />
                   )}
@@ -1838,22 +1840,22 @@ const Invoice = () => {
                   setPaidAmount(e.target.value);
                   setIsFullPayment(false);
                 }}
-                placeholder="Leave empty for full payment"
+                placeholder={t("leaveEmptyForFullPayment")}
                 disabled={isFullPayment}
               />
             </div>
             {editSaleId && paidAmount && parseFloat(paidAmount) < calculateFinalAmount() && (
               <div>
-                <Label htmlFor="additionalPayment">Add payment to remaining</Label>
+                <Label htmlFor="additionalPayment">{t("addPaymentToRemaining")}</Label>
                 <div className="text-xs text-warning mb-1 font-medium">
-                  Remaining balance: Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}
+                  {t("remainingBalance")}: Rs. {(calculateFinalAmount() - parseFloat(paidAmount)).toFixed(2)}
                 </div>
                 <Input
                   id="additionalPayment"
                   type="number"
                   value={additionalPayment}
                   onChange={(e) => setAdditionalPayment(e.target.value)}
-                  placeholder="Enter payment amount"
+                  placeholder={t("enterPhoneNumber")}
                 />
               </div>
             )}
@@ -1862,36 +1864,36 @@ const Invoice = () => {
           <Card className="p-4 bg-muted/50">
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Subtotal:</span>
+                <span>{t("subtotal")}:</span>
                 <span className="font-medium">Rs. {calculateSubtotal().toFixed(2)}</span>
               </div>
               {calculateReturnAmount() > 0 && (
                 <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
                   <span className="flex items-center gap-1">
                     <RotateCcw className="h-3 w-3" />
-                    Return Amount:
+                    {t("returnAmount")}:
                   </span>
                   <span className="font-medium">- Rs. {calculateReturnAmount().toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span>Net Total:</span>
+                <span>{t("netTotal")}:</span>
                 <span className="font-medium">Rs. {calculateTotal().toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Total cost:</span>
+                <span>{t("totalCost")}:</span>
                 <span className="font-medium text-destructive">Rs. {calculateTotalCost().toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Total profit:</span>
+                <span>{t("totalProfit")}:</span>
                 <span className="font-medium text-success">Rs. {calculateTotalProfit().toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-destructive">
-                <span>Discount:</span>
+                <span>{t("discount")}:</span>
                 <span className="font-medium">- Rs. {discount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-3">
-                <span>Final Total:</span>
+                <span>{t("finalTotal")}:</span>
                 <span className="text-success">Rs. {calculateFinalAmount().toFixed(2)}</span>
               </div>
               {isFullPayment && (
@@ -1940,12 +1942,12 @@ const Invoice = () => {
             {isSaving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                {editSaleId ? "Updating..." : "Saving..."}
+                {editSaleId ? t("updating") : t("saving")}
               </>
             ) : (
               <>
                 <Printer className="h-4 w-4 mr-2" />
-                {editSaleId ? "Update Sale" : "Save & Print"}
+                {editSaleId ? t("updateSale") : t("saveAndPrint")}
               </>
             )}
           </Button>
@@ -1956,13 +1958,13 @@ const Invoice = () => {
               ) : (
                 <>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {t("delete")}
                 </>
               )}
             </Button>
           ) : (
             <Button onClick={resetForm} variant="outline" disabled={isSaving}>
-              Reset
+              {t("reset")}
             </Button>
           )}
         </div>
@@ -1974,12 +1976,12 @@ const Invoice = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5 text-orange-500" />
-              Return Item
+              {t("returnItem")}
             </DialogTitle>
             <DialogDescription>
               {returnItemIndex !== null && items[returnItemIndex] && (
                 <span>
-                  Enter the quantity to return for <strong>{items[returnItemIndex].product_name}</strong>
+                  {t("enterReturnQty")} <strong>{items[returnItemIndex].product_name}</strong>
                 </span>
               )}
             </DialogDescription>
@@ -1989,19 +1991,19 @@ const Invoice = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <p className="text-xs text-muted-foreground">Sold Quantity</p>
+                  <p className="text-xs text-muted-foreground">{t("soldQuantity")}</p>
                   <p className="font-medium">{items[returnItemIndex].quantity} {items[returnItemIndex].quantity_type}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Unit Price</p>
+                  <p className="text-xs text-muted-foreground">{t("unitPrice")}</p>
                   <p className="font-medium">Rs. {items[returnItemIndex].unit_price.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Max Returnable</p>
+                  <p className="text-xs text-muted-foreground">{t("maxReturnable")}</p>
                   <p className="font-medium text-orange-600">{getMaxReturnQuantity(returnItemIndex)} {items[returnItemIndex].quantity_type}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Return Value</p>
+                  <p className="text-xs text-muted-foreground">{t("returnValue")}</p>
                   <p className="font-medium text-orange-600">
                     Rs. {(parseFloat(returnQuantity || "0") * items[returnItemIndex].unit_price).toFixed(2)}
                   </p>
@@ -2009,7 +2011,7 @@ const Invoice = () => {
               </div>
               
               <div>
-                <Label htmlFor="returnQuantity">Return Quantity</Label>
+                <Label htmlFor="returnQuantity">{t("returnQuantity")}</Label>
                 <Input
                   id="returnQuantity"
                   type="number"
@@ -2033,7 +2035,7 @@ const Invoice = () => {
           
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setReturnDialogOpen(false)}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button 
               onClick={handleReturnConfirm}
@@ -2041,7 +2043,7 @@ const Invoice = () => {
               disabled={!returnQuantity || parseFloat(returnQuantity) <= 0 || (returnItemIndex !== null && parseFloat(returnQuantity) > getMaxReturnQuantity(returnItemIndex))}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Confirm Return
+              {t("confirmReturn")}
             </Button>
           </DialogFooter>
         </DialogContent>
