@@ -10,12 +10,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
+import { useLanguage, LANGUAGES } from "@/contexts/LanguageContext";
 import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X, Receipt, Plus, Trash2, Clock } from "lucide-react";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 export default function Settings() {
   const { user, userRole, ownerId } = useAuth();
   const { timezone, setTimezone } = useTimezone();
+  const { language, setLanguage, t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -525,19 +527,24 @@ export default function Settings() {
             <h2 className="text-xl font-semibold text-foreground">Language & Timezone Settings</h2>
 
             <div className="space-y-2">
-              <Label htmlFor="language">Select Language</Label>
+              <Label htmlFor="language">{t("selectLanguage")}</Label>
               <Select
-                value={appSettings.language}
-                onValueChange={(value) => setAppSettings({ ...appSettings, language: value })}
+                value={language}
+                onValueChange={(value) => {
+                  setLanguage(value);
+                  toast.success(`Language changed to ${LANGUAGES.find(l => l.code === value)?.nativeName || value}`);
+                }}
                 disabled={loading || userRole !== "admin"}
               >
                 <SelectTrigger id="language">
-                  <SelectValue placeholder="Select language" />
+                  <SelectValue placeholder={t("selectLanguage")} />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ur">Urdu (اردو)</SelectItem>
-                  <SelectItem value="ar">Arabic (العربية)</SelectItem>
+                <SelectContent className="max-h-[300px]">
+                  {LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      {lang.name} ({lang.nativeName})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

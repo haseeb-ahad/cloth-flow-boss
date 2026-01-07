@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
@@ -52,6 +53,7 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { userRole, signOut, user, hasPermission, subscriptionStatus, ownerId } = useAuth();
   const { timezone } = useTimezone();
+  const { t, dir } = useLanguage();
   const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null, description: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -80,18 +82,18 @@ const Layout = ({ children }: LayoutProps) => {
 
   const navItems = useMemo(() => {
     const allItems = [
-      { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", feature: null, adminOnly: true },
-      { path: "/invoice", icon: ShoppingCart, label: "New Invoice", feature: "invoice", adminOnly: false },
-      { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
-      { path: "/sales", icon: FileText, label: "Sales History", feature: "sales", adminOnly: false },
-      { path: "/credits", icon: CreditCard, label: "Credits", feature: "credits", adminOnly: false },
-      { path: "/credit-management", icon: Wallet, label: "Credit Management", feature: "credits", adminOnly: false },
+      { path: "/dashboard", icon: LayoutDashboard, label: t("dashboard"), feature: null, adminOnly: true },
+      { path: "/invoice", icon: ShoppingCart, label: t("newInvoice"), feature: "invoice", adminOnly: false },
+      { path: "/inventory", icon: Package, label: t("inventory"), feature: "inventory", adminOnly: false },
+      { path: "/sales", icon: FileText, label: t("salesHistory"), feature: "sales", adminOnly: false },
+      { path: "/credits", icon: CreditCard, label: t("credits"), feature: "credits", adminOnly: false },
+      { path: "/credit-management", icon: Wallet, label: t("creditManagement"), feature: "credits", adminOnly: false },
       
-      { path: "/receive-payment", icon: Banknote, label: "Receive Payment", feature: "receive_payment", adminOnly: false },
-      { path: "/expenses", icon: Receipt, label: "Expenses", feature: "expenses", adminOnly: false },
-      { path: "/customers", icon: Users, label: "Customers", feature: "customers", adminOnly: false },
-      { path: "/workers", icon: UserCog, label: "Manage Workers", feature: null, adminOnly: true },
-      { path: "/settings", icon: Settings, label: "Settings", feature: null, adminOnly: false },
+      { path: "/receive-payment", icon: Banknote, label: t("receivePayment"), feature: "receive_payment", adminOnly: false },
+      { path: "/expenses", icon: Receipt, label: t("expenses"), feature: "expenses", adminOnly: false },
+      { path: "/customers", icon: Users, label: t("customers"), feature: "customers", adminOnly: false },
+      { path: "/workers", icon: UserCog, label: t("manageWorkers"), feature: null, adminOnly: true },
+      { path: "/settings", icon: Settings, label: t("settings"), feature: null, adminOnly: false },
     ];
 
     return allItems.filter(item => {
@@ -108,7 +110,7 @@ const Layout = ({ children }: LayoutProps) => {
       }
       return true;
     });
-  }, [userRole, hasPermission]);
+  }, [userRole, hasPermission, t]);
 
   const currentTimezone = TIMEZONES.find(tz => tz.value === timezone);
 
