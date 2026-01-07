@@ -308,19 +308,19 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
           
           {/* Theme Toggle for Mobile */}
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-muted border border-border shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border shadow-sm">
             <Sun className={cn(
               "h-4 w-4 transition-all duration-300",
-              theme === "dark" ? "text-muted-foreground opacity-50" : "text-amber-500"
+              theme === "dark" ? "text-muted-foreground" : "text-amber-500"
             )} />
             <Switch
               checked={theme === "dark"}
               onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-              className="data-[state=checked]:bg-slate-700 data-[state=unchecked]:bg-amber-400"
+              className="data-[state=checked]:bg-slate-600 data-[state=unchecked]:bg-amber-400 h-6 w-11"
             />
             <Moon className={cn(
               "h-4 w-4 transition-all duration-300",
-              theme === "dark" ? "text-blue-400" : "text-muted-foreground opacity-50"
+              theme === "dark" ? "text-slate-300" : "text-muted-foreground"
             )} />
           </div>
         </div>
