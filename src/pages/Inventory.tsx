@@ -447,9 +447,10 @@ const Inventory = () => {
             <Button 
               onClick={() => setShowBatchQR(true)} 
               variant="outline"
+              size="sm"
               className="border-primary text-primary hover:bg-primary/10"
             >
-              <Printer className="h-4 w-4 mr-2" />
+              <Printer className="h-3.5 w-3.5 mr-1.5" />
               {t("printQR")} ({selectedProducts.size})
             </Button>
           )}
@@ -457,22 +458,24 @@ const Inventory = () => {
             <Button 
               onClick={() => fileInputRef.current?.click()} 
               variant="outline"
+              size="sm"
               disabled={isLoading || isImporting}
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
               {isImporting ? t("loading") : t("importCSV")}
             </Button>
           )}
           <Button 
             onClick={() => exportInventoryToCSV(filteredProducts)} 
             variant="outline"
+            size="sm"
             disabled={isLoading || filteredProducts.length === 0}
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-3.5 w-3.5 mr-1.5" />
             {t("exportCSV")}
           </Button>
-          <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          <Button onClick={fetchProducts} variant="outline" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           {canCreate && (
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -482,8 +485,8 @@ const Inventory = () => {
               setIsDialogOpen(open);
             }}>
               <DialogTrigger asChild>
-                <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button onClick={() => setIsDialogOpen(true)} size="sm" disabled={isLoading}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
                   {t("addProduct")}
                 </Button>
               </DialogTrigger>
