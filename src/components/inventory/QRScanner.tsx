@@ -118,7 +118,7 @@ const QRScanner = ({ onScan, buttonText = "Scan QR", buttonVariant = "outline" }
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant={buttonVariant} className="gap-2">
+        <Button variant={buttonVariant} size="sm" className="gap-2">
           <ScanLine className="h-4 w-4" />
           {buttonText}
         </Button>
