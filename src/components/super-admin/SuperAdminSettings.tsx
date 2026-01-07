@@ -133,35 +133,35 @@ const SuperAdminSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Notification Settings */}
-      <Card className="border-0 shadow-sm bg-white max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="w-5 h-5 text-amber-500" />
+      <Card className="border-0 shadow-sm bg-white">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
             Notification Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Enable notifications to receive alerts about admin activities
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="superAdminId">Your Super Admin ID</Label>
+            <Label htmlFor="superAdminId" className="text-sm">Your Super Admin ID</Label>
             <div className="flex gap-2">
               <Input
                 id="superAdminId"
                 value={superAdminUserId}
                 readOnly
                 placeholder="Click 'Generate ID' to create"
-                className="font-mono text-xs bg-slate-50"
+                className="font-mono text-[10px] sm:text-xs bg-slate-50 h-9"
               />
               {superAdminUserId ? (
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={copyToClipboard}
-                  className="shrink-0"
+                  className="shrink-0 h-9 w-9"
                 >
                   {copied ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -173,14 +173,14 @@ const SuperAdminSettings = () => {
                 <Button
                   variant="outline"
                   onClick={generateSuperAdminId}
-                  className="shrink-0"
+                  className="shrink-0 h-9 text-sm"
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Generate ID
+                  <RefreshCw className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Generate ID</span>
                 </Button>
               )}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-[10px] sm:text-xs text-slate-500">
               This ID is used to send you notifications about admin registrations, payments, and alerts.
             </p>
           </div>
@@ -188,7 +188,7 @@ const SuperAdminSettings = () => {
           <Button
             onClick={saveNotificationSettings}
             disabled={isSavingNotifications || !superAdminUserId}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 h-9 sm:h-10 text-sm"
           >
             {isSavingNotifications ? (
               <>
@@ -206,17 +206,17 @@ const SuperAdminSettings = () => {
       </Card>
 
       {/* Password Change */}
-      <Card className="border-0 shadow-sm bg-white max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Lock className="w-5 h-5 text-blue-500" />
+      <Card className="border-0 shadow-sm bg-white">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
             Change Password
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Old Password */}
           <div className="space-y-2">
-            <Label htmlFor="oldPassword">Old Password</Label>
+            <Label htmlFor="oldPassword" className="text-sm">Old Password</Label>
             <div className="relative">
               <Input
                 id="oldPassword"
@@ -224,7 +224,7 @@ const SuperAdminSettings = () => {
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
                 placeholder="Enter old password"
-                className="pr-10"
+                className="pr-10 h-9 sm:h-10 text-sm"
               />
               <button
                 type="button"
@@ -242,7 +242,7 @@ const SuperAdminSettings = () => {
 
           {/* New Password */}
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword" className="text-sm">New Password</Label>
             <div className="relative">
               <Input
                 id="newPassword"
@@ -250,7 +250,7 @@ const SuperAdminSettings = () => {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="pr-10"
+                className="pr-10 h-9 sm:h-10 text-sm"
               />
               <button
                 type="button"
@@ -268,7 +268,7 @@ const SuperAdminSettings = () => {
 
           {/* Confirm New Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmPassword" className="text-sm">Confirm New Password</Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
@@ -276,7 +276,7 @@ const SuperAdminSettings = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
-                className="pr-10"
+                className="pr-10 h-9 sm:h-10 text-sm"
               />
               <button
                 type="button"
@@ -295,7 +295,7 @@ const SuperAdminSettings = () => {
           <Button
             onClick={handleChangePassword}
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 h-9 sm:h-10 text-sm"
           >
             {isLoading ? (
               "Saving..."

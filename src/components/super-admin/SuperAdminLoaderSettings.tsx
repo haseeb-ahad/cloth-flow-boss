@@ -64,39 +64,40 @@ const SuperAdminLoaderSettings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="border-0 shadow-sm bg-white">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Type className="w-5 h-5 text-blue-500" />
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <Type className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
             Loader Logo Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Customize the animated logo text that appears during loading states across the entire application.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="loader_text">Loader Text</Label>
+            <Label htmlFor="loader_text" className="text-sm">Loader Text</Label>
             <Input
               id="loader_text"
               placeholder="e.g. INVOICE, BUSINESS, SHOP"
               value={loaderText}
               onChange={(e) => setLoaderText(e.target.value.toUpperCase())}
               maxLength={20}
+              className="h-9 sm:h-10 text-sm"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               Maximum 20 characters. Text will be displayed in uppercase.
             </p>
           </div>
 
           {/* Preview Section */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Eye className="w-4 h-4" />
+            <Label className="flex items-center gap-2 text-sm">
+              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Preview
             </Label>
-            <div className="border rounded-xl p-8 bg-slate-50 flex items-center justify-center min-h-[150px]">
+            <div className="border rounded-lg sm:rounded-xl p-4 sm:p-8 bg-slate-50 flex items-center justify-center min-h-[100px] sm:min-h-[150px]">
               <AnimatedLogoLoader text={loaderText} size="lg" />
             </div>
           </div>

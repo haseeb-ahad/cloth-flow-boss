@@ -289,16 +289,16 @@ const SuperAdminPlans = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Subscription Plans</h2>
-          <p className="text-slate-500">Create and manage subscription plans</p>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900">Subscription Plans</h2>
+          <p className="text-xs sm:text-sm text-slate-500">Create and manage subscription plans</p>
         </div>
         <Button
           onClick={handleOpenCreate}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Plan
@@ -307,11 +307,11 @@ const SuperAdminPlans = () => {
 
       {/* Plans Grid */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-8 sm:py-12">
           <AnimatedLogoLoader size="md" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {plans.map((plan) => (
             <Card
               key={plan.id}
@@ -319,12 +319,12 @@ const SuperAdminPlans = () => {
                 !plan.is_active ? "opacity-60" : ""
               } ${plan.is_lifetime ? "bg-gradient-to-br from-amber-50 to-orange-50" : "bg-white"}`}
             >
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-3 sm:pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {plan.is_lifetime && <Crown className="w-5 h-5 text-amber-500" />}
+                    {plan.is_lifetime && <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
                     <Badge
-                      className={plan.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}
+                      className={`text-xs ${plan.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
                     >
                       {plan.is_active ? "Active" : "Inactive"}
                     </Badge>
@@ -333,64 +333,64 @@ const SuperAdminPlans = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-8 w-8 p-0 hover:bg-blue-50"
+                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-blue-50"
                       onClick={() => handleOpenEdit(plan)}
                     >
-                      <Pencil className="w-4 h-4 text-blue-500" />
+                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-8 w-8 p-0 hover:bg-red-50"
+                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-red-50"
                       onClick={() => {
                         setSelectedPlan(plan);
                         setDeleteDialog(true);
                       }}
                     >
-                      <Trash2 className="w-4 h-4 text-red-500" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
                     </Button>
                   </div>
                 </div>
-                <CardTitle className="text-xl mt-3">{plan.name}</CardTitle>
-                <CardDescription>{plan.description || "No description"}</CardDescription>
+                <CardTitle className="text-lg sm:text-xl mt-2 sm:mt-3">{plan.name}</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">{plan.description || "No description"}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 {plan.is_lifetime ? (
-                  <div className="text-3xl font-bold text-slate-900">Free</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-slate-900">Free</div>
                 ) : (
                   <div className="space-y-1">
                     {(plan.daily_price || 0) > 0 && (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-900">
+                        <span className="text-xl sm:text-2xl font-bold text-slate-900">
                           Rs {plan.daily_price.toLocaleString()}
                         </span>
-                        <span className="text-slate-500 text-sm">/day</span>
+                        <span className="text-slate-500 text-xs sm:text-sm">/day</span>
                       </div>
                     )}
                     {plan.monthly_price > 0 && (
                       <div className="flex items-baseline gap-2">
-                        <span className={`font-bold text-slate-900 ${(plan.daily_price || 0) > 0 ? 'text-lg' : 'text-2xl'}`}>
+                        <span className={`font-bold text-slate-900 ${(plan.daily_price || 0) > 0 ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'}`}>
                           Rs {plan.monthly_price.toLocaleString()}
                         </span>
-                        <span className="text-slate-500 text-sm">/month</span>
+                        <span className="text-slate-500 text-xs sm:text-sm">/month</span>
                       </div>
                     )}
                     {plan.yearly_price > 0 && (
                       <div className="flex items-baseline gap-2">
-                        <span className={`font-bold text-slate-900 ${(plan.daily_price || 0) > 0 || plan.monthly_price > 0 ? 'text-lg' : 'text-2xl'}`}>
+                        <span className={`font-bold text-slate-900 ${(plan.daily_price || 0) > 0 || plan.monthly_price > 0 ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'}`}>
                           Rs {plan.yearly_price.toLocaleString()}
                         </span>
-                        <span className="text-slate-500 text-sm">/year</span>
+                        <span className="text-slate-500 text-xs sm:text-sm">/year</span>
                       </div>
                     )}
                     {(plan.daily_price || 0) === 0 && plan.monthly_price === 0 && plan.yearly_price === 0 && (
-                      <div className="text-2xl font-bold text-slate-900">Rs 0</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-900">Rs 0</div>
                     )}
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
                   {/* Duration Badge */}
-                  <Badge className="bg-purple-100 text-purple-700">
+                  <Badge className="bg-purple-100 text-purple-700 text-xs">
                     {plan.is_lifetime 
                       ? 'Lifetime'
                       : plan.duration_months < 1 
@@ -401,9 +401,9 @@ const SuperAdminPlans = () => {
                   </Badge>
                 </div>
 
-                <div className="pt-4 border-t space-y-2">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Features ({Object.values(plan.features || {}).filter(f => f.view).length}/{FEATURES.length})</p>
-                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                <div className="pt-3 sm:pt-4 border-t space-y-2">
+                  <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Features ({Object.values(plan.features || {}).filter(f => f.view).length}/{FEATURES.length})</p>
+                  <div className="grid grid-cols-2 gap-1 sm:gap-1.5 text-[10px] sm:text-xs">
                     {FEATURES.map((feature) => {
                       const featureData = plan.features?.[feature];
                       const hasAccess = featureData?.view || featureData?.create;
@@ -431,12 +431,12 @@ const SuperAdminPlans = () => {
             className="border-2 border-dashed border-slate-200 hover:border-blue-300 transition-colors cursor-pointer group"
             onClick={handleOpenCreate}
           >
-            <CardContent className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 group-hover:text-blue-500 transition-colors">
-              <div className="w-16 h-16 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-4">
-                <Plus className="w-8 h-8" />
+            <CardContent className="flex flex-col items-center justify-center h-full min-h-[200px] sm:min-h-[300px] text-slate-400 group-hover:text-blue-500 transition-colors">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-3 sm:mb-4">
+                <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
               </div>
-              <p className="font-medium">Add New Plan</p>
-              <p className="text-sm text-slate-400">Click to create a subscription plan</p>
+              <p className="font-medium text-sm sm:text-base">Add New Plan</p>
+              <p className="text-xs sm:text-sm text-slate-400">Click to create a subscription plan</p>
             </CardContent>
           </Card>
         </div>

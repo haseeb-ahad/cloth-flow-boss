@@ -262,29 +262,118 @@ const SuperAdminAdmins = () => {
     );
   };
 
-  return (
-    <Card className="border-0 shadow-sm bg-white">
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-500" />
-              Store Admins Management
-            </CardTitle>
-            <CardDescription>Manage all registered store administrators</CardDescription>
-          </div>
+  // Mobile card component for admin
+  const AdminMobileCard = ({ admin }: { admin: AdminUser }) => {
+    const presence = getPresence(admin.id);
+    const adminIsOnline = isOnline(admin.id);
+    
+    return (
+      <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm space-y-3">
+        <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+                {(admin.full_name || admin.email).charAt(0).toUpperCase()}
+              </div>
+              <span 
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                  adminIsOnline ? 'bg-green-500' : 'bg-gray-400'
+                }`}
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-slate-900 truncate">{admin.full_name || "Unnamed"}</p>
+              <p className="text-xs text-slate-500 truncate">{admin.email}</p>
+            </div>
+          </div>
+          <AdminStatusIndicator 
+            status={adminIsOnline ? 'online' : 'offline'} 
+            lastSeen={presence?.last_seen}
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p className="text-xs text-slate-400">Store</p>
+            <p className="text-slate-600 truncate">{admin.store_name || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Plan</p>
+            <Badge variant="secondary" className="bg-slate-100 text-xs">
+              {admin.plan?.name || "No Plan"}
+            </Badge>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Status</p>
+            {getStatusBadge(admin)}
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Amount Paid</p>
+            <p className="text-slate-600">Rs {(admin.subscription?.amount_paid || 0).toLocaleString()}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-end gap-1 pt-2 border-t">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600"
+            onClick={() => {
+              setSelectedAdmin(admin);
+              setAssignPlanDialog(true);
+            }}
+          >
+            <Crown className="w-4 h-4 mr-1" />
+            <span className="text-xs">Assign</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 hover:bg-emerald-50 hover:text-emerald-600"
+            onClick={() => handleViewPayments(admin)}
+          >
+            <Eye className="w-4 h-4 mr-1" />
+            <span className="text-xs">History</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 hover:bg-red-50 hover:text-red-600"
+            onClick={() => {
+              setSelectedAdmin(admin);
+              setDeleteDialog(true);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Card className="border-0 shadow-sm bg-white">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col gap-4">
+          <div>
+            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+              Store Admins Management
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Manage all registered store administrators</CardDescription>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 placeholder="Search admins..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-64 h-9"
+                className="pl-9 h-9 text-sm"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 h-9">
+              <SelectTrigger className="w-full sm:w-32 h-9">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -300,17 +389,26 @@ const SuperAdminAdmins = () => {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-8 sm:py-12">
             <AnimatedLogoLoader size="md" />
           </div>
         ) : filteredAdmins.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
-            <Users className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-            <p className="text-lg font-medium">No Store Admins Found</p>
-            <p className="text-sm">Store admins will appear here after they sign up</p>
+          <div className="text-center py-8 sm:py-12 text-slate-500">
+            <Users className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-slate-300 mb-3 sm:mb-4" />
+            <p className="text-base sm:text-lg font-medium">No Store Admins Found</p>
+            <p className="text-xs sm:text-sm">Store admins will appear here after they sign up</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-3">
+              {filteredAdmins.map((admin) => (
+                <AdminMobileCard key={admin.id} admin={admin} />
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -427,7 +525,8 @@ const SuperAdminAdmins = () => {
                 })}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
       </CardContent>
 
@@ -500,26 +599,26 @@ const SuperAdminAdmins = () => {
                 {payments.map((payment) => (
                   <div
                     key={payment.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-slate-50"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-xl bg-slate-50 gap-2"
                   >
                     <div>
                       <p className="font-medium">Rs {payment.amount.toLocaleString()}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-xs sm:text-sm text-slate-500">
                         {format(new Date(payment.created_at), "MMM d, yyyy 'at' h:mm a")}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="secondary" className="capitalize">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="capitalize text-xs">
                         {payment.payment_method}
                       </Badge>
                       <Badge
-                        className={
+                        className={`text-xs ${
                           payment.status === "success"
                             ? "bg-emerald-100 text-emerald-700"
                             : payment.status === "failed"
                             ? "bg-red-100 text-red-700"
                             : "bg-amber-100 text-amber-700"
-                        }
+                        }`}
                       >
                         {payment.status}
                       </Badge>
