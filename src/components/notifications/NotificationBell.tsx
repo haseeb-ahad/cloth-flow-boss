@@ -29,6 +29,7 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -46,7 +47,12 @@ const NotificationBell = () => {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
+          // Trigger animation on new notification
+          if (payload.eventType === 'INSERT') {
+            setHasNewNotification(true);
+            setTimeout(() => setHasNewNotification(false), 3000);
+          }
           fetchNotifications();
         }
       )
@@ -137,10 +143,19 @@ const NotificationBell = () => {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0">
-          <Bell className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className={cn(
+          "relative h-9 w-9 p-0",
+          hasNewNotification && "animate-[wiggle_0.5s_ease-in-out_3]"
+        )}>
+          <Bell className={cn(
+            "h-4 w-4 transition-transform",
+            hasNewNotification && "animate-[ring_0.5s_ease-in-out_3]"
+          )} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+            <span className={cn(
+              "absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center",
+              hasNewNotification ? "animate-bounce" : "animate-pulse"
+            )}>
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}

@@ -152,6 +152,21 @@ export default {
           "0%, 100%": { opacity: "0.5" },
           "50%": { opacity: "1" },
         },
+        wiggle: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "25%": { transform: "rotate(-10deg)" },
+          "75%": { transform: "rotate(10deg)" },
+        },
+        ring: {
+          "0%": { transform: "rotate(0deg)" },
+          "10%": { transform: "rotate(15deg)" },
+          "20%": { transform: "rotate(-15deg)" },
+          "30%": { transform: "rotate(10deg)" },
+          "40%": { transform: "rotate(-10deg)" },
+          "50%": { transform: "rotate(5deg)" },
+          "60%": { transform: "rotate(-5deg)" },
+          "70%, 100%": { transform: "rotate(0deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.3s ease-out",
