@@ -9,10 +9,10 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      // Mobile-first: 40x22px
+      // Mobile: 40x22px
       "peer inline-flex h-[22px] w-[40px] shrink-0 cursor-pointer items-center rounded-[999px] border-2 border-transparent transition-all duration-200 ease-out",
-      // Desktop: original 44x24px
-      "md:h-6 md:w-11",
+      // Tablet & Desktop: 80x44px
+      "md:h-[44px] md:w-[80px]",
       // States with clear visual feedback
       "data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground/30",
       // Focus states
@@ -26,14 +26,14 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        // Mobile-first: 18px thumb
+        // Mobile: 18px thumb
         "pointer-events-none block h-[18px] w-[18px] rounded-[999px] bg-background shadow-md ring-0 transition-transform duration-200 ease-out",
-        // Desktop: 20px thumb
-        "md:h-5 md:w-5",
+        // Tablet & Desktop: 40px thumb
+        "md:h-[40px] md:w-[40px]",
         // Position based on state
         "data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-0",
-        // Desktop uses 20px offset
-        "md:data-[state=checked]:translate-x-5",
+        // Desktop uses larger offset
+        "md:data-[state=checked]:translate-x-[36px]",
       )}
     />
   </SwitchPrimitives.Root>
