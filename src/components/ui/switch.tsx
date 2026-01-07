@@ -7,13 +7,15 @@ const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
 >(({ className, ...props }, ref) => (
-  <span className="inline-flex items-center min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 justify-center">
+  <span className="inline-flex items-center justify-center sm:min-w-0 sm:min-h-0 max-[639px]:min-w-[44px] max-[639px]:min-h-[44px]">
     <SwitchPrimitives.Root
       className={cn(
-        // Mobile-first: 48x26px with 22px thumb
-        "peer inline-flex h-[26px] w-[48px] shrink-0 cursor-pointer items-center rounded-[999px] border-2 border-transparent transition-all duration-200 ease-out",
-        // Desktop: original 44x24px with 20px thumb
-        "md:h-6 md:w-11",
+        // Mobile-first: 48x26px with 22px thumb (only for < 640px)
+        "peer inline-flex shrink-0 cursor-pointer items-center rounded-[999px] border-2 border-transparent transition-all duration-200 ease-out",
+        // Mobile dimensions (< 640px)
+        "max-[639px]:h-[26px] max-[639px]:w-[48px] max-[639px]:min-h-[22px]",
+        // Tablet and desktop: original 24x44px with 20px thumb
+        "sm:h-6 sm:w-11",
         // States with clear visual feedback
         "data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground/30",
         // Focus states
@@ -27,14 +29,16 @@ const Switch = React.forwardRef<
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          // Mobile-first: 22px thumb
-          "pointer-events-none block h-[22px] w-[22px] rounded-[999px] bg-background shadow-md ring-0 transition-transform duration-200 ease-out",
-          // Desktop: 20px thumb
-          "md:h-5 md:w-5",
-          // Position based on state - mobile uses 22px offset (48 - 22 - 4 border = 22)
-          "data-[state=checked]:translate-x-[22px] data-[state=unchecked]:translate-x-0",
-          // Desktop uses 20px offset
-          "md:data-[state=checked]:translate-x-5",
+          // Base styles
+          "pointer-events-none block rounded-[999px] bg-background shadow-md ring-0 transition-transform duration-200 ease-out",
+          // Mobile thumb: 22px (< 640px)
+          "max-[639px]:h-[22px] max-[639px]:w-[22px] max-[639px]:min-h-[22px]",
+          // Tablet and desktop thumb: 20px
+          "sm:h-5 sm:w-5",
+          // Position based on state - mobile uses 22px offset
+          "max-[639px]:data-[state=checked]:translate-x-[22px] data-[state=unchecked]:translate-x-0",
+          // Tablet/desktop uses 20px offset
+          "sm:data-[state=checked]:translate-x-5",
         )}
       />
     </SwitchPrimitives.Root>
