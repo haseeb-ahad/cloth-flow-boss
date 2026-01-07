@@ -426,7 +426,7 @@ export default function Workers() {
         </Dialog>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         {loading && !selectedWorker ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -436,26 +436,22 @@ export default function Workers() {
             <p className="text-muted-foreground">No workers found. Click "Add Worker" to create one.</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile Card View */}
+            <div className="block md:hidden space-y-3">
               {workers.map((worker) => (
-                <TableRow key={worker.id}>
-                  <TableCell className="font-medium">{worker.full_name}</TableCell>
-                  <TableCell>{worker.email}</TableCell>
-                  <TableCell>{worker.phone_number}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                <Card key={worker.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{worker.full_name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{worker.email}</p>
+                      <p className="text-sm text-muted-foreground">{worker.phone_number || "No phone"}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
                       <Button
                         variant="outline"
                         size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleEditPermissions(worker)}
                       >
                         <Edit className="h-4 w-4" />
@@ -463,6 +459,7 @@ export default function Workers() {
                       <Button
                         variant="destructive"
                         size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleDeleteWorker(worker.user_id)}
                         disabled={deletingWorkerId === worker.user_id}
                       >
@@ -473,11 +470,57 @@ export default function Workers() {
                         )}
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {workers.map((worker) => (
+                    <TableRow key={worker.id}>
+                      <TableCell className="font-medium">{worker.full_name}</TableCell>
+                      <TableCell>{worker.email}</TableCell>
+                      <TableCell>{worker.phone_number}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditPermissions(worker)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteWorker(worker.user_id)}
+                            disabled={deletingWorkerId === worker.user_id}
+                          >
+                            {deletingWorkerId === worker.user_id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
