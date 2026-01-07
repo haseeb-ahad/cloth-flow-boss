@@ -85,72 +85,77 @@ const SuperAdminBankSettings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="border-0 shadow-sm bg-white">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-blue-500" />
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
             Bank Transfer Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Configure bank account details for user payments. These details will be shown to users when they upgrade their plan.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
-              <Label htmlFor="bank_name">Bank Name *</Label>
+              <Label htmlFor="bank_name" className="text-sm">Bank Name *</Label>
               <Input
                 id="bank_name"
                 placeholder="e.g. HBL, MCB, UBL"
                 value={settings.bank_name}
                 onChange={(e) => setSettings({ ...settings, bank_name: e.target.value })}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="account_title">Account Title *</Label>
+              <Label htmlFor="account_title" className="text-sm">Account Title *</Label>
               <Input
                 id="account_title"
                 placeholder="Account holder name"
                 value={settings.account_title}
                 onChange={(e) => setSettings({ ...settings, account_title: e.target.value })}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="account_number">Account Number *</Label>
+              <Label htmlFor="account_number" className="text-sm">Account Number *</Label>
               <Input
                 id="account_number"
                 placeholder="Your account number"
                 value={settings.account_number}
                 onChange={(e) => setSettings({ ...settings, account_number: e.target.value })}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="iban">IBAN</Label>
+              <Label htmlFor="iban" className="text-sm">IBAN</Label>
               <Input
                 id="iban"
                 placeholder="International Bank Account Number"
                 value={settings.iban}
                 onChange={(e) => setSettings({ ...settings, iban: e.target.value })}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="branch_name">Branch Name</Label>
+              <Label htmlFor="branch_name" className="text-sm">Branch Name</Label>
               <Input
                 id="branch_name"
                 placeholder="Bank branch name"
                 value={settings.branch_name}
                 onChange={(e) => setSettings({ ...settings, branch_name: e.target.value })}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone_number" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
+              <Label htmlFor="phone_number" className="flex items-center gap-2 text-sm">
+                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Phone / WhatsApp Number
               </Label>
               <Input
@@ -158,21 +163,23 @@ const SuperAdminBankSettings = () => {
                 placeholder="e.g. 0300-1234567"
                 value={settings.phone_number}
                 onChange={(e) => setSettings({ ...settings, phone_number: e.target.value })}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="instructions" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+            <Label htmlFor="instructions" className="flex items-center gap-2 text-sm">
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Instructions for Users
             </Label>
             <Textarea
               id="instructions"
               placeholder="Instructions that will be shown to users..."
-              rows={4}
+              rows={3}
               value={settings.instructions}
               onChange={(e) => setSettings({ ...settings, instructions: e.target.value })}
+              className="text-sm"
             />
           </div>
 

@@ -183,21 +183,99 @@ const SuperAdminPaymentRequests = () => {
     );
   }
 
+  // Mobile card for payment requests
+  const RequestMobileCard = ({ request }: { request: PaymentRequest }) => (
+    <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm space-y-3">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-slate-900 truncate">
+            {request.profile?.full_name || "Unknown"}
+          </p>
+          <p className="text-xs text-slate-500 truncate">{request.profile?.email}</p>
+        </div>
+        {getStatusBadge(request.status)}
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <p className="text-xs text-slate-400">Plan</p>
+          <Badge variant="secondary" className="text-xs">{request.plan?.name || "N/A"}</Badge>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400">Amount</p>
+          <p className="font-medium">Rs {request.amount.toLocaleString()}</p>
+        </div>
+        <div className="col-span-2">
+          <p className="text-xs text-slate-400">Date</p>
+          <p className="text-xs text-slate-600">
+            {format(new Date(request.created_at), "MMM d, yyyy h:mm a")}
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between pt-2 border-t">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setSelectedRequest(request);
+            setProofDialog(true);
+          }}
+          className="text-xs"
+        >
+          <Eye className="w-3 h-3 mr-1" />
+          View Proof
+        </Button>
+        
+        {request.status === "pending" && (
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              onClick={() => handleApprove(request)}
+              disabled={isProcessing}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 text-xs px-2"
+            >
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSelectedRequest(request);
+                setRejectDialog(true);
+              }}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2"
+            >
+              <XCircle className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+        
+        {request.status === "rejected" && request.rejection_reason && (
+          <span className="text-xs text-red-500 truncate max-w-[120px]">
+            {request.rejection_reason}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats */}
       {pendingCount > 0 && (
         <Card className="border-0 shadow-sm bg-gradient-to-r from-amber-50 to-orange-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-amber-100">
-                <AlertCircle className="w-5 h-5 text-amber-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-full bg-amber-100">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
               </div>
               <div>
-                <p className="font-semibold text-amber-900">
+                <p className="font-semibold text-amber-900 text-sm sm:text-base">
                   {pendingCount} Pending Payment{pendingCount > 1 ? "s" : ""}
                 </p>
-                <p className="text-sm text-amber-700">
+                <p className="text-xs sm:text-sm text-amber-700">
                   Review and approve or reject payment requests
                 </p>
               </div>
@@ -207,34 +285,32 @@ const SuperAdminPaymentRequests = () => {
       )}
 
       <Card className="border-0 shadow-sm bg-white">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg font-semibold">Payment Requests</CardTitle>
-              <CardDescription>Review and verify user payment submissions</CardDescription>
-            </div>
+        <CardHeader className="pb-4">
+          <div>
+            <CardTitle className="text-base sm:text-lg font-semibold">Payment Requests</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Review and verify user payment submissions</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 placeholder="Search by name, email, or plan..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-9 text-sm"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
               {["all", "pending", "approved", "rejected"].map((status) => (
                 <Button
                   key={status}
                   variant={statusFilter === status ? "default" : "outline"}
                   size="sm"
                   onClick={() => setStatusFilter(status)}
-                  className="capitalize"
+                  className="capitalize text-xs sm:text-sm whitespace-nowrap h-9"
                 >
                   {status}
                 </Button>
@@ -242,14 +318,23 @@ const SuperAdminPaymentRequests = () => {
             </div>
           </div>
 
-          {/* Table */}
+          {/* Content */}
           {filteredRequests.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <ImageIcon className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-              <p>No payment requests found</p>
+            <div className="text-center py-8 sm:py-12 text-slate-500">
+              <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-slate-300 mb-2 sm:mb-3" />
+              <p className="text-sm sm:text-base">No payment requests found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              {/* Mobile Cards View */}
+              <div className="md:hidden space-y-3">
+                {filteredRequests.map((request) => (
+                  <RequestMobileCard key={request.id} request={request} />
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -341,9 +426,10 @@ const SuperAdminPaymentRequests = () => {
                 </TableBody>
               </Table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </>
+        )}
+      </CardContent>
+    </Card>
 
       {/* Proof Dialog */}
       <Dialog open={proofDialog} onOpenChange={setProofDialog}>
