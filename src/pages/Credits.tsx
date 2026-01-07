@@ -904,17 +904,17 @@ const Credits = () => {
           <Button 
             onClick={fetchCredits} 
             variant="outline" 
-            size="icon"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
             disabled={isLoading}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           {canCreate && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                  <Button disabled={isLoading}>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Button size="sm" disabled={isLoading}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
                   Add credit
                 </Button>
               </DialogTrigger>
