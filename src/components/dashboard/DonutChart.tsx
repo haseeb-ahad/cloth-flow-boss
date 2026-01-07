@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CategoryData {
   name: string;
@@ -19,7 +20,7 @@ interface DonutChartProps {
 // Blue to purple gradient colors
 const COLORS = ["#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#c084fc"];
 
-const CustomTooltip = ({ active, payload, valuesHidden }: any) => {
+const CustomTooltip = ({ active, payload, valuesHidden, t }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
     const total = payload[0].payload.total || 100;
@@ -34,7 +35,7 @@ const CustomTooltip = ({ active, payload, valuesHidden }: any) => {
           <span className="text-sm font-semibold text-foreground">{data.name}</span>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          {valuesHidden ? "••••" : `${data.value} items (${percentage}%)`}
+          {valuesHidden ? "••••" : `${data.value} ${t("items_count")} (${percentage}%)`}
         </p>
       </div>
     );
@@ -43,6 +44,7 @@ const CustomTooltip = ({ active, payload, valuesHidden }: any) => {
 };
 
 const DonutChart = ({ data, title, subtitle, valuesHidden, isLoading = false }: DonutChartProps) => {
+  const { t } = useLanguage();
   const [isHovering, setIsHovering] = useState(false);
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const chartData = data.slice(0, 5).map((item, index) => ({
@@ -59,7 +61,7 @@ const DonutChart = ({ data, title, subtitle, valuesHidden, isLoading = false }: 
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[280px]">
-          <p className="text-muted-foreground text-sm">No data available</p>
+          <p className="text-muted-foreground text-sm">{t("noDataAvailable")}</p>
         </CardContent>
       </Card>
     );
@@ -101,7 +103,7 @@ const DonutChart = ({ data, title, subtitle, valuesHidden, isLoading = false }: 
                   ))}
                 </Pie>
                 {!isLoading && isHovering && (
-                  <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} />} />
+                  <Tooltip content={<CustomTooltip valuesHidden={valuesHidden} t={t} />} />
                 )}
               </PieChart>
             </ResponsiveContainer>

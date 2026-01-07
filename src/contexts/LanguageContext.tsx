@@ -303,6 +303,24 @@ const translations = {
     walkInCustomer: "Walk-in Customer",
     remaining: "Remaining",
     method: "Method",
+    
+    // Day names
+    monday: "Mon",
+    tuesday: "Tue",
+    wednesday: "Wed",
+    thursday: "Thu",
+    friday: "Fri",
+    saturday: "Sat",
+    sunday: "Sun",
+    
+    // Chart labels
+    units: "units",
+    orders: "orders",
+    noDataAvailable: "No data available",
+    noProductData: "No product data available",
+    noCustomerData: "No customer data available",
+    items_count: "items",
+    salesLabel: "Sales",
   },
   ur: {
     // Navigation
@@ -496,6 +514,36 @@ const translations = {
     // Actions
     actions: "کارروائیاں",
     moreOptions: "مزید اختیارات",
+    
+    // Day names
+    monday: "پیر",
+    tuesday: "منگل",
+    wednesday: "بدھ",
+    thursday: "جمعرات",
+    friday: "جمعہ",
+    saturday: "ہفتہ",
+    sunday: "اتوار",
+    
+    // Chart labels
+    units: "یونٹس",
+    orders: "آرڈرز",
+    noDataAvailable: "کوئی ڈیٹا دستیاب نہیں",
+    noProductData: "کوئی پروڈکٹ ڈیٹا دستیاب نہیں",
+    noCustomerData: "کوئی گاہک ڈیٹا دستیاب نہیں",
+    items_count: "اشیاء",
+    salesLabel: "فروخت",
+    
+    // Dashboard missing
+    sale: "فروخت",
+    profit: "منافع",
+    overviewPerformance: "آپ کے کاروبار کی کارکردگی کا جائزہ",
+    weeklyAnalytics: "ہفتہ وار تجزیات",
+    salesByDay: "روزانہ فروخت کی کارکردگی",
+    salesByCategory: "زمرے کے مطابق فروخت",
+    distributionCategories: "زمروں میں تقسیم",
+    topSellingProducts: "سب سے زیادہ بکنے والی پروڈکٹس",
+    bestPerformers: "اس مدت کے بہترین کارکردگی",
+    customerActivity: "اس مدت میں گاہک کی سرگرمی",
   },
   ar: {
     // Navigation
@@ -689,6 +737,36 @@ const translations = {
     // Actions
     actions: "الإجراءات",
     moreOptions: "المزيد من الخيارات",
+    
+    // Day names
+    monday: "الإثنين",
+    tuesday: "الثلاثاء",
+    wednesday: "الأربعاء",
+    thursday: "الخميس",
+    friday: "الجمعة",
+    saturday: "السبت",
+    sunday: "الأحد",
+    
+    // Chart labels
+    units: "وحدات",
+    orders: "طلبات",
+    noDataAvailable: "لا توجد بيانات متاحة",
+    noProductData: "لا توجد بيانات للمنتجات",
+    noCustomerData: "لا توجد بيانات للعملاء",
+    items_count: "عناصر",
+    salesLabel: "المبيعات",
+    
+    // Dashboard missing
+    sale: "بيع",
+    profit: "ربح",
+    overviewPerformance: "نظرة عامة على أداء عملك",
+    weeklyAnalytics: "التحليلات الأسبوعية",
+    salesByDay: "أداء المبيعات حسب اليوم",
+    salesByCategory: "المبيعات حسب الفئة",
+    distributionCategories: "التوزيع عبر الفئات",
+    topSellingProducts: "المنتجات الأكثر مبيعاً",
+    bestPerformers: "أفضل أداء في هذه الفترة",
+    customerActivity: "نشاط العملاء في هذه الفترة",
   },
   hi: {
     // Navigation
@@ -882,6 +960,36 @@ const translations = {
     // Actions
     actions: "क्रियाएं",
     moreOptions: "अधिक विकल्प",
+    
+    // Day names
+    monday: "सोम",
+    tuesday: "मंगल",
+    wednesday: "बुध",
+    thursday: "गुरु",
+    friday: "शुक्र",
+    saturday: "शनि",
+    sunday: "रवि",
+    
+    // Chart labels
+    units: "यूनिट",
+    orders: "ऑर्डर",
+    noDataAvailable: "कोई डेटा उपलब्ध नहीं",
+    noProductData: "कोई उत्पाद डेटा उपलब्ध नहीं",
+    noCustomerData: "कोई ग्राहक डेटा उपलब्ध नहीं",
+    items_count: "आइटम",
+    salesLabel: "बिक्री",
+    
+    // Dashboard missing
+    sale: "बिक्री",
+    profit: "लाभ",
+    overviewPerformance: "आपके व्यापार के प्रदर्शन का अवलोकन",
+    weeklyAnalytics: "साप्ताहिक विश्लेषण",
+    salesByDay: "दिन के अनुसार बिक्री प्रदर्शन",
+    salesByCategory: "श्रेणी के अनुसार बिक्री",
+    distributionCategories: "श्रेणियों में वितरण",
+    topSellingProducts: "सबसे ज्यादा बिकने वाले उत्पाद",
+    bestPerformers: "इस अवधि के सर्वश्रेष्ठ प्रदर्शक",
+    customerActivity: "इस अवधि में ग्राहक गतिविधि",
   },
   // Spanish
   es: {
