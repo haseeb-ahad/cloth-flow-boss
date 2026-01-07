@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,
   ShoppingCart, 
   Package, 
   FileText, 
@@ -27,6 +28,7 @@ import {
 const MobileBottomNav = () => {
   const location = useLocation();
   const { userRole, hasPermission } = useAuth();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const allNavItems = useMemo(() => {
     const items = [
@@ -95,7 +97,7 @@ const MobileBottomNav = () => {
         })}
         
         {moreNavItems.length > 0 && (
-          <Sheet>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <button className="flex flex-col items-center justify-center flex-1 h-full py-2 px-1 rounded-lg transition-all duration-200 text-muted-foreground min-w-0">
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl">
@@ -116,6 +118,7 @@ const MobileBottomNav = () => {
                     <Link
                       key={item.path}
                       to={item.path}
+                      onClick={() => setSheetOpen(false)}
                       className={cn(
                         "flex flex-col items-center justify-center py-4 px-2 rounded-2xl transition-all duration-200",
                         isActive
