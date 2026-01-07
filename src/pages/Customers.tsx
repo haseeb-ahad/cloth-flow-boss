@@ -255,62 +255,111 @@ const Customers = () => {
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Total Customers: <span className="font-semibold text-foreground">{filteredCustomers.length}</span>
               </p>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer Name</TableHead>
-                  <TableHead>Phone Number</TableHead>
-                  <TableHead className="text-right">Total Credit</TableHead>
-                  <TableHead className="text-right">Total Paid</TableHead>
-                  <TableHead className="text-right">Remaining Balance</TableHead>
-                  <TableHead>Oldest Unpaid</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.length === 0 ? (
+
+            {/* Mobile Card View */}
+            <div className="block md:hidden space-y-3">
+              {filteredCustomers.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No customers found
+                </div>
+              ) : (
+                filteredCustomers.map((customer, index) => (
+                  <Card key={`${customer.name}-${index}`} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground">{customer.name}</p>
+                        <p className="text-sm text-muted-foreground">{customer.phone || "No phone"}</p>
+                      </div>
+                      {customer.remaining_balance > 0 ? (
+                        <span className="text-warning font-bold text-lg">
+                          Rs. {customer.remaining_balance.toFixed(0)}
+                        </span>
+                      ) : (
+                        <Badge className="bg-success text-success-foreground">Paid</Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Total Credit</p>
+                        <p className="font-medium">Rs. {customer.total_credit.toFixed(0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Total Paid</p>
+                        <p className="font-medium text-primary">Rs. {customer.total_paid.toFixed(0)}</p>
+                      </div>
+                    </div>
+                    {customer.oldest_unpaid_date && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Oldest Unpaid:</span>
+                        <Badge variant="outline" className="text-destructive border-destructive text-xs">
+                          {formatDate(customer.oldest_unpaid_date)}
+                        </Badge>
+                      </div>
+                    )}
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No customers found
-                    </TableCell>
+                    <TableHead>Customer Name</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                    <TableHead className="text-right">Total Credit</TableHead>
+                    <TableHead className="text-right">Total Paid</TableHead>
+                    <TableHead className="text-right">Remaining Balance</TableHead>
+                    <TableHead>Oldest Unpaid</TableHead>
                   </TableRow>
-                ) : (
-                  filteredCustomers.map((customer, index) => (
-                    <TableRow key={`${customer.name}-${index}`}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{customer.phone || "-"}</TableCell>
-                      <TableCell className="text-right">Rs. {customer.total_credit.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-primary">
-                        Rs. {customer.total_paid.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {customer.remaining_balance > 0 ? (
-                          <span className="text-warning font-medium">
-                            Rs. {customer.remaining_balance.toFixed(2)}
-                          </span>
-                        ) : (
-                          <Badge className="bg-success text-success-foreground">Paid</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {customer.oldest_unpaid_date ? (
-                          <Badge variant="outline" className="text-destructive border-destructive">
-                            {formatDate(customer.oldest_unpaid_date)}
-                          </Badge>
-                        ) : (
-                          "-"
-                        )}
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No customers found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filteredCustomers.map((customer, index) => (
+                      <TableRow key={`${customer.name}-${index}`}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.phone || "-"}</TableCell>
+                        <TableCell className="text-right">Rs. {customer.total_credit.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-primary">
+                          Rs. {customer.total_paid.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {customer.remaining_balance > 0 ? (
+                            <span className="text-warning font-medium">
+                              Rs. {customer.remaining_balance.toFixed(2)}
+                            </span>
+                          ) : (
+                            <Badge className="bg-success text-success-foreground">Paid</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {customer.oldest_unpaid_date ? (
+                            <Badge variant="outline" className="text-destructive border-destructive">
+                              {formatDate(customer.oldest_unpaid_date)}
+                            </Badge>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </>
       )}
