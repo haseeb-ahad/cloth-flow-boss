@@ -50,7 +50,7 @@ interface AppSettings {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { userRole, signOut, user, hasPermission, subscriptionStatus } = useAuth();
+  const { userRole, signOut, user, hasPermission, subscriptionStatus, ownerId } = useAuth();
   const { timezone } = useTimezone();
   const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null, description: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -63,17 +63,20 @@ const Layout = ({ children }: LayoutProps) => {
   useAdminPresence();
 
   useEffect(() => {
+    if (!ownerId) return;
+    
     const fetchAppSettings = async () => {
       const { data } = await supabase
         .from("app_settings")
         .select("app_name, logo_url, description")
-        .single();
+        .eq("owner_id", ownerId)
+        .maybeSingle();
       if (data) {
         setAppSettings({ app_name: data.app_name, logo_url: data.logo_url, description: (data as any).description });
       }
     };
     fetchAppSettings();
-  }, []);
+  }, [ownerId]);
 
   const navItems = useMemo(() => {
     const allItems = [
