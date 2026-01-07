@@ -661,8 +661,8 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Stock Stats Cards - Mobile Grid */}
-      <div className="grid gap-1.5 md:gap-2 grid-cols-2 lg:grid-cols-5 auto-rows-fr w-full">
+      {/* Stock Stats Cards - Mobile Single Column */}
+      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-5 w-full">
         <Card className="hover:shadow-lg transition-all duration-300 mobile-stat-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2 pb-1">
             <CardTitle className="text-sm font-semibold tracking-wide">Stock Cost</CardTitle>
