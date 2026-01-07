@@ -532,38 +532,42 @@ export default function Workers() {
           </DialogHeader>
           <div className="space-y-4">
             {/* Mobile Card View for Permissions */}
-            <div className="block md:hidden space-y-3">
+            <div className="block md:hidden space-y-2">
               {FEATURES.map((feature) => (
-                <Card key={feature} className="p-4 space-y-3">
-                  <p className="font-semibold text-foreground">{FEATURE_LABELS[feature] || feature}</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">View</span>
+                <Card key={feature} className="p-3 space-y-2">
+                  <p className="font-medium text-sm text-foreground">{FEATURE_LABELS[feature] || feature}</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div className="flex items-center gap-2">
                       <Switch
                         checked={permissions[feature]?.can_view || false}
                         onCheckedChange={() => togglePermission(feature, "can_view")}
+                        className="scale-75"
                       />
+                      <span className="text-xs text-muted-foreground">View</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Create</span>
+                    <div className="flex items-center gap-2">
                       <Switch
                         checked={permissions[feature]?.can_create || false}
                         onCheckedChange={() => togglePermission(feature, "can_create")}
+                        className="scale-75"
                       />
+                      <span className="text-xs text-muted-foreground">Create</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Edit</span>
+                    <div className="flex items-center gap-2">
                       <Switch
                         checked={permissions[feature]?.can_edit || false}
                         onCheckedChange={() => togglePermission(feature, "can_edit")}
+                        className="scale-75"
                       />
+                      <span className="text-xs text-muted-foreground">Edit</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Delete</span>
+                    <div className="flex items-center gap-2">
                       <Switch
                         checked={permissions[feature]?.can_delete || false}
                         onCheckedChange={() => togglePermission(feature, "can_delete")}
+                        className="scale-75"
                       />
+                      <span className="text-xs text-muted-foreground">Delete</span>
                     </div>
                   </div>
                 </Card>
