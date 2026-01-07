@@ -506,40 +506,197 @@
   }
 }
 
-/* Mobile-specific utilities */
+/* ========================================
+   MOBILE ALIGNMENT RULES
+   ======================================== */
+
+/* Mobile Layout System */
 @layer utilities {
-  /* Full-bleed mobile cards */
+  /* ---- CORE MOBILE LAYOUT ---- */
+  
+  /* Single-column layout only on mobile */
+  .mobile-single-column {
+    @apply flex flex-col w-full;
+  }
+  
+  /* Standard mobile horizontal padding (16px) */
+  .mobile-px {
+    @apply px-4;
+  }
+  
+  /* Standard mobile vertical spacing between sections (12-16px) */
+  .mobile-section-gap {
+    @apply space-y-3 md:space-y-4;
+  }
+  
+  /* Safe areas for modern devices */
+  .mobile-safe-area {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  
+  /* Prevent content from touching edges */
+  .mobile-content-safe {
+    @apply mx-4 md:mx-0;
+  }
+  
+  /* ---- ALIGNMENT RULES ---- */
+  
+  /* Left-aligned content (default for mobile) */
+  .mobile-align-left {
+    @apply text-left items-start justify-start;
+  }
+  
+  /* Center-aligned only for CTAs, empty states, success/error */
+  .mobile-center-cta {
+    @apply text-center items-center justify-center;
+  }
+  
+  .mobile-empty-state {
+    @apply flex flex-col items-center justify-center text-center py-8 px-4;
+  }
+  
+  .mobile-status-message {
+    @apply text-center py-4 px-4;
+  }
+  
+  /* ---- NO SCROLL POLICY ---- */
+  
+  /* Prevent horizontal scroll */
+  .mobile-no-overflow {
+    @apply overflow-x-hidden w-full max-w-full;
+  }
+  
+  /* Only vertical page scroll allowed */
+  .mobile-vertical-scroll {
+    @apply overflow-y-auto overflow-x-hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* ---- BUTTONS ---- */
+  
+  /* Full-width primary buttons on mobile */
+  .mobile-btn-full {
+    @apply w-full md:w-auto;
+  }
+  
+  /* Stacked button layout on mobile */
+  .mobile-btn-stack {
+    @apply flex flex-col gap-3 w-full md:flex-row md:gap-2 md:w-auto;
+  }
+  
+  .mobile-btn-stack > button,
+  .mobile-btn-stack > a {
+    @apply w-full md:w-auto;
+  }
+  
+  /* ---- FORMS ---- */
+  
+  /* Labels above inputs on mobile */
+  .mobile-form-field {
+    @apply flex flex-col gap-2 w-full;
+  }
+  
+  .mobile-form-field > label {
+    @apply text-sm font-medium text-foreground;
+  }
+  
+  .mobile-form-field > input,
+  .mobile-form-field > select,
+  .mobile-form-field > textarea {
+    @apply w-full;
+  }
+  
+  /* Form grid - single column on mobile */
+  .mobile-form-grid {
+    @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+  }
+  
+  /* ---- ICONS ---- */
+  
+  /* Icons inline with text, consistent spacing */
+  .mobile-icon-text {
+    @apply inline-flex items-center gap-2;
+  }
+  
+  .mobile-icon-text > svg {
+    @apply flex-shrink-0;
+  }
+  
+  /* ---- CARDS ---- */
+  
+  /* Full-width cards on mobile */
+  .mobile-card {
+    @apply w-full rounded-2xl border border-border/50 bg-card p-4;
+  }
+  
+  /* Card content left-aligned */
+  .mobile-card-content {
+    @apply flex flex-col items-start text-left gap-2 w-full;
+  }
+  
+  /* Card list container */
+  .mobile-card-list {
+    @apply flex flex-col gap-3 w-full;
+  }
+  
+  /* ---- TABLES TO CARDS ---- */
+  
+  /* Stacked card layout replacing tables */
+  .mobile-data-card {
+    @apply w-full rounded-2xl border border-border/50 bg-card p-4;
+  }
+  
+  /* Label → value vertically stacked */
+  .mobile-data-row {
+    @apply flex flex-col gap-1;
+  }
+  
+  .mobile-data-label {
+    @apply text-xs text-muted-foreground font-medium;
+  }
+  
+  .mobile-data-value {
+    @apply text-sm font-medium text-foreground truncate;
+  }
+  
+  /* Data grid inside cards */
+  .mobile-data-grid {
+    @apply grid grid-cols-2 gap-3 w-full;
+  }
+  
+  /* ---- FULL-BLEED SECTIONS ---- */
+  
   .mobile-full-bleed {
     @apply -mx-4 px-4 md:mx-0 md:px-0;
   }
   
-  /* Mobile bottom sheet modal */
+  /* ---- MOBILE BOTTOM SHEET ---- */
+  
   .mobile-bottom-sheet {
     @apply fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl shadow-xl max-h-[90vh] overflow-y-auto;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   
-  /* Mobile-friendly scrollable container */
-  .mobile-scroll {
-    @apply overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0;
-    -webkit-overflow-scrolling: touch;
-  }
+  /* ---- HIDE SCROLLBAR ---- */
   
-  /* Hide scrollbar on mobile for cleaner look */
-  .mobile-scroll::-webkit-scrollbar {
+  .mobile-hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
   
-  .mobile-scroll {
+  .mobile-hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
   
-  /* Mobile card container */
+  /* ---- RESPONSIVE HELPERS ---- */
+  
   .mobile-card-container {
     @apply space-y-3 md:space-y-0;
   }
   
-  /* Responsive text that scales down on mobile */
   .text-responsive-lg {
     @apply text-xl md:text-3xl;
   }
@@ -562,16 +719,16 @@
     @apply opacity-100;
   }
   
-  /* Mobile-friendly button group */
+  /* Mobile button group */
   .mobile-button-group {
-    @apply flex flex-wrap gap-2 md:flex-nowrap;
+    @apply flex flex-col gap-2 w-full md:flex-row md:w-auto;
   }
   
   .mobile-button-group > * {
-    @apply flex-1 md:flex-none;
+    @apply w-full md:w-auto;
   }
   
-  /* Mobile filter row */
+  /* Mobile filter row - single column */
   .mobile-filter-row {
     @apply grid grid-cols-1 gap-3 md:grid-cols-3;
   }
@@ -584,5 +741,32 @@
   /* Responsive grid for stats */
   .stats-grid {
     @apply grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4;
+  }
+  
+  /* Page container with proper mobile padding */
+  .mobile-page {
+    @apply px-4 pb-20 pt-4 md:px-6 md:pb-6 overflow-x-hidden w-full max-w-full;
+  }
+  
+  /* Header with safe area */
+  .mobile-header {
+    @apply px-4 pt-2 pb-3 md:px-6;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+}
+
+/* Global mobile overflow prevention */
+@media (max-width: 767px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Ensure all direct children don't overflow */
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
   }
 }
