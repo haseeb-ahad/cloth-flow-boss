@@ -299,17 +299,21 @@ const SuperAdminAdmins = () => {
           </div>
           <div>
             <p className="text-xs text-slate-400">Plan</p>
-            <Badge variant="secondary" className="bg-slate-100 text-xs">
-              {admin.plan?.name || "No Plan"}
-            </Badge>
+            <div className="mt-0.5">
+              <Badge variant="secondary" className="bg-slate-100 text-xs">
+                {admin.plan?.name || "No Plan"}
+              </Badge>
+            </div>
           </div>
           <div>
             <p className="text-xs text-slate-400">Status</p>
-            {getStatusBadge(admin)}
+            <div className="mt-0.5">
+              {getStatusBadge(admin)}
+            </div>
           </div>
           <div>
             <p className="text-xs text-slate-400">Amount Paid</p>
-            <p className="text-slate-600">Rs {(admin.subscription?.amount_paid || 0).toLocaleString()}</p>
+            <p className="text-slate-600 mt-0.5">Rs {(admin.subscription?.amount_paid || 0).toLocaleString()}</p>
           </div>
         </div>
         
@@ -401,7 +405,7 @@ const SuperAdminAdmins = () => {
         ) : (
           <>
             {/* Mobile Cards View */}
-            <div className="md:hidden space-y-3">
+            <div className="md:hidden space-y-3 pb-4">
               {filteredAdmins.map((admin) => (
                 <AdminMobileCard key={admin.id} admin={admin} />
               ))}
