@@ -7,7 +7,7 @@ const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
 >(({ className, ...props }, ref) => (
-  <span className="inline-flex items-center justify-center sm:min-w-0 sm:min-h-0 max-[639px]:min-w-[44px] max-[639px]:min-h-[44px]">
+  <span className="inline-flex items-center justify-center sm:min-w-0 sm:min-h-0 max-[639px]:min-w-[44px] max-[639px]:min-h-[44px] max-[639px]:p-0">
     <SwitchPrimitives.Root
       className={cn(
         // Mobile-first: 48x26px with 22px thumb (only for < 640px)
