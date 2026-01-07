@@ -60,7 +60,7 @@ const MobileBottomNav = () => {
   const moreNavItems = allNavItems.slice(4);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card/95 backdrop-blur-xl border-t border-border/50 safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-card/95 backdrop-blur-xl border-t border-border/50 safe-area-pb">
       <div className="flex items-center justify-around h-16 px-2">
         {mainNavItems.map((item) => {
           const Icon = item.icon;
