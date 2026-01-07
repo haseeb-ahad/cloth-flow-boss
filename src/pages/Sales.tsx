@@ -335,7 +335,7 @@ const Sales = () => {
             {t("total")}: {filteredSales.length}
           </span>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-3 flex-wrap">
           <SalesReport />
           <input
             type="file"
