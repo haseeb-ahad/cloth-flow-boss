@@ -526,53 +526,96 @@ export default function Workers() {
 
       {/* Permissions Dialog */}
       <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Permissions - {selectedWorker?.full_name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Feature</TableHead>
-                  <TableHead className="text-center">View</TableHead>
-                  <TableHead className="text-center">Create</TableHead>
-                  <TableHead className="text-center">Edit</TableHead>
-                  <TableHead className="text-center">Delete</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {FEATURES.map((feature) => (
-                  <TableRow key={feature}>
-                    <TableCell className="font-medium">{FEATURE_LABELS[feature] || feature}</TableCell>
-                    <TableCell className="text-center">
+            {/* Mobile Card View for Permissions */}
+            <div className="block md:hidden space-y-3">
+              {FEATURES.map((feature) => (
+                <Card key={feature} className="p-4 space-y-3">
+                  <p className="font-semibold text-foreground">{FEATURE_LABELS[feature] || feature}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">View</span>
                       <Switch
                         checked={permissions[feature]?.can_view || false}
                         onCheckedChange={() => togglePermission(feature, "can_view")}
                       />
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Create</span>
                       <Switch
                         checked={permissions[feature]?.can_create || false}
                         onCheckedChange={() => togglePermission(feature, "can_create")}
                       />
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Edit</span>
                       <Switch
                         checked={permissions[feature]?.can_edit || false}
                         onCheckedChange={() => togglePermission(feature, "can_edit")}
                       />
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Delete</span>
                       <Switch
                         checked={permissions[feature]?.can_delete || false}
                         onCheckedChange={() => togglePermission(feature, "can_delete")}
                       />
-                    </TableCell>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Feature</TableHead>
+                    <TableHead className="text-center">View</TableHead>
+                    <TableHead className="text-center">Create</TableHead>
+                    <TableHead className="text-center">Edit</TableHead>
+                    <TableHead className="text-center">Delete</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {FEATURES.map((feature) => (
+                    <TableRow key={feature}>
+                      <TableCell className="font-medium">{FEATURE_LABELS[feature] || feature}</TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissions[feature]?.can_view || false}
+                          onCheckedChange={() => togglePermission(feature, "can_view")}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissions[feature]?.can_create || false}
+                          onCheckedChange={() => togglePermission(feature, "can_create")}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissions[feature]?.can_edit || false}
+                          onCheckedChange={() => togglePermission(feature, "can_edit")}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={permissions[feature]?.can_delete || false}
+                          onCheckedChange={() => togglePermission(feature, "can_delete")}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
             <Button onClick={handleSavePermissions} disabled={loading} className="w-full">
               {loading ? (
                 <>
