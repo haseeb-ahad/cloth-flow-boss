@@ -109,6 +109,23 @@ const requestNotificationPermission = async () => {
   }
 };
 
+// Vibrate device for notifications (mobile support)
+const vibrateDevice = (type: "normal" | "urgent") => {
+  if ("vibrate" in navigator) {
+    try {
+      if (type === "urgent") {
+        // Urgent: 3 quick vibrations
+        navigator.vibrate([100, 50, 100, 50, 200]);
+      } else {
+        // Normal: 2 short vibrations
+        navigator.vibrate([100, 50, 100]);
+      }
+    } catch (error) {
+      console.log("Vibration not supported:", error);
+    }
+  }
+};
+
 // Show desktop notification
 const showDesktopNotification = (title: string, message: string, isUrgent: boolean) => {
   if ("Notification" in window && Notification.permission === "granted") {
@@ -232,6 +249,9 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
           const latestNotif = notifs[0];
           if (latestNotif && !latestNotif.is_read) {
             const isUrgent = latestNotif.type === "high_priority" || latestNotif.category === "duplicate_attempt";
+            
+            // Vibrate device (mobile)
+            vibrateDevice(isUrgent ? "urgent" : "normal");
             
             if (soundEnabledRef.current) {
               playNotificationSound(isUrgent ? "urgent" : "normal");
