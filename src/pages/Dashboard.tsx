@@ -684,7 +684,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-6 space-y-6">
+    <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-4 md:py-6 space-y-4 md:space-y-6 overflow-x-hidden">
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <AnimatedLogoLoader size="lg" showMessage message={t("loading")} />

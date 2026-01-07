@@ -173,16 +173,16 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 w-full overflow-x-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight flex items-center gap-3">
-            <Users className="h-10 w-10 text-primary" />
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight flex items-center gap-3">
+            <Users className="h-8 w-8 md:h-10 md:w-10 text-primary" />
             Customer List
           </h1>
-          <p className="text-muted-foreground mt-1 text-base">View all customers with credit summary</p>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">View all customers with credit summary</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3 flex-wrap">
           <input
             type="file"
             ref={fileInputRef}
@@ -194,28 +194,30 @@ const Customers = () => {
             <Button 
               onClick={() => fileInputRef.current?.click()} 
               variant="outline"
+              size="sm"
               disabled={isLoading || isImporting}
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
               {isImporting ? "Importing..." : "Import CSV"}
             </Button>
           )}
           <Button 
             onClick={() => exportCustomersToCSV(filteredCustomers)} 
             variant="outline"
+            size="sm"
             disabled={isLoading || filteredCustomers.length === 0}
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-3.5 w-3.5 mr-1.5" />
             Export CSV
           </Button>
           <Button
             onClick={fetchCustomers}
             variant="outline"
-            size="icon"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
             disabled={isLoading}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
