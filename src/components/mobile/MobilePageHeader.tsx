@@ -17,23 +17,25 @@ const MobilePageHeader = ({
   className,
 }: MobilePageHeaderProps) => {
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">
+    <div className={cn("mobile-section-gap w-full overflow-hidden", className)}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between w-full">
+        {/* Title area - left aligned */}
+        <div className="flex items-center gap-3 mobile-align-left">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight text-left truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-sm md:text-base text-muted-foreground mt-1">
+              <p className="text-sm md:text-base text-muted-foreground mt-1 text-left truncate">
                 {subtitle}
               </p>
             )}
           </div>
           {badge}
         </div>
+        {/* Actions - full width buttons stacked on mobile */}
         {actions && (
-          <div className="flex flex-wrap gap-2 md:flex-nowrap">
+          <div className="mobile-btn-stack md:flex-row md:flex-nowrap">
             {actions}
           </div>
         )}

@@ -46,16 +46,16 @@ function ResponsiveTable<T>({
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <div className="mobile-empty-state text-muted-foreground">
         {emptyMessage}
       </div>
     );
   }
 
-  // Mobile: Card-based layout
+  // Mobile: Card-based layout with proper alignment rules
   if (isMobile) {
     return (
-      <div className="space-y-3">
+      <div className="mobile-card-list overflow-x-hidden w-full">
         {data.map((item) => {
           const key = keyExtractor(item);
           const details = mobileCard.details?.(item) || [];
@@ -63,24 +63,24 @@ function ResponsiveTable<T>({
           return (
             <div
               key={key}
-              className="bg-card rounded-2xl border border-border/50 p-4 transition-all duration-200 active:scale-[0.98]"
+              className="mobile-data-card transition-all duration-200 active:scale-[0.98] overflow-hidden"
               onClick={() => mobileCard.onClick?.(item)}
             >
-              {/* Header */}
-              <div className="flex items-start gap-3">
+              {/* Header - Left aligned */}
+              <div className="flex items-start gap-3 w-full">
                 {mobileCard.leftIcon && (
                   <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     {mobileCard.leftIcon(item)}
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-foreground truncate">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <h3 className="font-semibold text-foreground truncate text-left">
                         {mobileCard.title(item)}
                       </h3>
                       {mobileCard.subtitle && (
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-sm text-muted-foreground truncate text-left">
                           {mobileCard.subtitle(item)}
                         </p>
                       )}
@@ -94,13 +94,13 @@ function ResponsiveTable<T>({
                 </div>
               </div>
 
-              {/* Details Grid */}
+              {/* Details Grid - Label above value */}
               {details.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-4 mobile-data-grid">
                   {details.map((detail, index) => (
-                    <div key={index} className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{detail.label}</p>
-                      <div className="text-sm font-medium text-foreground truncate">
+                    <div key={index} className="mobile-data-row min-w-0 overflow-hidden">
+                      <p className="mobile-data-label">{detail.label}</p>
+                      <div className="mobile-data-value">
                         {detail.value}
                       </div>
                     </div>
@@ -108,9 +108,9 @@ function ResponsiveTable<T>({
                 </div>
               )}
 
-              {/* Actions */}
+              {/* Actions - Full width stacked buttons */}
               {mobileCard.actions && (
-                <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-end gap-2">
+                <div className="mt-4 pt-4 border-t border-border/50 mobile-btn-stack">
                   {mobileCard.actions(item)}
                 </div>
               )}
