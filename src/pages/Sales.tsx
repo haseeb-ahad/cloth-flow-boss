@@ -348,28 +348,30 @@ const Sales = () => {
             <Button 
               onClick={() => fileInputRef.current?.click()} 
               variant="outline"
+              size="sm"
               disabled={isLoading || isImporting}
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
               {isImporting ? t("loading") : t("importCSV")}
             </Button>
           )}
           <Button 
             onClick={handleExportCSV} 
             variant="outline"
+            size="sm"
             disabled={isLoading || filteredSales.length === 0}
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-3.5 w-3.5 mr-1.5" />
             {t("exportCSV")}
           </Button>
           <Button 
             onClick={fetchSales} 
             variant="outline" 
-            size="icon"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
             disabled={isLoading}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
