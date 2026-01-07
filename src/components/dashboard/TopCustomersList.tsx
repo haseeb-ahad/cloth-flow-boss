@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CustomerData {
   name: string;
@@ -92,6 +93,7 @@ const CustomerSparkline = ({ color, seed }: { color: string; seed: number }) => 
 };
 
 const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersListProps) => {
+  const { t } = useLanguage();
   const topData = data.slice(0, 5);
 
   if (!topData || topData.length === 0) {
@@ -109,7 +111,7 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
           </div>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[280px]">
-          <p className="text-muted-foreground text-sm">No customer data available</p>
+          <p className="text-muted-foreground text-sm">{t("noCustomerData")}</p>
         </CardContent>
       </Card>
     );
@@ -143,7 +145,7 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
                   {customer.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {valuesHidden ? "••" : customer.orders} orders
+                  {valuesHidden ? "••" : customer.orders} {t("orders")}
                 </p>
               </div>
             </div>
@@ -158,7 +160,7 @@ const TopCustomersList = ({ data, title, subtitle, valuesHidden }: TopCustomersL
                 {valuesHidden ? "••••••" : formatCurrency(customer.totalSpent)}
               </p>
               <p className="text-xs text-purple-500 font-medium">
-                {valuesHidden ? "••••" : formatCurrency(customer.profit)} profit
+                {valuesHidden ? "••••" : formatCurrency(customer.profit)} {t("profit")}
               </p>
             </div>
           </div>

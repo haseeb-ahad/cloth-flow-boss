@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, TrendingUp, TrendingDown } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ProductData {
   name: string;
@@ -16,6 +17,7 @@ interface TopProductsListProps {
 }
 
 const TopProductsList = ({ data, title, subtitle, valuesHidden }: TopProductsListProps) => {
+  const { t } = useLanguage();
   const topData = data.slice(0, 5);
 
   if (!topData || topData.length === 0) {
@@ -33,7 +35,7 @@ const TopProductsList = ({ data, title, subtitle, valuesHidden }: TopProductsLis
           </div>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[280px]">
-          <p className="text-muted-foreground text-sm">No product data available</p>
+          <p className="text-muted-foreground text-sm">{t("noProductData")}</p>
         </CardContent>
       </Card>
     );
@@ -72,7 +74,7 @@ const TopProductsList = ({ data, title, subtitle, valuesHidden }: TopProductsLis
                     {product.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {valuesHidden ? "•••• units" : `${product.quantity} units`}
+                    {valuesHidden ? `•••• ${t("units")}` : `${product.quantity} ${t("units")}`}
                   </p>
                 </div>
               </div>
