@@ -423,17 +423,17 @@ const ReceivePayment = () => {
           <AnimatedLogoLoader size="lg" showMessage message={isSubmitting ? "Processing payment..." : "Loading..."} />
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight flex items-center gap-3">
-            <Banknote className="h-10 w-10 text-primary" />
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight flex items-center gap-3">
+            <Banknote className="h-8 w-8 md:h-10 md:w-10 text-primary" />
             Receive Payment
           </h1>
-          <p className="text-muted-foreground mt-1 text-base">
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
             Record customer payments with auto credit adjustment
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             type="file"
             ref={csvInputRef}
@@ -445,6 +445,7 @@ const ReceivePayment = () => {
             <Button 
               onClick={() => csvInputRef.current?.click()} 
               variant="outline"
+              size="sm"
               disabled={isLoading || isImporting}
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -454,6 +455,7 @@ const ReceivePayment = () => {
           <Button 
             onClick={() => exportPaymentsToCSV(recentPayments)} 
             variant="outline"
+            size="sm"
             disabled={isLoading || recentPayments.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
@@ -466,8 +468,8 @@ const ReceivePayment = () => {
             }}
             variant="outline"
             size="icon"
+            className="h-9 w-9"
             disabled={isLoading}
-            className="hover:bg-primary hover:text-primary-foreground transition-colors"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
