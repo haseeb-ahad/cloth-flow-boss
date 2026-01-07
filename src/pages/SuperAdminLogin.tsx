@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { Shield, Lock, Mail, Sparkles, Eye, EyeOff } from "lucide-react";
 
 // Fixed super admin credentials - ONLY ONE user allowed
-const SUPER_ADMIN_EMAIL = "superadmin@invoxa.com";
-const SUPER_ADMIN_PASSWORD = "admin@super123978cv";
+const SUPER_ADMIN_EMAIL = "admin@invoxa.info";
+const SUPER_ADMIN_PASSWORD = "Invoxa@2024Admin";
 
 const SuperAdminLogin = () => {
   const [email, setEmail] = useState("");
