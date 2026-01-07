@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useAppBadge } from "@/hooks/useAppBadge";
 
 interface Notification {
   id: string;
@@ -31,9 +30,6 @@ const NotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewNotification, setHasNewNotification] = useState(false);
-  
-  // App badge hook for WhatsApp-style notification dot
-  const { setAppBadge, clearAppBadge } = useAppBadge();
 
   useEffect(() => {
     if (!user) return;
@@ -79,15 +75,7 @@ const NotificationBell = () => {
 
     if (!error && data) {
       setNotifications(data as Notification[]);
-      const newUnreadCount = data.filter((n: any) => !n.is_read).length;
-      setUnreadCount(newUnreadCount);
-      
-      // Update app badge (WhatsApp-style notification dot)
-      if (newUnreadCount > 0) {
-        setAppBadge(newUnreadCount);
-      } else {
-        clearAppBadge();
-      }
+      setUnreadCount(data.filter((n: any) => !n.is_read).length);
     }
   };
 
@@ -100,15 +88,7 @@ const NotificationBell = () => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
     );
-    const newCount = Math.max(0, unreadCount - 1);
-    setUnreadCount(newCount);
-    
-    // Update app badge
-    if (newCount > 0) {
-      setAppBadge(newCount);
-    } else {
-      clearAppBadge();
-    }
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   };
 
   const markAllAsRead = async () => {
@@ -122,9 +102,6 @@ const NotificationBell = () => {
     
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
-    
-    // Clear app badge
-    clearAppBadge();
   };
 
   const deleteNotification = async (notificationId: string) => {
