@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ interface StockStats {
 
 const Inventory = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
+  const { t } = useLanguage();
   const isMobile = useIsMobile();
   
   // Permission checks
@@ -203,9 +205,9 @@ const Inventory = () => {
           totalStockByType,
         });
       }
-      toast.success("Products refreshed");
+      toast.success(t("productsRefreshed"));
     } catch (error) {
-      toast.error("Failed to load products");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -404,9 +406,9 @@ const Inventory = () => {
   };
 
   const getStockBadge = (quantity: number) => {
-    if (quantity === 0) return <Badge variant="destructive">Out of Stock</Badge>;
-    if (quantity < 10) return <Badge variant="secondary" className="bg-warning text-warning-foreground">Low Stock</Badge>;
-    return <Badge className="bg-success text-success-foreground">In Stock</Badge>;
+    if (quantity === 0) return <Badge variant="destructive">{t("outOfStock")}</Badge>;
+    if (quantity < 10) return <Badge variant="secondary" className="bg-warning text-warning-foreground">{t("lowStock")}</Badge>;
+    return <Badge className="bg-success text-success-foreground">{t("inStock")}</Badge>;
   };
 
   const formatCurrency = (amount: number) => {
@@ -420,7 +422,7 @@ const Inventory = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <AnimatedLogoLoader size="lg" showMessage message="Loading inventory..." />
+        <AnimatedLogoLoader size="lg" showMessage message={t("loading")} />
       </div>
     );
   }
@@ -430,8 +432,8 @@ const Inventory = () => {
       {/* Header - Mobile Responsive */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Manage your products and stock with QR codes</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t("inventoryManagement")}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">{t("manageProductsQR")}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <input
@@ -448,7 +450,7 @@ const Inventory = () => {
               className="border-primary text-primary hover:bg-primary/10"
             >
               <Printer className="h-4 w-4 mr-2" />
-              Print QR ({selectedProducts.size})
+              {t("printQR")} ({selectedProducts.size})
             </Button>
           )}
           {canCreate && (
@@ -458,7 +460,7 @@ const Inventory = () => {
               disabled={isLoading || isImporting}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? "Importing..." : "Import CSV"}
+              {isImporting ? t("loading") : t("importCSV")}
             </Button>
           )}
           <Button 
@@ -467,7 +469,7 @@ const Inventory = () => {
             disabled={isLoading || filteredProducts.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            {t("exportCSV")}
           </Button>
           <Button onClick={fetchProducts} variant="outline" size="icon" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -482,18 +484,18 @@ const Inventory = () => {
               <DialogTrigger asChild>
                 <Button onClick={() => setIsDialogOpen(true)} disabled={isLoading}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add product
+                  {t("addProduct")}
                 </Button>
               </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingProduct ? "Edit product" : "Add new product"}</DialogTitle>
+              <DialogTitle>{editingProduct ? t("editProduct") : t("addNewProduct")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 {/* Product Image */}
                 <div className="md:row-span-2">
-                  <Label>Product Image</Label>
+                  <Label>{t("productImage")}</Label>
                   <ProductImageUpload
                     currentImageUrl={formData.image_url}
                     onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
