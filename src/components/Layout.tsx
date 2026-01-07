@@ -309,13 +309,19 @@ const Layout = ({ children }: LayoutProps) => {
           
           {/* Theme Toggle for Mobile */}
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 border border-border/50">
-            <Sun className="h-3.5 w-3.5 text-muted-foreground" />
+            <Sun className={cn(
+              "h-3.5 w-3.5 transition-all duration-300",
+              theme === "dark" ? "text-muted-foreground/50 rotate-90 scale-75" : "text-amber-500 rotate-0 scale-100"
+            )} />
             <Switch
               checked={theme === "dark"}
               onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
               className="scale-75"
             />
-            <Moon className="h-3.5 w-3.5 text-muted-foreground" />
+            <Moon className={cn(
+              "h-3.5 w-3.5 transition-all duration-300",
+              theme === "dark" ? "text-blue-400 rotate-0 scale-100" : "text-muted-foreground/50 -rotate-90 scale-75"
+            )} />
           </div>
         </div>
 
@@ -417,13 +423,19 @@ const Layout = ({ children }: LayoutProps) => {
 
                 {/* Theme Toggle */}
                 <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-muted/50 border border-border/50">
-                  <Sun className="h-4 w-4 text-muted-foreground" />
+                  <Sun className={cn(
+                    "h-4 w-4 transition-all duration-300",
+                    theme === "dark" ? "text-muted-foreground/50 rotate-90 scale-75" : "text-amber-500 rotate-0 scale-100"
+                  )} />
                   <Switch
                     checked={theme === "dark"}
                     onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
                     className="data-[state=checked]:bg-primary"
                   />
-                  <Moon className="h-4 w-4 text-muted-foreground" />
+                  <Moon className={cn(
+                    "h-4 w-4 transition-all duration-300",
+                    theme === "dark" ? "text-blue-400 rotate-0 scale-100" : "text-muted-foreground/50 -rotate-90 scale-75"
+                  )} />
                 </div>
 
                 {/* Plan Status Badge */}
