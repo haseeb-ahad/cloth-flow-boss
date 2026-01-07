@@ -288,8 +288,8 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </aside>
 
-        {/* Mobile Header - Simplified for app-like feel */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-center px-4 md:hidden safe-area-pt">
+        {/* Mobile/Tablet Header - Simplified for app-like feel */}
+        <div className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border/50 bg-card/95 backdrop-blur-xl flex items-center justify-center px-4 lg:hidden safe-area-pt">
           <div className="flex items-center gap-2">
             {appSettings.logo_url ? (
               <img 
@@ -392,11 +392,11 @@ const Layout = ({ children }: LayoutProps) => {
         {/* Main Content Area */}
         <div className={cn(
           "flex-1 transition-all duration-300 ease-smooth",
-          "mt-14 mb-16 md:mt-0 md:mb-0", // Mobile: account for header and bottom nav
-          sidebarCollapsed ? "md:ml-[72px]" : "md:ml-64"
+          "mt-14 mb-16 lg:mt-0 lg:mb-0", // Mobile/Tablet: account for header and bottom nav
+          sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
         )}>
-          {/* Modern Top Bar - Hidden on mobile */}
-          <header className="sticky top-0 z-30 border-b border-border/50 bg-card/80 backdrop-blur-xl hidden md:block">
+          {/* Modern Top Bar - Hidden on mobile/tablet */}
+          <header className="sticky top-0 z-30 border-b border-border/50 bg-card/80 backdrop-blur-xl hidden lg:block">
           <div className="flex h-16 items-center justify-end px-4 lg:px-6">
 
               {/* Right - Actions */}
