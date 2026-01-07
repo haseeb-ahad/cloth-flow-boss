@@ -24,37 +24,37 @@ export const AdminStatusIndicator = ({
 
   if (isOnline) {
     return (
-      <div 
-        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 border border-green-200 animate-pulse"
-        title="Online"
-      >
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-        </span>
-        {showLabel && (
-          <span className="text-sm font-medium text-green-600">Active</span>
-        )}
+      <div className="flex flex-col items-end text-right min-w-[70px]">
+        <div 
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 border border-green-200"
+          title="Online"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+          </span>
+          {showLabel && (
+            <span className="text-xs font-medium text-green-600">Online</span>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span 
-        className="inline-block w-2.5 h-2.5 rounded-full bg-muted-foreground/50"
-        title={`Offline - Last seen ${getLastSeenText()}`}
-      />
-      {showLabel && (
-        <span className="text-sm text-muted-foreground">
-          <span className="flex flex-col">
-            <span>Offline</span>
-            {lastSeen && (
-              <span className="text-xs text-muted-foreground">
-                {getLastSeenText()}
-              </span>
-            )}
-          </span>
+    <div className="flex flex-col items-end text-right min-w-[70px]">
+      <div className="flex items-center gap-1.5">
+        <span 
+          className="inline-block w-2 h-2 rounded-full bg-muted-foreground/50 shrink-0"
+          title={`Offline - Last seen ${getLastSeenText()}`}
+        />
+        {showLabel && (
+          <span className="text-xs font-medium text-muted-foreground">Offline</span>
+        )}
+      </div>
+      {showLabel && lastSeen && (
+        <span className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">
+          {getLastSeenText()}
         </span>
       )}
     </div>
