@@ -385,60 +385,60 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
             )}
           </Button>
         </PopoverTrigger>
-      <PopoverContent 
-        className="w-80 sm:w-96 p-0" 
-        align="end"
-        sideOffset={8}
-      >
-        <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span className="font-semibold text-sm">Admin Notifications</span>
-            {unreadCount > 0 && (
-              <Badge variant="secondary" className="text-xs bg-white/20 text-white border-0">
-                {unreadCount} new
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-7 w-7 p-0 hover:bg-white/10",
-                desktopEnabled ? "text-white" : "text-white/50"
+        <PopoverContent 
+          className="w-80 sm:w-96 p-0 z-50" 
+          align="end"
+          sideOffset={8}
+        >
+          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Shield className="h-4 w-4 flex-shrink-0" />
+              <span className="font-semibold text-sm whitespace-nowrap">Notifications</span>
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="text-xs bg-white/20 text-white border-0 flex-shrink-0">
+                  {unreadCount}
+                </Badge>
               )}
-              onClick={toggleDesktopNotifications}
-              title={desktopEnabled ? "Desktop alerts on" : "Desktop alerts off"}
-            >
-              <MonitorSmartphone className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/10"
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
-            >
-              {soundEnabled ? (
-                <Volume2 className="h-3.5 w-3.5" />
-              ) : (
-                <VolumeX className="h-3.5 w-3.5" />
-              )}
-            </Button>
-            {unreadCount > 0 && (
+            </div>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs h-7 text-white/80 hover:text-white hover:bg-white/10"
-                onClick={markAllAsRead}
+                className={cn(
+                  "h-7 w-7 p-0 hover:bg-white/10",
+                  desktopEnabled ? "text-white" : "text-white/50"
+                )}
+                onClick={toggleDesktopNotifications}
+                title={desktopEnabled ? "Desktop alerts on" : "Desktop alerts off"}
               >
-                <Check className="h-3 w-3 mr-1" />
-                Mark all read
+                <MonitorSmartphone className="h-3.5 w-3.5" />
               </Button>
-            )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/10"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+              >
+                {soundEnabled ? (
+                  <Volume2 className="h-3.5 w-3.5" />
+                ) : (
+                  <VolumeX className="h-3.5 w-3.5" />
+                )}
+              </Button>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[10px] h-7 px-1.5 text-white/80 hover:text-white hover:bg-white/10 whitespace-nowrap"
+                  onClick={markAllAsRead}
+                >
+                  <Check className="h-3 w-3 mr-0.5" />
+                  All
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
 
         <ScrollArea className="h-[350px] sm:h-[400px]">
           {notifications.length === 0 ? (
