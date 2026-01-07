@@ -438,7 +438,7 @@ const Layout = ({ children }: LayoutProps) => {
           </header>
 
           {/* Page Content */}
-          <main className="p-4 lg:p-6">
+          <main className="p-4 lg:p-6 overflow-x-hidden">
             {/* Subscription Warning Banner */}
             {userRole === "admin" && subscriptionStatus?.is_expired && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 animate-fade-in">
