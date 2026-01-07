@@ -4,8 +4,10 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone, TIMEZONES } from "@/contexts/TimezoneContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -25,7 +27,9 @@ import {
   ChevronRight,
   Sparkles,
   Menu,
-  AlertTriangle
+  AlertTriangle,
+  Sun,
+  Moon
 } from "lucide-react";
 import {
   Tooltip,
@@ -54,6 +58,7 @@ const Layout = ({ children }: LayoutProps) => {
   const { userRole, signOut, user, hasPermission, subscriptionStatus, ownerId } = useAuth();
   const { timezone } = useTimezone();
   const { t, dir } = useLanguage();
+  const { theme, setTheme } = useTheme();
   const [appSettings, setAppSettings] = useState<AppSettings>({ app_name: null, logo_url: null, description: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -398,6 +403,17 @@ const Layout = ({ children }: LayoutProps) => {
               <div className="flex items-center gap-3 ml-auto">
                 {/* Notification Bell */}
                 <NotificationBell />
+
+                {/* Theme Toggle */}
+                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-muted/50 border border-border/50">
+                  <Sun className="h-4 w-4 text-muted-foreground" />
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <Moon className="h-4 w-4 text-muted-foreground" />
+                </div>
 
                 {/* Plan Status Badge */}
                 {userRole === "admin" && subscriptionStatus && (
