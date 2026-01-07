@@ -119,11 +119,14 @@ const Invoice = () => {
 
   // Fetch receipt settings from app_settings
   const fetchReceiptSettings = async () => {
+    if (!ownerId) return;
+    
     try {
       const { data } = await supabase
         .from("app_settings")
         .select("logo_url, shop_name, shop_address, phone_numbers, owner_names, thank_you_message, footer_message, worker_name, worker_phone")
-        .single();
+        .eq("owner_id", ownerId)
+        .maybeSingle();
       
       if (data) {
         setReceiptSettings({
@@ -152,6 +155,8 @@ const Invoice = () => {
 
   // STABLE LOADING: Only load once, prevent re-renders from resetting items
   useEffect(() => {
+    if (!ownerId) return;
+    
     if (hasLoadedRef.current) {
       debugLog("⚠️ Blocked duplicate load attempt");
       return;
@@ -170,7 +175,7 @@ const Invoice = () => {
       debugLog("✅ Initial data load complete");
     };
     loadData();
-  }, [editSaleId]);
+  }, [editSaleId, ownerId]);
 
   const fetchCustomerNames = async () => {
     // Fetch from centralized customers table
