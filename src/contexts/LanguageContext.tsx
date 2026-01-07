@@ -96,6 +96,9 @@ const translations = {
     inactive: "Inactive",
     pending: "Pending",
     completed: "Completed",
+    refresh: "Refresh",
+    clearFilters: "Clear Filters",
+    noDataFound: "No data found",
     
     // Settings
     generalSettings: "General Settings",
@@ -153,6 +156,8 @@ const translations = {
     finalTotal: "Final Total",
     paid: "Paid",
     due: "Due",
+    partial: "Partial",
+    unpaid: "Unpaid",
     
     // Inventory
     addProduct: "Add Product",
@@ -168,6 +173,19 @@ const translations = {
     lowStock: "Low Stock",
     outOfStock: "Out of Stock",
     inStock: "In Stock",
+    inventoryManagement: "Inventory Management",
+    manageProductsQR: "Manage your products and stock with QR codes",
+    importCSV: "Import CSV",
+    exportCSV: "Export CSV",
+    printQR: "Print QR",
+    stockCost: "Stock Cost",
+    stockWorth: "Stock Worth",
+    potentialProfit: "Potential Profit",
+    totalProductsCount: "Total Products",
+    lowStockItems: "Low Stock Items",
+    editProduct: "Edit product",
+    addNewProduct: "Add new product",
+    productImage: "Product Image",
     
     // Credits
     addCredit: "Add Credit",
@@ -178,6 +196,10 @@ const translations = {
     notes: "Notes",
     paymentReceived: "Payment Received",
     markAsPaid: "Mark as Paid",
+    invoiceCredits: "Invoice Credits",
+    cashCredits: "Cash Credits",
+    creditGiven: "Credit Given",
+    recordPayment: "Record Payment",
     
     // Customers
     addCustomer: "Add Customer",
@@ -195,6 +217,11 @@ const translations = {
     salaries: "Salaries",
     supplies: "Supplies",
     other: "Other",
+    netProfit: "Net Profit",
+    profit: "Profit",
+    expenseManagement: "Expense Management",
+    trackBusinessExpenses: "Track your business expenses and profitability",
+    vsLastPeriod: "vs last period",
     
     // Workers
     addWorker: "Add Worker",
@@ -216,6 +243,29 @@ const translations = {
     recentSales: "Recent Sales",
     salesOverview: "Sales Overview",
     profitOverview: "Profit Overview",
+    sale: "Sale",
+    overviewPerformance: "Overview of your business performance",
+    weeklyAnalytics: "Weekly Analytics",
+    salesByDay: "Sales performance by day",
+    salesByCategory: "Sales by Category",
+    distributionCategories: "Distribution across categories",
+    topSellingProducts: "Top Selling Products",
+    bestPerformers: "Best performers this period",
+    customerActivity: "Customer activity this period",
+    planExpired: "Your plan has expired",
+    upgradeContinue: "Upgrade now to continue using all features",
+    upgradePlan: "Upgrade Plan",
+    hideValues: "Hide values",
+    showValues: "Show values",
+    selectRange: "Select range",
+    startDate: "Start Date",
+    endDate: "End Date",
+    oneWeek: "1 Week",
+    oneMonth: "1 Month",
+    oneYear: "1 Year",
+    grandReport: "Grand Report",
+    customRange: "Custom Range",
+    allTime: "All Time",
     
     // Messages
     savedSuccessfully: "Saved successfully!",
@@ -223,6 +273,9 @@ const translations = {
     errorOccurred: "An error occurred",
     confirmDelete: "Are you sure you want to delete?",
     noPermission: "You do not have permission for this action",
+    productsRefreshed: "Products refreshed",
+    salesRefreshed: "Sales data refreshed",
+    creditsRefreshed: "Credits data refreshed",
     
     // Receipt
     billNo: "Bill No",
@@ -241,6 +294,15 @@ const translations = {
     // Actions
     actions: "Actions",
     moreOptions: "More Options",
+    
+    // Sales page
+    viewManageTransactions: "View and manage all transactions",
+    searchByNamePhoneInvoice: "Search by Name, Phone, or Invoice",
+    filterByDate: "Filter by Date",
+    noSalesFound: "No sales found",
+    walkInCustomer: "Walk-in Customer",
+    remaining: "Remaining",
+    method: "Method",
   },
   ur: {
     // Navigation

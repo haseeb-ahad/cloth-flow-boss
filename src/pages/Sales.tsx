@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -43,6 +44,7 @@ const Sales = () => {
   const navigate = useNavigate();
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate } = useTimezone();
+  const { t } = useLanguage();
   const isMobile = useIsMobile();
   
   // Permission checks
@@ -200,9 +202,9 @@ const Sales = () => {
         setSales(salesWithDetails);
         setFilteredSales(salesWithDetails);
       }
-      toast.success("Sales data refreshed");
+      toast.success(t("salesRefreshed"));
     } catch (error) {
-      toast.error("Failed to fetch sales");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -289,9 +291,15 @@ const Sales = () => {
       credit: "bg-warning text-warning-foreground",
       installment: "bg-secondary text-secondary-foreground",
     };
+    const labels: { [key: string]: string } = {
+      cash: t("cash"),
+      card: t("card"),
+      online: t("online"),
+      credit: t("credit"),
+    };
     return (
       <Badge className={colors[method] || ""}>
-        {method.toUpperCase()}
+        {labels[method] || method.toUpperCase()}
       </Badge>
     );
   };
@@ -299,17 +307,17 @@ const Sales = () => {
   const getPaymentStatusBadge = (finalAmount: number, paidAmount: number) => {
     const remaining = finalAmount - (paidAmount || 0);
     if (remaining <= 0) {
-      return <Badge className="bg-success text-success-foreground">Paid</Badge>;
+      return <Badge className="bg-success text-success-foreground">{t("paid")}</Badge>;
     } else if (paidAmount > 0) {
-      return <Badge className="bg-warning text-warning-foreground">Partial</Badge>;
+      return <Badge className="bg-warning text-warning-foreground">{t("partial")}</Badge>;
     }
-    return <Badge variant="destructive">Unpaid</Badge>;
+    return <Badge variant="destructive">{t("unpaid")}</Badge>;
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <AnimatedLogoLoader size="lg" showMessage message="Loading sales data..." />
+        <AnimatedLogoLoader size="lg" showMessage message={t("loading")} />
       </div>
     );
   }
@@ -320,11 +328,11 @@ const Sales = () => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">Sales History</h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-1">View and manage all transactions</p>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">{t("salesHistory")}</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">{t("viewManageTransactions")}</p>
           </div>
           <span className="text-xs md:text-sm font-medium text-primary bg-primary/10 px-2 md:px-3 py-1 rounded-full">
-            Total: {filteredSales.length}
+            {t("total")}: {filteredSales.length}
           </span>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -343,7 +351,7 @@ const Sales = () => {
               disabled={isLoading || isImporting}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? "Importing..." : "Import CSV"}
+              {isImporting ? t("loading") : t("importCSV")}
             </Button>
           )}
           <Button 
@@ -352,7 +360,7 @@ const Sales = () => {
             disabled={isLoading || filteredSales.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            {t("exportCSV")}
           </Button>
           <Button 
             onClick={fetchSales} 
@@ -370,11 +378,11 @@ const Sales = () => {
       <Card className="p-4">
         <div className="mobile-filter-row mb-4">
           <div>
-            <Label className="text-xs md:text-sm">Search by Name, Phone, or Invoice</Label>
+            <Label className="text-xs md:text-sm">{t("searchByNamePhoneInvoice")}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder={t("search")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -382,7 +390,7 @@ const Sales = () => {
             </div>
           </div>
           <div>
-            <Label className="text-xs md:text-sm">Filter by Date</Label>
+            <Label className="text-xs md:text-sm">{t("filterByDate")}</Label>
             <Input
               type="date"
               value={dateFilter}
@@ -396,7 +404,7 @@ const Sales = () => {
               className="w-full"
               disabled={isLoading}
             >
-              Clear Filters
+              {t("clearFilters")}
             </Button>
           </div>
         </div>
@@ -408,7 +416,7 @@ const Sales = () => {
         <div className="space-y-3">
           {filteredSales.length === 0 ? (
             <Card className="p-8 text-center text-muted-foreground">
-              No sales found
+              {t("noSalesFound")}
             </Card>
           ) : (
             filteredSales.map((sale) => {
@@ -425,7 +433,7 @@ const Sales = () => {
                         {formatDate(sale.created_at, 'datetime')}
                       </p>
                       <p className="text-sm text-foreground mt-1 truncate">
-                        {sale.customer_name || "Walk-in Customer"}
+                        {sale.customer_name || t("walkInCustomer")}
                       </p>
                     </div>
                     <div className="text-right">
@@ -437,21 +445,21 @@ const Sales = () => {
                   {/* Details Grid */}
                   <div className="mt-4 grid grid-cols-4 gap-2 text-center">
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Items</p>
+                      <p className="text-[10px] text-muted-foreground">{t("items")}</p>
                       <p className="text-sm font-semibold text-primary">{sale.item_count}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Paid</p>
+                      <p className="text-[10px] text-muted-foreground">{t("paid")}</p>
                       <p className="text-sm font-medium text-foreground">Rs. {(sale.paid_amount || 0).toFixed(0)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Remaining</p>
+                      <p className="text-[10px] text-muted-foreground">{t("remaining")}</p>
                       <p className={`text-sm font-medium ${remainingAmount > 0 ? 'text-warning' : 'text-success'}`}>
                         Rs. {remainingAmount.toFixed(0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Method</p>
+                      <p className="text-[10px] text-muted-foreground">{t("method")}</p>
                       {getPaymentMethodBadge(sale.payment_method)}
                     </div>
                   </div>

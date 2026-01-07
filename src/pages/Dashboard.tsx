@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import MiniSparkline from "@/components/dashboard/MiniSparkline";
 import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
@@ -61,6 +62,7 @@ interface WeeklyData {
 const Dashboard = () => {
   const { timezone } = useTimezone();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats>({
     totalSales: 0,
     totalProfit: 0,
@@ -670,14 +672,14 @@ const Dashboard = () => {
 
   const getDateRangeLabel = () => {
     switch (dateRange) {
-      case "today": return "Today";
-      case "yesterday": return "Yesterday";
-      case "1week": return "This Week";
-      case "1month": return "This Month";
-      case "1year": return "This Year";
-      case "grand": return "All Time";
-      case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : "Custom Range";
-      default: return "Today";
+      case "today": return t("today");
+      case "yesterday": return t("yesterday");
+      case "1week": return t("thisWeek");
+      case "1month": return t("thisMonth");
+      case "1year": return t("oneYear");
+      case "grand": return t("allTime");
+      case "custom": return startDate && endDate ? `${format(startDate, "PP")} - ${format(endDate, "PP")}` : t("customRange");
+      default: return t("today");
     }
   };
 
@@ -685,7 +687,7 @@ const Dashboard = () => {
     <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-6 space-y-6">
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <AnimatedLogoLoader size="lg" showMessage message="Loading dashboard..." />
+          <AnimatedLogoLoader size="lg" showMessage message={t("loading")} />
         </div>
       )}
       <div id="dashboard-content" className="space-y-6">
@@ -697,8 +699,8 @@ const Dashboard = () => {
                 <Crown className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="font-semibold text-amber-900">Your plan has expired</p>
-                <p className="text-sm text-amber-700">Upgrade now to continue using all features</p>
+                <p className="font-semibold text-amber-900">{t("planExpired")}</p>
+                <p className="text-sm text-amber-700">{t("upgradeContinue")}</p>
               </div>
             </div>
             <Button 
@@ -706,7 +708,7 @@ const Dashboard = () => {
               className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
             >
               <Crown className="w-4 h-4 mr-2" />
-              Upgrade Plan
+              {t("upgradePlan")}
             </Button>
           </div>
         )}
@@ -714,8 +716,8 @@ const Dashboard = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your business performance</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{t("dashboard")}</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">{t("overviewPerformance")}</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center w-full sm:w-auto">
             {isPlanExpired && (
@@ -725,14 +727,14 @@ const Dashboard = () => {
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
               >
                 <Crown className="w-4 h-4 mr-2" />
-                Upgrade
+                {t("upgradePlan")}
               </Button>
             )}
             <Button 
               onClick={toggleValuesVisibility} 
               variant="outline" 
               size="icon"
-              title={valuesHidden ? "Show values" : "Hide values"}
+              title={valuesHidden ? t("showValues") : t("hideValues")}
               className="hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 hover:text-white hover:border-transparent transition-all shrink-0"
             >
               {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -748,16 +750,16 @@ const Dashboard = () => {
             </Button>
             <Select value={dateRange} onValueChange={setDateRange} disabled={isLoading}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Select range" />
+                <SelectValue placeholder={t("selectRange")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="1week">1 Week</SelectItem>
-                <SelectItem value="1month">1 Month</SelectItem>
-                <SelectItem value="1year">1 Year</SelectItem>
-                <SelectItem value="grand">Grand Report</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
+                <SelectItem value="today">{t("today")}</SelectItem>
+                <SelectItem value="yesterday">{t("yesterday")}</SelectItem>
+                <SelectItem value="1week">{t("oneWeek")}</SelectItem>
+                <SelectItem value="1month">{t("oneMonth")}</SelectItem>
+                <SelectItem value="1year">{t("oneYear")}</SelectItem>
+                <SelectItem value="grand">{t("grandReport")}</SelectItem>
+                <SelectItem value="custom">{t("custom")}</SelectItem>
               </SelectContent>
             </Select>
             {dateRange === "custom" && (
@@ -766,7 +768,7 @@ const Dashboard = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full sm:w-[140px]", !startDate && "text-muted-foreground")} disabled={isLoading}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      <span className="truncate">{startDate ? format(startDate, "PP") : "Start Date"}</span>
+                      <span className="truncate">{startDate ? format(startDate, "PP") : t("startDate")}</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -777,7 +779,7 @@ const Dashboard = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full sm:w-[140px]", !endDate && "text-muted-foreground")} disabled={isLoading}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      <span className="truncate">{endDate ? format(endDate, "PP") : "End Date"}</span>
+                      <span className="truncate">{endDate ? format(endDate, "PP") : t("endDate")}</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -793,7 +795,7 @@ const Dashboard = () => {
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '100ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Sale</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t("sale")}</CardTitle>
               <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <ShoppingCart className="h-5 w-5 text-blue-500" />
               </div>
@@ -811,7 +813,7 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '150ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Profit</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t("profit")}</CardTitle>
               <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <TrendingUp className="h-5 w-5 text-purple-500" />
               </div>
@@ -829,7 +831,7 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '200ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Credit</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t("credit")}</CardTitle>
               <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <CreditCard className="h-5 w-5 text-indigo-500" />
               </div>
@@ -851,15 +853,15 @@ const Dashboard = () => {
           <div className="lg:col-span-2">
             <WeeklyBarChart
               data={weeklyData}
-              title="Weekly Analytics"
-              subtitle="Sales performance by day"
+              title={t("weeklyAnalytics")}
+              subtitle={t("salesByDay")}
               valuesHidden={valuesHidden}
             />
           </div>
           <DonutChart
             data={categoryData}
-            title="Sales by Category"
-            subtitle="Distribution across categories"
+            title={t("salesByCategory")}
+            subtitle={t("distributionCategories")}
             valuesHidden={valuesHidden}
             isLoading={isLoading}
           />
@@ -869,14 +871,14 @@ const Dashboard = () => {
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 w-full">
           <TopProductsList
             data={topProducts}
-            title="Top Selling Products"
-            subtitle="Best performers this period"
+            title={t("topSellingProducts")}
+            subtitle={t("bestPerformers")}
             valuesHidden={valuesHidden}
           />
           <TopCustomersList
             data={topCustomers}
-            title="Top Customers"
-            subtitle="Customer activity this period"
+            title={t("topCustomers")}
+            subtitle={t("customerActivity")}
             valuesHidden={valuesHidden}
           />
         </div>
