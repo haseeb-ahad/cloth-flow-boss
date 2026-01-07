@@ -1,21 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
 import { Loader2, Lock, CheckCircle, Eye, EyeOff } from "lucide-react";
-import { z } from "zod";
-
-const passwordSchema = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
 
 export default function UpdatePassword() {
   const navigate = useNavigate();
@@ -24,9 +15,22 @@ export default function UpdatePassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [sessionValid, setSessionValid] = useState<boolean | null>(null);
+  const [userEmail, setUserEmail] = useState<string | undefined>();
+
+  // Password validation
+  const passwordValidation = usePasswordValidation(
+    password,
+    confirmPassword,
+    { email: userEmail }
+  );
+
+  // Check if form is valid
+  const isFormValid = useMemo(() => {
+    return passwordValidation.isValid && password.length >= 8;
+  }, [passwordValidation.isValid, password]);
 
   useEffect(() => {
     // Check if we have a valid session from the reset link
@@ -35,12 +39,14 @@ export default function UpdatePassword() {
       
       if (session) {
         setSessionValid(true);
+        setUserEmail(session.user.email || undefined);
       } else {
         // Listen for auth state changes (recovery token)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
               setSessionValid(true);
+              setUserEmail(session?.user.email || undefined);
             }
           }
         );
@@ -61,31 +67,28 @@ export default function UpdatePassword() {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
+    setError("");
 
-    // Validate
-    const result = passwordSchema.safeParse({ password, confirmPassword });
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message;
-        }
-      });
-      setErrors(fieldErrors);
+    // Validate password
+    if (!passwordValidation.isValid) {
+      setError("Password does not meet security requirements");
+      return;
+    }
+
+    if (!passwordValidation.passwordsMatch) {
+      setError("Passwords do not match");
       return;
     }
 
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        password: password,
+        password: password.trim(),
       });
 
       if (error) throw error;
 
       setSuccess(true);
-      toast.success("Password updated successfully!");
       
       // Sign out and redirect to login after 2 seconds
       setTimeout(async () => {
@@ -94,7 +97,7 @@ export default function UpdatePassword() {
       }, 2000);
     } catch (error: any) {
       console.error("Update password error:", error);
-      toast.error(error.message || "Failed to update password. Please try again.");
+      setError(error.message || "Failed to update password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -159,7 +162,7 @@ export default function UpdatePassword() {
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-bold text-foreground">Set New Password</h1>
           <p className="text-muted-foreground">
-            Enter your new password below
+            Create a strong password that meets our security requirements
           </p>
         </div>
 
@@ -185,7 +188,6 @@ export default function UpdatePassword() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
           </div>
 
           <div className="space-y-2">
@@ -209,10 +211,28 @@ export default function UpdatePassword() {
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          {/* Password Validator */}
+          <PasswordValidator
+            password={password}
+            confirmPassword={confirmPassword}
+            email={userEmail}
+            showStrengthMeter
+          />
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={loading || !isFormValid}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

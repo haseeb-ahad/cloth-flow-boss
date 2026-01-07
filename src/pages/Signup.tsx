@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,16 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff, Store } from "lucide-react";
 import { z } from "zod";
-import { Store } from "lucide-react";
+import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
 
+// Strong password validation schema
 const signupSchema = z.object({
   storeName: z.string().min(2, "Store name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must include at least 1 uppercase letter")
+    .regex(/[a-z]/, "Password must include at least 1 lowercase letter")
+    .regex(/[0-9]/, "Password must include at least 1 number")
+    .regex(/[!@#$%^&*]/, "Password must include at least 1 special character (!@#$%^&*)"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -36,6 +43,24 @@ export default function Signup() {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Password validation hook
+  const passwordValidation = usePasswordValidation(
+    formData.password,
+    formData.confirmPassword,
+    { email: formData.email }
+  );
+
+  // Check if form is valid for submission
+  const isFormValid = useMemo(() => {
+    return (
+      formData.storeName.length >= 2 &&
+      formData.email.includes("@") &&
+      formData.phoneNumber.length >= 10 &&
+      formData.fullName.length >= 2 &&
+      passwordValidation.isValid
+    );
+  }, [formData, passwordValidation.isValid]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,7 +224,7 @@ export default function Signup() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Create a password"
+                placeholder="Create a strong password"
                 className="pl-10 pr-10"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -213,7 +238,6 @@ export default function Signup() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
           </div>
 
           <div className="space-y-2">
@@ -237,10 +261,21 @@ export default function Signup() {
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          {/* Password Validator Component */}
+          <PasswordValidator
+            password={formData.password}
+            confirmPassword={formData.confirmPassword}
+            email={formData.email}
+            showStrengthMeter
+          />
+
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={loading || !isFormValid}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

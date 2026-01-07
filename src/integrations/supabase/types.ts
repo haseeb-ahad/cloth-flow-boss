@@ -506,6 +506,132 @@ export type Database = {
         }
         Relationships: []
       }
+      password_audit_log: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      password_history: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      password_policy_settings: {
+        Row: {
+          created_at: string
+          force_reset_enabled: boolean
+          id: string
+          max_length: number
+          min_length: number
+          password_expiry_days: number | null
+          password_history_count: number
+          require_lowercase: boolean
+          require_number: boolean
+          require_special_char: boolean
+          require_uppercase: boolean
+          special_chars: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          force_reset_enabled?: boolean
+          id?: string
+          max_length?: number
+          min_length?: number
+          password_expiry_days?: number | null
+          password_history_count?: number
+          require_lowercase?: boolean
+          require_number?: boolean
+          require_special_char?: boolean
+          require_uppercase?: boolean
+          special_chars?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          force_reset_enabled?: boolean
+          id?: string
+          max_length?: number
+          min_length?: number
+          password_expiry_days?: number | null
+          password_history_count?: number
+          require_lowercase?: boolean
+          require_number?: boolean
+          require_special_char?: boolean
+          require_uppercase?: boolean
+          special_chars?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      password_reset_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_image_hashes: {
         Row: {
           admin_id: string
@@ -1132,6 +1258,7 @@ export type Database = {
     }
     Functions: {
       check_admin_offline: { Args: never; Returns: undefined }
+      cleanup_expired_password_tokens: { Args: never; Returns: undefined }
       get_owner_id: { Args: { user_id: string }; Returns: string }
       get_user_role: {
         Args: { user_id: string }
