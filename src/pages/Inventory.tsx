@@ -494,7 +494,7 @@ const Inventory = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 {/* Product Image */}
-                <div className="md:row-span-2">
+                <div className="md:row-span-2 space-y-2">
                   <Label>{t("productImage")}</Label>
                   <ProductImageUpload
                     currentImageUrl={formData.image_url}
@@ -504,7 +504,7 @@ const Inventory = () => {
                 </div>
                 
                 {/* Product Name */}
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="name">Product name *</Label>
                   <Input
                     id="name"
@@ -516,7 +516,7 @@ const Inventory = () => {
                 </div>
                 
                 {/* SKU */}
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="sku">SKU / Product Code</Label>
                   <div className="flex gap-2">
                     <Input
@@ -538,7 +538,7 @@ const Inventory = () => {
                 </div>
                 
                 {/* Category */}
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
                   <Input
                     id="category"
@@ -549,7 +549,7 @@ const Inventory = () => {
                 </div>
                 
                 {/* Supplier */}
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="supplier_name">Supplier Name</Label>
                   <Input
                     id="supplier_name"
@@ -560,7 +560,7 @@ const Inventory = () => {
                 </div>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Input
                   id="description"
@@ -571,7 +571,7 @@ const Inventory = () => {
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="purchase_price">Purchase price *</Label>
                   <Input
                     id="purchase_price"
@@ -583,7 +583,7 @@ const Inventory = () => {
                     placeholder="0.00"
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="selling_price">Selling price *</Label>
                   <Input
                     id="selling_price"
@@ -595,7 +595,7 @@ const Inventory = () => {
                     placeholder="0.00"
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="stock_quantity">Stock quantity *</Label>
                   <Input
                     id="stock_quantity"
@@ -607,7 +607,7 @@ const Inventory = () => {
                     placeholder="0"
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="quantity_type">Quantity Type *</Label>
                   <Input
                     id="quantity_type"
