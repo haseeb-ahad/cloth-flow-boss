@@ -1815,6 +1815,7 @@ const Invoice = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox 
                   id="fullPayment" 
+                  className="h-4 w-4"
                   checked={isFullPayment}
                   onCheckedChange={(checked) => {
                     setIsFullPayment(checked as boolean);
@@ -1938,7 +1939,7 @@ const Invoice = () => {
         </div>
 
         <div className="flex gap-2 mt-6">
-          <Button onClick={saveInvoice} className="flex-1" disabled={isSaving}>
+          <Button onClick={saveInvoice} size="sm" className="flex-1" disabled={isSaving}>
             {isSaving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -1952,7 +1953,7 @@ const Invoice = () => {
             )}
           </Button>
           {editSaleId ? (
-            <Button onClick={handleDeleteSale} variant="destructive" disabled={isSaving}>
+            <Button onClick={handleDeleteSale} size="sm" variant="destructive" disabled={isSaving}>
               {isSaving ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
@@ -1963,7 +1964,7 @@ const Invoice = () => {
               )}
             </Button>
           ) : (
-            <Button onClick={resetForm} variant="outline" disabled={isSaving}>
+            <Button onClick={resetForm} size="sm" variant="outline" disabled={isSaving}>
               {t("reset")}
             </Button>
           )}
