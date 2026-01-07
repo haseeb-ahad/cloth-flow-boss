@@ -886,7 +886,7 @@ const Credits = () => {
         </div>
       )}
       
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-foreground tracking-tight">Credits</h1>
           <p className="text-muted-foreground mt-1 text-base">Track customer loans, invoices, and credit management</p>
