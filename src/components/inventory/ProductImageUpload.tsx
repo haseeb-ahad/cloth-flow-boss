@@ -75,7 +75,7 @@ const ProductImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 flex flex-col items-center">
       <input
         type="file"
         ref={fileInputRef}
@@ -85,7 +85,7 @@ const ProductImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }
       />
 
       {previewUrl ? (
-        <div className="relative w-full aspect-square max-w-[200px] rounded-lg overflow-hidden border bg-muted">
+        <div className="relative w-full aspect-square max-w-[180px] rounded-lg overflow-hidden border bg-muted mx-auto">
           <img
             src={previewUrl}
             alt="Product"
@@ -104,7 +104,7 @@ const ProductImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }
       ) : (
         <div
           onClick={() => !isUploading && fileInputRef.current?.click()}
-          className="w-full aspect-square max-w-[200px] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center bg-muted/50"
+          className="w-full aspect-square max-w-[180px] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors cursor-pointer flex flex-col items-center justify-center bg-muted/50 mx-auto"
         >
           {isUploading ? (
             <div className="flex flex-col items-center">

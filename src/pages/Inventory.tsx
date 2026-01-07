@@ -487,15 +487,15 @@ const Inventory = () => {
                   {t("addProduct")}
                 </Button>
               </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto mx-auto">
             <DialogHeader>
               <DialogTitle>{editingProduct ? t("editProduct") : t("addNewProduct")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                 {/* Product Image */}
-                <div className="md:row-span-2 space-y-2">
-                  <Label>{t("productImage")}</Label>
+                <div className="md:row-span-2 space-y-2 flex flex-col items-center">
+                  <Label className="self-start">{t("productImage")}</Label>
                   <ProductImageUpload
                     currentImageUrl={formData.image_url}
                     onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
