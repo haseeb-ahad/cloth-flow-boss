@@ -799,63 +799,66 @@ const Inventory = () => {
       {/* Products List - Mobile Cards or Desktop Table */}
       {isMobile ? (
         // Mobile Card Layout
-        <div className="space-y-3">
+        <div className="space-y-3 w-full">
           {filteredProducts.length === 0 ? (
-            <Card className="p-8 text-center text-muted-foreground">
+            <Card className="p-8 text-center text-muted-foreground w-full">
               No products found
             </Card>
           ) : (
             filteredProducts.map((product) => (
-              <Card key={product.id} className="p-4 active:scale-[0.98] transition-transform">
-                <div className="flex items-start gap-3">
+              <Card key={product.id} className="p-3 active:scale-[0.98] transition-transform w-full overflow-hidden">
+                <div className="flex items-start gap-3 w-full">
                   {/* Product Image */}
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
                         alt={product.name}
-                        className="w-16 h-16 rounded-xl object-cover"
+                        className="w-14 h-14 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                   </div>
                   
                   {/* Product Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
-                        <p className="text-xs text-muted-foreground truncate">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-sm text-foreground truncate">{product.name}</h3>
+                        <p className="text-[11px] text-muted-foreground truncate">
                           {product.category || "Uncategorized"} • {product.sku || "No SKU"}
                         </p>
                       </div>
-                      {getStockBadge(product.stock_quantity)}
+                      <div className="shrink-0">
+                        {getStockBadge(product.stock_quantity)}
+                      </div>
                     </div>
                     
                     {/* Details Grid */}
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <div>
+                    <div className="mt-2 grid grid-cols-3 gap-1">
+                      <div className="min-w-0">
                         <p className="text-[10px] text-muted-foreground">Purchase</p>
-                        <p className="text-xs font-medium">Rs. {product.purchase_price.toFixed(0)}</p>
+                        <p className="text-xs font-medium truncate">Rs. {product.purchase_price.toFixed(0)}</p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[10px] text-muted-foreground">Selling</p>
-                        <p className="text-xs font-semibold text-success">Rs. {product.selling_price.toFixed(0)}</p>
+                        <p className="text-xs font-semibold text-success truncate">Rs. {product.selling_price.toFixed(0)}</p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[10px] text-muted-foreground">Stock</p>
-                        <p className="text-xs font-semibold">{product.stock_quantity} {product.quantity_type}</p>
+                        <p className="text-xs font-semibold truncate">{product.stock_quantity} {product.quantity_type}</p>
                       </div>
                     </div>
                   </div>
                 </div>
                 
                 {/* Actions */}
-                <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
+                <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between gap-2">
                   <Checkbox
+                    className="h-4 w-4"
                     checked={selectedProducts.has(product.id)}
                     onCheckedChange={(checked) => {
                       const newSelected = new Set(selectedProducts);
@@ -867,15 +870,15 @@ const Inventory = () => {
                       setSelectedProducts(newSelected);
                     }}
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <ProductQRCode 
                       productId={product.id} 
                       productName={product.name}
                       sku={product.sku || undefined}
                     />
                     {canEdit && (
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(product)}>
-                        <Edit className="h-4 w-4 mr-1" />
+                      <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => handleEdit(product)}>
+                        <Edit className="h-3.5 w-3.5 mr-1" />
                         Edit
                       </Button>
                     )}
