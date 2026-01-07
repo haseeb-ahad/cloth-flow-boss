@@ -5,17 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Shield, Lock, User, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Shield, Lock, Mail, Sparkles, Eye, EyeOff } from "lucide-react";
 
-const SUPER_ADMIN_USERNAME = "superadmin";
-const DEFAULT_SUPER_ADMIN_PASSWORD = "admin@super123978cv";
-
-const getSuperAdminPassword = () => {
-  return localStorage.getItem("superAdminPassword") || DEFAULT_SUPER_ADMIN_PASSWORD;
-};
+// Fixed super admin credentials - ONLY ONE user allowed
+const SUPER_ADMIN_EMAIL = "superadmin@invoxa.com";
+const SUPER_ADMIN_PASSWORD = "admin@super123978cv";
 
 const SuperAdminLogin = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,12 +25,9 @@ const SuperAdminLogin = () => {
     // Simulate authentication delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    if (username === SUPER_ADMIN_USERNAME && password === getSuperAdminPassword()) {
+    // Check against fixed credentials only
+    if (email === SUPER_ADMIN_EMAIL && password === SUPER_ADMIN_PASSWORD) {
       localStorage.setItem("superAdminAuth", "true");
-      // Store the current password if not already stored (first login)
-      if (!localStorage.getItem("superAdminPassword")) {
-        localStorage.setItem("superAdminPassword", DEFAULT_SUPER_ADMIN_PASSWORD);
-      }
       
       // Generate or retrieve a consistent super admin user ID for notifications
       let superAdminUserId = localStorage.getItem("superAdminUserId");
@@ -79,17 +73,17 @@ const SuperAdminLogin = () => {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-slate-700 font-medium">
-                  Username
+                <Label htmlFor="email" className="text-slate-700 font-medium">
+                  Email
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
-                    id="username"
-                    type="text"
-                    placeholder="Enter username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                     disabled={isLoading}
                     required
