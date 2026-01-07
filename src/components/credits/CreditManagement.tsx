@@ -513,7 +513,7 @@ const CreditManagement = () => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-3 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
         <Card className="p-3 md:p-4 bg-success/10 border-success/30">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
