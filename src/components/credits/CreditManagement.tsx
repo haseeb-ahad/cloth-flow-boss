@@ -513,39 +513,39 @@ const CreditManagement = () => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-3 w-full max-w-full">
-        <Card className="p-3 md:p-4 bg-success/10 border-success/30 w-full max-w-full overflow-hidden">
-          <div className="flex items-start justify-between">
+      <div className="grid grid-cols-1 gap-3 w-full">
+        <Card className="p-3 md:p-4 bg-success/10 border-success/30">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-xs md:text-sm text-muted-foreground">Total Credit Given</p>
               <p className="text-xl md:text-2xl font-bold text-success">Rs. {totalCreditGiven.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Money to receive</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
               <ArrowDownCircle className="h-5 w-5 text-success" />
             </div>
           </div>
         </Card>
-        <Card className="p-3 md:p-4 bg-destructive/10 border-destructive/30 w-full max-w-full overflow-hidden">
-          <div className="flex items-start justify-between">
+        <Card className="p-3 md:p-4 bg-destructive/10 border-destructive/30">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-xs md:text-sm text-muted-foreground">Total Credit Taken</p>
               <p className="text-xl md:text-2xl font-bold text-destructive">Rs. {totalCreditTaken.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Money to pay</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
               <ArrowUpCircle className="h-5 w-5 text-destructive" />
             </div>
           </div>
         </Card>
-        <Card className="p-3 md:p-4 bg-warning/10 border-warning/30 w-full max-w-full overflow-hidden">
-          <div className="flex items-start justify-between">
+        <Card className="p-3 md:p-4 bg-warning/10 border-warning/30">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-xs md:text-sm text-muted-foreground">Total Overdue</p>
               <p className="text-xl md:text-2xl font-bold text-warning">Rs. {totalOverdue.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Past due date</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
               <AlertTriangle className="h-5 w-5 text-warning" />
             </div>
           </div>
