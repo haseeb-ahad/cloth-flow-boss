@@ -134,17 +134,38 @@ const TimezoneContext = createContext<TimezoneContextType | undefined>(undefined
 export const TimezoneProvider = ({ children }: { children: ReactNode }) => {
   const [timezone, setTimezoneState] = useState("Asia/Karachi");
   const [loading, setLoading] = useState(true);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadTimezone = async () => {
+    const loadUserAndTimezone = async () => {
       try {
-        const { data } = await supabase
-          .from("app_settings")
-          .select("timezone")
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        // Get owner_id from user_roles
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role, admin_id")
+          .eq("user_id", user.id)
           .single();
-        
-        if (data?.timezone) {
-          setTimezoneState(data.timezone);
+
+        const resolvedOwnerId = roleData?.role === "admin" ? user.id : roleData?.admin_id;
+        setOwnerId(resolvedOwnerId || null);
+
+        if (resolvedOwnerId) {
+          const { data } = await supabase
+            .from("app_settings")
+            .select("timezone")
+            .eq("owner_id", resolvedOwnerId)
+            .maybeSingle();
+          
+          if (data?.timezone) {
+            setTimezoneState(data.timezone);
+          }
         }
       } catch (error) {
         console.error("Error loading timezone:", error);
@@ -153,24 +174,26 @@ export const TimezoneProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     
-    loadTimezone();
+    loadUserAndTimezone();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadUserAndTimezone();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const setTimezone = async (tz: string) => {
     setTimezoneState(tz);
     
+    if (!ownerId) return;
+    
     try {
-      const { data: settingsData } = await supabase
+      await supabase
         .from("app_settings")
-        .select("id")
-        .single();
-      
-      if (settingsData) {
-        await supabase
-          .from("app_settings")
-          .update({ timezone: tz } as any)
-          .eq("id", settingsData.id);
-      }
+        .update({ timezone: tz } as any)
+        .eq("owner_id", ownerId);
     } catch (error) {
       console.error("Error saving timezone:", error);
     }

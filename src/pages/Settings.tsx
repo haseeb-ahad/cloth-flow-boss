@@ -14,7 +14,7 @@ import { Loader2, Upload, Settings as SettingsIcon, Globe, User, X, Receipt, Plu
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 export default function Settings() {
-  const { user, userRole } = useAuth();
+  const { user, userRole, ownerId } = useAuth();
   const { timezone, setTimezone } = useTimezone();
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -40,17 +40,20 @@ export default function Settings() {
   });
 
   useEffect(() => {
-    loadSettings();
+    if (ownerId) {
+      loadSettings();
+    }
     loadProfile();
-  }, [user]);
+  }, [user, ownerId]);
 
   const loadSettings = async () => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     try {
       // First try to get existing settings for this admin/team
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
+        .eq("owner_id", ownerId)
         .maybeSingle();
 
       if (error) throw error;
@@ -118,7 +121,7 @@ export default function Settings() {
   };
 
   const handleSaveGeneralSettings = async () => {
-    if (userRole !== "admin" || !user) {
+    if (userRole !== "admin" || !user || !ownerId) {
       toast.error("Only admins can update general settings");
       return;
     }
@@ -140,7 +143,7 @@ export default function Settings() {
           worker_name: appSettings.worker_name,
           worker_phone: appSettings.worker_phone,
         } as any)
-        .eq("owner_id", user.id);
+        .eq("owner_id", ownerId);
 
       if (error) throw error;
       toast.success("General settings updated successfully!");
@@ -153,7 +156,7 @@ export default function Settings() {
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (userRole !== "admin") {
+    if (userRole !== "admin" || !ownerId) {
       toast.error("Only admins can upload logo");
       return;
     }
@@ -192,7 +195,7 @@ export default function Settings() {
       const { error: updateError } = await supabase
         .from("app_settings")
         .update({ logo_url: logoUrl })
-        .eq("owner_id", user!.id);
+        .eq("owner_id", ownerId);
 
       if (updateError) throw updateError;
 
@@ -207,7 +210,7 @@ export default function Settings() {
   };
 
   const handleRemoveLogo = async () => {
-    if (userRole !== "admin" || !user) {
+    if (userRole !== "admin" || !user || !ownerId) {
       toast.error("Only admins can remove logo");
       return;
     }
@@ -217,7 +220,7 @@ export default function Settings() {
       const { error: updateError } = await supabase
         .from("app_settings")
         .update({ logo_url: null })
-        .eq("owner_id", user.id);
+        .eq("owner_id", ownerId);
 
       if (updateError) throw updateError;
 
