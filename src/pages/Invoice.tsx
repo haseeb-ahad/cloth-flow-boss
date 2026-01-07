@@ -1417,7 +1417,7 @@ const Invoice = () => {
 
       <Card className="p-6">
         <div className="grid gap-4 md:grid-cols-2 mb-6">
-          <div className="relative">
+          <div className="relative space-y-2">
             <Label htmlFor="customerName">{t("customerNameOptional")}</Label>
             <Input
               id="customerName"
@@ -1448,7 +1448,7 @@ const Invoice = () => {
               </Card>
             )}
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="customerPhone">{t("customerPhoneOptional")}</Label>
             <Input
               id="customerPhone"
@@ -1461,7 +1461,7 @@ const Invoice = () => {
 
         {/* Description and Image Upload */}
         <div className="grid gap-4 md:grid-cols-2 mb-6">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">{t("descriptionOptional")}</Label>
             <Textarea
               id="description"
@@ -1471,7 +1471,7 @@ const Invoice = () => {
               rows={3}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>{t("uploadImageOptional")}</Label>
             <div className="flex flex-col gap-2">
               <input
