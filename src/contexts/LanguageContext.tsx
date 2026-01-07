@@ -1513,7 +1513,14 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
+    // Return a fallback during initial render or when outside provider
+    return {
+      language: "en",
+      setLanguage: () => {},
+      t: (key: TranslationKey) => translations.en[key] || key,
+      dir: "ltr" as const,
+      loading: false,
+    };
   }
   return context;
 };
