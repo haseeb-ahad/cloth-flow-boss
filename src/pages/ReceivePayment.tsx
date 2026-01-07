@@ -493,7 +493,7 @@ const ReceivePayment = () => {
             </h2>
             <div className="space-y-4">
               <div>
-                <Label>Customer</Label>
+                <Label className="mb-2 block">Customer</Label>
                 <Select
                   value={selectedCustomer}
                   onValueChange={setSelectedCustomer}
@@ -513,7 +513,7 @@ const ReceivePayment = () => {
               </div>
 
               <div>
-                <Label>Payment Amount</Label>
+                <Label className="mb-2 block">Payment Amount</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -526,7 +526,7 @@ const ReceivePayment = () => {
               </div>
 
               <div>
-                <Label>Payment Date</Label>
+                <Label className="mb-2 block">Payment Date</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -541,7 +541,7 @@ const ReceivePayment = () => {
 
               {/* Description */}
               <div>
-                <Label>Description (Optional)</Label>
+                <Label className="mb-2 block">Description (Optional)</Label>
                 <Textarea
                   placeholder="Enter reason or notes for this payment..."
                   value={description}
@@ -553,7 +553,7 @@ const ReceivePayment = () => {
 
               {/* Image Upload */}
               <div>
-                <Label>Attachment (Optional)</Label>
+                <Label className="mb-2 block">Attachment (Optional)</Label>
                 <input
                   ref={fileInputRef}
                   type="file"
