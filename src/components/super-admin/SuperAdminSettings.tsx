@@ -242,7 +242,7 @@ const SuperAdminSettings = () => {
       </Card>
 
       {/* Auto-Approve Settings */}
-      <Card className="border-0 shadow-sm bg-white lg:col-span-2">
+      <Card className="border-0 shadow-sm bg-white">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
@@ -407,9 +407,7 @@ const SuperAdminSettings = () => {
       </Card>
 
       {/* Auto-Approval Audit Log */}
-      <div className="lg:col-span-2">
-        <AutoApprovalAuditLog />
-      </div>
+      <AutoApprovalAuditLog />
     </div>
   );
 };
