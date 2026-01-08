@@ -575,13 +575,27 @@ serve(async (req) => {
       }
 
       case "get_approval_audit_logs": {
-        // Fetch audit logs with profile info
-        const { data: logs, error } = await supabase
+        const { start_date, end_date } = data || {};
+        
+        // Build query with optional date filters
+        let query = supabase
           .from("payment_audit_log")
           .select("*")
           .in("action", ["auto_approved", "manually_approved", "payment_submitted", "payment_rejected"])
-          .order("created_at", { ascending: false })
-          .limit(100);
+          .order("created_at", { ascending: false });
+
+        // Apply date range filter if provided
+        if (start_date) {
+          query = query.gte("created_at", start_date);
+        }
+        if (end_date) {
+          query = query.lte("created_at", end_date);
+        }
+
+        // Limit results
+        query = query.limit(500);
+
+        const { data: logs, error } = await query;
 
         if (error) throw error;
 
