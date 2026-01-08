@@ -309,10 +309,10 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
 
       if (insertError) throw insertError;
 
-      // Save image hash and audit log
-      await supabase.functions.invoke("super-admin", {
+      // Process payment with auto-approval check
+      const { data: approvalResult } = await supabase.functions.invoke("super-admin", {
         body: {
-          action: "save_payment_with_audit",
+          action: "process_payment_with_auto_approve",
           data: {
             image_hash: imageHash,
             admin_id: user.id,
@@ -321,22 +321,14 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
             amount: getPlanPrice(selectedPlan),
             transaction_id: trimmedTransactionId,
             plan_name: selectedPlan.name,
+            plan_id: selectedPlan.id,
           },
         },
       });
 
-      // Notify about payment upload
-      await supabase.functions.invoke("super-admin", {
-        body: {
-          action: "notify_payment_uploaded",
-          data: {
-            admin_id: user.id,
-            amount: getPlanPrice(selectedPlan),
-            plan_name: selectedPlan.name,
-            transaction_id: trimmedTransactionId,
-          },
-        },
-      });
+      if (approvalResult?.auto_approved) {
+        toast.success("Payment automatically approved! Your subscription is now active.");
+      }
 
       setStep("success");
       onSuccess?.();

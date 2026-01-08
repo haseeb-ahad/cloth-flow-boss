@@ -678,6 +678,7 @@ export type Database = {
           created_at: string
           id: string
           image_hash: string
+          payment_method: string | null
           payment_request_id: string | null
           proof_url: string
           transaction_id: string | null
@@ -688,6 +689,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_hash: string
+          payment_method?: string | null
           payment_request_id?: string | null
           proof_url: string
           transaction_id?: string | null
@@ -698,6 +700,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_hash?: string
+          payment_method?: string | null
           payment_request_id?: string | null
           proof_url?: string
           transaction_id?: string | null
@@ -764,6 +767,7 @@ export type Database = {
         Row: {
           admin_id: string
           amount: number
+          approval_type: string | null
           created_at: string
           id: string
           ip_address: string | null
@@ -781,6 +785,7 @@ export type Database = {
         Insert: {
           admin_id: string
           amount: number
+          approval_type?: string | null
           created_at?: string
           id?: string
           ip_address?: string | null
@@ -798,6 +803,7 @@ export type Database = {
         Update: {
           admin_id?: string
           amount?: number
+          approval_type?: string | null
           created_at?: string
           id?: string
           ip_address?: string | null
