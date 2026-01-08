@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff, Store } from "lucide-react";
 import { z } from "zod";
+import { motion, AnimatePresence } from "framer-motion";
 import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
 
@@ -30,9 +31,16 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const slideImages = [
+  dashboardPreview,
+  dashboardPreview,
+  dashboardPreview,
+];
+
 export default function Signup() {
   const navigate = useNavigate();
   const { setTheme, theme } = useTheme();
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   // Force light mode on signup page
   useEffect(() => {
@@ -44,6 +52,14 @@ export default function Signup() {
         setTheme(previousTheme);
       }
     };
+  }, []);
+
+  // Auto-slide effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slideImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
   }, []);
   
   const [loading, setLoading] = useState(false);
@@ -81,7 +97,6 @@ export default function Signup() {
     e.preventDefault();
     setErrors({});
 
-    // Validate
     const result = signupSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -104,7 +119,7 @@ export default function Signup() {
             phone_number: formData.phoneNumber,
             full_name: formData.fullName,
             store_name: formData.storeName,
-            role: "admin", // Only admins can sign up through this form
+            role: "admin",
           },
           emailRedirectTo: `${window.location.origin}/dashboard`,
         },
@@ -112,7 +127,6 @@ export default function Signup() {
 
       if (error) throw error;
 
-      // Save store info to database
       if (signUpData.user) {
         await supabase.from("store_info").upsert({
           admin_id: signUpData.user.id,
@@ -120,7 +134,6 @@ export default function Signup() {
         });
       }
 
-      // Notify super admin about new registration
       if (signUpData.user) {
         try {
           await supabase.functions.invoke("super-admin", {
@@ -135,7 +148,6 @@ export default function Signup() {
           });
         } catch (notifyError) {
           console.error("Failed to send notification:", notifyError);
-          // Don't fail signup if notification fails
         }
       }
 
@@ -149,20 +161,55 @@ export default function Signup() {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: [0.25, 0.46, 0.45, 0.94] as const,
+      },
+    },
+  };
+
+  const slideVariants = {
+    enter: { opacity: 0, scale: 1.1, x: 100 },
+    center: { opacity: 1, scale: 1, x: 0 },
+    exit: { opacity: 0, scale: 0.9, x: -100 },
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-8 bg-white overflow-y-auto">
-        <div className="w-full max-w-md mx-auto">
+        <motion.div 
+          className="w-full max-w-md mx-auto"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Header */}
-          <div className="mb-6">
+          <motion.div className="mb-6" variants={itemVariants}>
             <h1 className="text-3xl font-bold text-foreground mb-2">Create Admin Account</h1>
             <p className="text-muted-foreground">Sign up as an administrator</p>
-          </div>
+          </motion.div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             {/* Store Name Field */}
-            <div className="space-y-1.5">
+            <motion.div className="space-y-1.5" variants={itemVariants}>
               <Label htmlFor="storeName" className="text-sm font-medium text-foreground">
                 Store Name
               </Label>
@@ -172,17 +219,25 @@ export default function Signup() {
                   id="storeName"
                   type="text"
                   placeholder="Enter your store name"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-colors"
+                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
                   value={formData.storeName}
                   onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
                   disabled={loading}
                 />
               </div>
-              {errors.storeName && <p className="text-xs text-destructive">{errors.storeName}</p>}
-            </div>
+              {errors.storeName && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-destructive"
+                >
+                  {errors.storeName}
+                </motion.p>
+              )}
+            </motion.div>
 
             {/* Full Name Field */}
-            <div className="space-y-1.5">
+            <motion.div className="space-y-1.5" variants={itemVariants}>
               <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
                 Full Name
               </Label>
@@ -192,17 +247,25 @@ export default function Signup() {
                   id="fullName"
                   type="text"
                   placeholder="Enter your full name"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-colors"
+                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   disabled={loading}
                 />
               </div>
-              {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
-            </div>
+              {errors.fullName && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-destructive"
+                >
+                  {errors.fullName}
+                </motion.p>
+              )}
+            </motion.div>
 
             {/* Email Field */}
-            <div className="space-y-1.5">
+            <motion.div className="space-y-1.5" variants={itemVariants}>
               <Label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
               </Label>
@@ -212,17 +275,25 @@ export default function Signup() {
                   id="email"
                   type="email"
                   placeholder="Enter your email"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-colors"
+                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={loading}
                 />
               </div>
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
+              {errors.email && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-destructive"
+                >
+                  {errors.email}
+                </motion.p>
+              )}
+            </motion.div>
 
             {/* Phone Number Field */}
-            <div className="space-y-1.5">
+            <motion.div className="space-y-1.5" variants={itemVariants}>
               <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">
                 Phone Number
               </Label>
@@ -232,17 +303,25 @@ export default function Signup() {
                   id="phoneNumber"
                   type="tel"
                   placeholder="Enter your phone number"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-colors"
+                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   disabled={loading}
                 />
               </div>
-              {errors.phoneNumber && <p className="text-xs text-destructive">{errors.phoneNumber}</p>}
-            </div>
+              {errors.phoneNumber && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-destructive"
+                >
+                  {errors.phoneNumber}
+                </motion.p>
+              )}
+            </motion.div>
 
             {/* Password Field */}
-            <div className="space-y-1.5">
+            <motion.div className="space-y-1.5" variants={itemVariants}>
               <Label htmlFor="password" className="text-sm font-medium text-foreground">
                 Password
               </Label>
@@ -252,7 +331,7 @@ export default function Signup() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
-                  className="pl-11 pr-11 h-11 border-border/50 bg-background focus:border-primary transition-colors"
+                  className="pl-11 pr-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   disabled={loading}
@@ -265,10 +344,10 @@ export default function Signup() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Confirm Password Field */}
-            <div className="space-y-1.5">
+            <motion.div className="space-y-1.5" variants={itemVariants}>
               <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
                 Confirm Password
               </Label>
@@ -278,7 +357,7 @@ export default function Signup() {
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm your password"
-                  className="pl-11 pr-11 h-11 border-border/50 bg-background focus:border-primary transition-colors"
+                  className="pl-11 pr-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   disabled={loading}
@@ -291,35 +370,39 @@ export default function Signup() {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
             {/* Password Validator Component */}
-            <PasswordValidator
-              password={formData.password}
-              confirmPassword={formData.confirmPassword}
-              email={formData.email}
-              showStrengthMeter
-            />
+            <motion.div variants={itemVariants}>
+              <PasswordValidator
+                password={formData.password}
+                confirmPassword={formData.confirmPassword}
+                email={formData.email}
+                showStrengthMeter
+              />
+            </motion.div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
-              className="w-full h-11 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300 mt-2"
-              disabled={loading || !isFormValid}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                "Sign Up"
-              )}
-            </Button>
+            <motion.div variants={itemVariants}>
+              <Button 
+                type="submit" 
+                className="w-full h-11 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] mt-2"
+                disabled={loading || !isFormValid}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Sign Up"
+                )}
+              </Button>
+            </motion.div>
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 text-center">
+          <motion.div className="mt-6 text-center" variants={itemVariants}>
             <p className="text-muted-foreground">
               Already have an account?{" "}
               <Link 
@@ -329,8 +412,8 @@ export default function Signup() {
                 Login
               </Link>
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Right Side - Showcase */}
@@ -341,7 +424,12 @@ export default function Signup() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 py-12 w-full">
           {/* Text Content */}
-          <div className="mb-8">
+          <motion.div 
+            className="mb-8"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             <h2 className="text-3xl xl:text-4xl font-bold text-white mb-4 leading-tight">
               All-in-One Business<br />Management Platform
             </h2>
@@ -349,29 +437,72 @@ export default function Signup() {
               <span className="font-semibold">Simplify your daily operations and grow your business</span>
               {" "}— Easily manage inventory, billing, expenses, sales, and analytics — everything you need to run your business smoothly in one smart system.
             </p>
-          </div>
+          </motion.div>
 
-          {/* Dashboard Preview */}
+          {/* Dashboard Preview Slider */}
           <div className="relative">
-            <div className="absolute -inset-4 bg-white/10 rounded-3xl blur-xl" />
+            <motion.div 
+              className="absolute -inset-4 bg-white/10 rounded-3xl blur-xl"
+              animate={{ 
+                scale: [1, 1.02, 1],
+                opacity: [0.3, 0.5, 0.3],
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
             <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
-              <img 
-                src={dashboardPreview} 
-                alt="Dashboard Preview" 
-                className="w-full h-auto"
-              />
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentSlide}
+                  src={slideImages[currentSlide]}
+                  alt="Dashboard Preview"
+                  className="w-full h-auto"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.6, ease: "easeInOut" }}
+                />
+              </AnimatePresence>
+            </div>
+
+            {/* Slide Indicators */}
+            <div className="flex justify-center gap-2 mt-4">
+              {slideImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    currentSlide === index 
+                      ? "w-8 bg-white" 
+                      : "w-2 bg-white/40 hover:bg-white/60"
+                  }`}
+                />
+              ))}
             </div>
           </div>
 
           {/* Floating Brand Text */}
           <div className="absolute bottom-8 left-0 right-0 overflow-hidden">
-            <div className="flex items-center gap-8 animate-marquee whitespace-nowrap opacity-30">
+            <motion.div 
+              className="flex items-center gap-8 whitespace-nowrap opacity-30"
+              animate={{ x: [0, -200] }}
+              transition={{ 
+                duration: 10, 
+                repeat: Infinity, 
+                ease: "linear",
+              }}
+            >
               <span className="text-4xl font-bold text-white">Invoxa</span>
               <span className="text-4xl font-bold text-white/60">Invoxa</span>
               <span className="text-4xl font-bold text-white">Invoxa</span>
               <span className="text-4xl font-bold text-white/60">Invoxa</span>
               <span className="text-4xl font-bold text-white">Invoxa</span>
-            </div>
+              <span className="text-4xl font-bold text-white/60">Invoxa</span>
+            </motion.div>
           </div>
         </div>
       </div>
