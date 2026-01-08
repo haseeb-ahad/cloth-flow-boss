@@ -146,9 +146,12 @@ const Customers = () => {
         }
       });
 
-      const uniqueCustomers = Array.from(customerMap.values());
-      setCustomers(uniqueCustomers);
-      setFilteredCustomers(uniqueCustomers);
+      // Only show customers who have sales data (total_credit > 0)
+      const customersWithSales = Array.from(customerMap.values()).filter(
+        customer => customer.total_credit > 0
+      );
+      setCustomers(customersWithSales);
+      setFilteredCustomers(customersWithSales);
       toast.success("Customer list refreshed");
     } catch (error) {
       toast.error("Failed to fetch customers");
