@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -72,6 +73,19 @@ export default function Login() {
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-bold text-foreground">Welcome Back</h1>
           <p className="text-muted-foreground">Login to your account</p>
+        </div>
+
+        {/* Google Auth Button */}
+        <GoogleAuthButton mode="login" />
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-muted-foreground/20" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white/80 px-2 text-muted-foreground">or continue with email</span>
+          </div>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
