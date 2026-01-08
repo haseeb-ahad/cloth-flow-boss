@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { 
   FileText, 
   Package, 
@@ -136,6 +138,21 @@ const testimonials = [
 ];
 
 const Landing = () => {
+  const { setTheme, theme } = useTheme();
+
+  // Force light mode on landing page
+  useEffect(() => {
+    const previousTheme = theme;
+    setTheme("light");
+    
+    return () => {
+      // Restore previous theme when leaving the page
+      if (previousTheme && previousTheme !== "light") {
+        setTheme(previousTheme);
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
       {/* Animated Background Shapes */}
