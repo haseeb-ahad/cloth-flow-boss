@@ -73,33 +73,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify target user is a worker (not admin)
+    // Verify target user is a worker (not admin) belonging to this admin
     const { data: targetRoleData, error: targetRoleError } = await supabaseAdmin
       .from("user_roles")
-      .select("role")
+      .select("role, admin_id")
       .eq("user_id", workerId)
       .single();
 
     console.log(`[DELETE-WORKER] Target role data:`, targetRoleData, targetRoleError);
 
-    // If no role found in user_roles, the user might not exist or already deleted
     if (targetRoleError) {
-      console.log("[DELETE-WORKER] Worker role not found, cleaning up any remaining data");
-      
-      // Clean up profiles and permissions just in case
-      await supabaseAdmin.from("worker_permissions").delete().eq("worker_id", workerId);
-      await supabaseAdmin.from("profiles").delete().eq("user_id", workerId);
-      
-      // Try to delete from auth anyway (might already be gone)
-      try {
-        await supabaseAdmin.auth.admin.deleteUser(workerId);
-      } catch (e) {
-        console.log("[DELETE-WORKER] Auth user might already be deleted:", e);
-      }
-      
+      console.log("[DELETE-WORKER] Worker role not found, may not exist");
       return new Response(
-        JSON.stringify({ success: true, message: "Worker data cleaned up" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Worker not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -111,8 +98,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Delete worker permissions first
-    console.log(`[DELETE-WORKER] Deleting permissions for worker ${workerId}`);
+    // Verify this worker belongs to the requesting admin
+    if (targetRoleData?.admin_id !== userData.user.id) {
+      console.log("[DELETE-WORKER] Worker does not belong to this admin");
+      return new Response(
+        JSON.stringify({ error: "You can only delete your own workers" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Step 1: Delete worker permissions
+    console.log(`[DELETE-WORKER] Step 1: Deleting permissions for worker ${workerId}`);
     const { error: permError } = await supabaseAdmin
       .from("worker_permissions")
       .delete()
@@ -122,29 +118,41 @@ Deno.serve(async (req) => {
       console.log("[DELETE-WORKER] Error deleting permissions (continuing):", permError);
     }
 
-    // Delete user from auth.users (this will cascade to profiles, user_roles)
-    console.log(`[DELETE-WORKER] Deleting auth user ${workerId}`);
+    // Step 2: Delete from user_roles first (before auth deletion)
+    console.log(`[DELETE-WORKER] Step 2: Deleting from user_roles for worker ${workerId}`);
+    const { error: roleDeleteError } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", workerId);
+    
+    if (roleDeleteError) {
+      console.error("[DELETE-WORKER] Error deleting from user_roles:", roleDeleteError);
+    }
+
+    // Step 3: Delete from profiles
+    console.log(`[DELETE-WORKER] Step 3: Deleting from profiles for worker ${workerId}`);
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .delete()
+      .eq("user_id", workerId);
+    
+    if (profileError) {
+      console.error("[DELETE-WORKER] Error deleting from profiles:", profileError);
+    }
+
+    // Step 4: Delete user from auth.users
+    console.log(`[DELETE-WORKER] Step 4: Deleting auth user ${workerId}`);
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(workerId);
 
     if (deleteError) {
       console.error("[DELETE-WORKER] Error deleting worker from auth:", deleteError);
-      
-      // If user not found in auth, still clean up database records
-      if (deleteError.message?.includes("User not found")) {
-        console.log("[DELETE-WORKER] User not in auth, cleaning up database records");
-        await supabaseAdmin.from("user_roles").delete().eq("user_id", workerId);
-        await supabaseAdmin.from("profiles").delete().eq("user_id", workerId);
-        
+      // If user already not in auth, that's fine - we cleaned up DB records
+      if (!deleteError.message?.includes("User not found")) {
         return new Response(
-          JSON.stringify({ success: true, message: "Worker records cleaned up" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: deleteError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
-      return new Response(
-        JSON.stringify({ error: deleteError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     console.log(`[DELETE-WORKER] Worker ${workerId} deleted successfully by admin ${userData.user.id}`);
