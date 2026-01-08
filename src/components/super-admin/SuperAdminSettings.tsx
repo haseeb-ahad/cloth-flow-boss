@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2, RefreshCw, Zap, Shield } from "lucide-react";
 
 // Default super admin password (same as in SuperAdminLogin.tsx)
 const DEFAULT_SUPER_ADMIN_PASSWORD = "admin@super123978cv";
@@ -28,12 +29,18 @@ const SuperAdminSettings = () => {
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Auto-approve settings
+  const [autoApproveEnabled, setAutoApproveEnabled] = useState(false);
+  const [isLoadingAutoApprove, setIsLoadingAutoApprove] = useState(true);
+  const [isSavingAutoApprove, setIsSavingAutoApprove] = useState(false);
+
   useEffect(() => {
     const storedId = localStorage.getItem("superAdminUserId");
     if (storedId) {
       setSuperAdminUserId(storedId);
     }
     fetchNotificationSettings();
+    fetchAutoApproveSetting();
   }, []);
 
   const generateSuperAdminId = async () => {
@@ -55,6 +62,34 @@ const SuperAdminSettings = () => {
 
   const fetchNotificationSettings = async () => {
     // Just for display
+  };
+
+  const fetchAutoApproveSetting = async () => {
+    setIsLoadingAutoApprove(true);
+    try {
+      const { data } = await supabase.functions.invoke("super-admin", {
+        body: { action: "get_auto_approve_setting" },
+      });
+      setAutoApproveEnabled(data?.enabled || false);
+    } catch (error) {
+      console.error("Error fetching auto-approve setting:", error);
+    }
+    setIsLoadingAutoApprove(false);
+  };
+
+  const handleAutoApproveToggle = async (enabled: boolean) => {
+    setIsSavingAutoApprove(true);
+    try {
+      await supabase.functions.invoke("super-admin", {
+        body: { action: "set_auto_approve_setting", data: { enabled } },
+      });
+      setAutoApproveEnabled(enabled);
+      toast.success(enabled ? "Auto-approval enabled" : "Auto-approval disabled");
+    } catch (error) {
+      console.error("Error updating auto-approve setting:", error);
+      toast.error("Failed to update setting");
+    }
+    setIsSavingAutoApprove(false);
   };
 
   const saveNotificationSettings = async () => {
@@ -202,6 +237,67 @@ const SuperAdminSettings = () => {
               </>
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Auto-Approve Settings */}
+      <Card className="border-0 shadow-sm bg-white lg:col-span-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+            Auto-Approval Settings
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Automatically approve trusted payments that meet all security conditions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-emerald-100">
+                <Shield className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-medium text-slate-900">Enable Auto-Approve</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Payments will be auto-approved only if ALL conditions are met:
+                </p>
+                <ul className="text-xs text-slate-500 mt-2 space-y-1 list-disc list-inside">
+                  <li>Unique payment screenshot (SHA-256 hash)</li>
+                  <li>Unique transaction/reference ID</li>
+                  <li>Amount exactly matches plan price</li>
+                  <li>No duplicate approved payments for same user</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {isSavingAutoApprove && (
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+              )}
+              <Switch
+                checked={autoApproveEnabled}
+                onCheckedChange={handleAutoApproveToggle}
+                disabled={isLoadingAutoApprove || isSavingAutoApprove}
+              />
+            </div>
+          </div>
+
+          {autoApproveEnabled && (
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-sm text-amber-800 flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                Auto-approval is <strong>enabled</strong>. Trusted payments will be approved instantly.
+              </p>
+            </div>
+          )}
+
+          {!autoApproveEnabled && !isLoadingAutoApprove && (
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <p className="text-sm text-slate-600">
+                Auto-approval is <strong>disabled</strong>. All payments require manual review.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

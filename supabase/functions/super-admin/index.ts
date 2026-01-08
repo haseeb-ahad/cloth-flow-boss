@@ -200,6 +200,348 @@ serve(async (req) => {
         );
       }
 
+      case "get_auto_approve_setting": {
+        const { data: setting } = await supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", "auto_approve_payments")
+          .maybeSingle();
+        
+        return new Response(
+          JSON.stringify({ enabled: setting?.setting_value === "true" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "set_auto_approve_setting": {
+        const { enabled } = data;
+        
+        const { data: existing } = await supabase
+          .from("system_settings")
+          .select("id")
+          .eq("setting_key", "auto_approve_payments")
+          .maybeSingle();
+        
+        if (existing) {
+          await supabase
+            .from("system_settings")
+            .update({ setting_value: enabled ? "true" : "false" })
+            .eq("id", existing.id);
+        } else {
+          await supabase
+            .from("system_settings")
+            .insert({ setting_key: "auto_approve_payments", setting_value: enabled ? "true" : "false" });
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "process_payment_with_auto_approve": {
+        const { 
+          image_hash, 
+          admin_id, 
+          proof_url, 
+          payment_request_id, 
+          amount, 
+          transaction_id, 
+          plan_name,
+          plan_id,
+          ip_address,
+          user_agent
+        } = data;
+
+        console.log(`Processing payment for admin ${admin_id}, amount: ${amount}, tx: ${transaction_id}`);
+
+        // Check if auto-approve is enabled
+        const { data: autoApproveSetting } = await supabase
+          .from("system_settings")
+          .select("setting_value")
+          .eq("setting_key", "auto_approve_payments")
+          .maybeSingle();
+        
+        const autoApproveEnabled = autoApproveSetting?.setting_value === "true";
+        console.log(`Auto-approve enabled: ${autoApproveEnabled}`);
+
+        let approvalResult = {
+          auto_approved: false,
+          status: "pending",
+          reason: "",
+          checks: {
+            unique_hash: false,
+            unique_transaction: false,
+            amount_matches: false,
+            no_duplicate_approved: false
+          }
+        };
+
+        if (autoApproveEnabled) {
+          // Check 1: Image hash is unique
+          const { data: existingHash } = await supabase
+            .from("payment_image_hashes")
+            .select("id")
+            .eq("image_hash", image_hash)
+            .maybeSingle();
+          
+          approvalResult.checks.unique_hash = !existingHash;
+          console.log(`Check 1 - Unique hash: ${approvalResult.checks.unique_hash}`);
+
+          // Check 2: Transaction ID is unique
+          const { data: existingTx } = await supabase
+            .from("payment_requests")
+            .select("id")
+            .eq("transaction_id", transaction_id)
+            .neq("id", payment_request_id)
+            .maybeSingle();
+          
+          approvalResult.checks.unique_transaction = !existingTx;
+          console.log(`Check 2 - Unique transaction: ${approvalResult.checks.unique_transaction}`);
+
+          // Check 3: Amount matches plan exactly
+          const { data: plan } = await supabase
+            .from("plans")
+            .select("monthly_price, yearly_price, daily_price, duration_months")
+            .eq("id", plan_id)
+            .single();
+          
+          if (plan) {
+            const expectedPrice = plan.duration_months >= 12 && plan.yearly_price > 0 
+              ? plan.yearly_price 
+              : plan.duration_months < 1 
+                ? plan.daily_price 
+                : plan.monthly_price;
+            approvalResult.checks.amount_matches = Math.abs(amount - expectedPrice) < 0.01;
+          }
+          console.log(`Check 3 - Amount matches: ${approvalResult.checks.amount_matches}`);
+
+          // Check 4: No other approved payment with same amount, user, and transaction ID
+          const { data: duplicateApproved } = await supabase
+            .from("payment_requests")
+            .select("id")
+            .eq("admin_id", admin_id)
+            .eq("amount", amount)
+            .eq("status", "approved")
+            .neq("id", payment_request_id)
+            .limit(1);
+          
+          approvalResult.checks.no_duplicate_approved = !duplicateApproved || duplicateApproved.length === 0;
+          console.log(`Check 4 - No duplicate approved: ${approvalResult.checks.no_duplicate_approved}`);
+
+          // All checks must pass for auto-approval
+          const allChecksPassed = 
+            approvalResult.checks.unique_hash &&
+            approvalResult.checks.unique_transaction &&
+            approvalResult.checks.amount_matches &&
+            approvalResult.checks.no_duplicate_approved;
+
+          if (allChecksPassed) {
+            approvalResult.auto_approved = true;
+            approvalResult.status = "approved";
+            approvalResult.reason = "All auto-approval conditions met";
+            console.log("All checks passed - AUTO APPROVING");
+          } else {
+            approvalResult.reason = "One or more auto-approval conditions failed";
+            console.log("Checks failed - sending to manual review");
+          }
+        } else {
+          approvalResult.reason = "Auto-approval is disabled";
+        }
+
+        // Save image hash
+        if (image_hash) {
+          await supabase.from("payment_image_hashes").insert({
+            image_hash,
+            admin_id,
+            proof_url,
+            payment_request_id,
+            amount,
+            transaction_id,
+          });
+        }
+
+        // Log to audit table
+        await supabase.from("payment_audit_log").insert({
+          admin_id,
+          action: approvalResult.auto_approved ? "auto_approved" : "payment_submitted",
+          image_hash,
+          transaction_id,
+          amount,
+          ip_address,
+          user_agent,
+          details: { 
+            plan_name, 
+            proof_url, 
+            payment_request_id,
+            approval_checks: approvalResult.checks,
+            auto_approve_enabled: autoApproveEnabled
+          },
+        });
+
+        // If auto-approved, update the payment request and activate subscription
+        if (approvalResult.auto_approved) {
+          // Update payment request status
+          await supabase
+            .from("payment_requests")
+            .update({
+              status: "approved",
+              approval_type: "auto",
+              verified_at: new Date().toISOString(),
+              verified_by: "system_auto_approve",
+            })
+            .eq("id", payment_request_id);
+
+          // Get plan details for subscription
+          const { data: planDetails } = await supabase
+            .from("plans")
+            .select("*")
+            .eq("id", plan_id)
+            .single();
+
+          if (planDetails) {
+            // Calculate end date
+            let endDate = null;
+            let status = "active";
+
+            if (planDetails.is_lifetime) {
+              status = "free";
+              endDate = null;
+            } else {
+              const durationMs = planDetails.duration_months * 30 * 24 * 60 * 60 * 1000;
+              endDate = new Date(Date.now() + durationMs).toISOString();
+            }
+
+            // Check if subscription exists
+            const { data: existingSub } = await supabase
+              .from("subscriptions")
+              .select("id")
+              .eq("admin_id", admin_id)
+              .maybeSingle();
+
+            if (existingSub) {
+              await supabase
+                .from("subscriptions")
+                .update({
+                  plan_id,
+                  status,
+                  start_date: new Date().toISOString(),
+                  end_date: endDate,
+                  amount_paid: amount,
+                  billing_cycle: planDetails.is_lifetime ? "lifetime" : "monthly",
+                  is_trial: false,
+                })
+                .eq("id", existingSub.id);
+            } else {
+              await supabase.from("subscriptions").insert({
+                admin_id,
+                plan_id,
+                status,
+                end_date: endDate,
+                amount_paid: amount,
+                billing_cycle: planDetails.is_lifetime ? "lifetime" : "monthly",
+                is_trial: false,
+              });
+            }
+
+            // Sync plan features
+            if (planDetails.features) {
+              await supabase
+                .from("admin_feature_overrides")
+                .delete()
+                .eq("admin_id", admin_id);
+
+              const features = planDetails.features as Record<string, any>;
+              const overrideRecords = Object.entries(features).map(([feature, perms]: [string, any]) => ({
+                admin_id,
+                feature,
+                can_view: perms.view || false,
+                can_create: perms.create || false,
+                can_edit: perms.edit || false,
+                can_delete: perms.delete || false,
+              }));
+
+              if (overrideRecords.length > 0) {
+                await supabase.from("admin_feature_overrides").insert(overrideRecords);
+              }
+            }
+
+            // Create payment record
+            await supabase.from("payments").insert({
+              admin_id,
+              amount,
+              payment_method: "bank_transfer",
+              status: "success",
+              transaction_id: `AUTO-${transaction_id}`,
+            });
+
+            // Notify admin about auto-approval
+            await createNotification(
+              supabase,
+              admin_id,
+              "🎉 Payment Auto-Approved!",
+              `Your payment for ${plan_name} (Rs ${amount}) was automatically verified and your subscription is now active!`,
+              "success",
+              "subscription_activated",
+              { plan_name, end_date: endDate, approval_type: "auto" }
+            );
+
+            // Notify super admins about auto-approval
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("email, full_name")
+              .eq("user_id", admin_id)
+              .single();
+
+            await notifySuperAdmins(
+              supabase,
+              "✅ Payment Auto-Approved",
+              `${profile?.full_name || profile?.email || "An admin"}'s payment for ${plan_name} (Rs ${amount}) was automatically approved.`,
+              "info",
+              "auto_approval",
+              { admin_id, amount, plan_name, transaction_id }
+            );
+          }
+        } else {
+          // Notify super admins about pending payment
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, full_name")
+            .eq("user_id", admin_id)
+            .single();
+
+          await notifySuperAdmins(
+            supabase,
+            "💳 New Payment Proof Uploaded",
+            `${profile?.full_name || profile?.email || "An admin"} has uploaded payment proof for ${plan_name}. Amount: Rs ${amount}. Manual review required.`,
+            "info",
+            "payment_upload",
+            { admin_id, amount, plan_name, transaction_id, failed_checks: approvalResult.checks }
+          );
+
+          // Notify admin
+          await createNotification(
+            supabase,
+            admin_id,
+            "Payment Proof Submitted",
+            `Your payment proof for ${plan_name} (Rs ${amount}) has been submitted and is pending verification.`,
+            "info",
+            "payment_upload",
+            { amount, plan_name }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            auto_approved: approvalResult.auto_approved,
+            status: approvalResult.status,
+            reason: approvalResult.reason
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       case "save_payment_with_audit": {
         const { image_hash, admin_id, proof_url, payment_request_id, amount, transaction_id, plan_name } = data;
         
@@ -224,107 +566,6 @@ serve(async (req) => {
           amount,
           details: { plan_name, proof_url, payment_request_id },
         });
-        
-        return new Response(
-          JSON.stringify({ success: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      case "get_payment_requests_with_security": {
-        const { data: requests, error } = await supabase
-          .from("payment_requests")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        const adminIds = [...new Set(requests?.map((r) => r.admin_id) || [])];
-        const planIds = [...new Set(requests?.map((r) => r.plan_id).filter(Boolean) || [])];
-
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, email, full_name")
-          .in("user_id", adminIds);
-
-        const { data: plans } = await supabase
-          .from("plans")
-          .select("id, name, duration_months")
-          .in("id", planIds);
-
-        // Get all image hashes for duplicate detection
-        const { data: imageHashes } = await supabase
-          .from("payment_image_hashes")
-          .select("image_hash, payment_request_id");
-
-        // Check for duplicate hashes and transaction IDs
-        const hashCounts: Record<string, number> = {};
-        const txCounts: Record<string, number> = {};
-
-        imageHashes?.forEach(h => {
-          hashCounts[h.image_hash] = (hashCounts[h.image_hash] || 0) + 1;
-        });
-
-        requests?.forEach(r => {
-          if (r.transaction_id) {
-            txCounts[r.transaction_id] = (txCounts[r.transaction_id] || 0) + 1;
-          }
-        });
-
-        const requestsWithDetails = requests?.map((request) => {
-          const relatedHash = imageHashes?.find(h => h.payment_request_id === request.id);
-          const hasDuplicateHash = relatedHash ? (hashCounts[relatedHash.image_hash] || 0) > 1 : false;
-          const hasDuplicateTx = request.transaction_id ? (txCounts[request.transaction_id] || 0) > 1 : false;
-
-          return {
-            ...request,
-            profile: profiles?.find((p) => p.user_id === request.admin_id),
-            plan: plans?.find((p) => p.id === request.plan_id),
-            duplicate_warning: {
-              has_duplicate_hash: hasDuplicateHash,
-              has_duplicate_transaction: hasDuplicateTx,
-              message: hasDuplicateHash || hasDuplicateTx 
-                ? "This payment may be fraudulent - duplicate detected" 
-                : null,
-            },
-          };
-        });
-
-        return new Response(JSON.stringify({ requests: requestsWithDetails }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      case "notify_payment_uploaded": {
-        const { admin_id, amount, plan_name } = data;
-        
-        // Get admin profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("email, full_name")
-          .eq("user_id", admin_id)
-          .single();
-        
-        // Notify super admins
-        await notifySuperAdmins(
-          supabase,
-          "💳 New Payment Proof Uploaded",
-          `${profile?.full_name || profile?.email || "An admin"} has uploaded payment proof for ${plan_name}. Amount: Rs ${amount}`,
-          "info",
-          "payment_upload",
-          { admin_id, amount, plan_name }
-        );
-        
-        // Notify admin
-        await createNotification(
-          supabase,
-          admin_id,
-          "Payment Proof Submitted",
-          `Your payment proof for ${plan_name} (Rs ${amount}) has been submitted and is pending verification.`,
-          "info",
-          "payment_upload",
-          { amount, plan_name }
-        );
         
         return new Response(
           JSON.stringify({ success: true }),
