@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CheckCircle2, 
@@ -17,9 +21,12 @@ import {
   DollarSign,
   Copy,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  CalendarIcon,
+  X
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface AuditLogEntry {
   id: string;
@@ -55,16 +62,24 @@ const AutoApprovalAuditLog = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "auto" | "manual" | "pending">("all");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     fetchAuditLogs();
   }, []);
 
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = async (fromDate?: Date, toDate?: Date) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("super-admin", {
-        body: { action: "get_approval_audit_logs" },
+        body: { 
+          action: "get_approval_audit_logs",
+          data: {
+            start_date: fromDate ? startOfDay(fromDate).toISOString() : undefined,
+            end_date: toDate ? endOfDay(toDate).toISOString() : undefined,
+          }
+        },
       });
 
       if (error) throw error;
@@ -73,6 +88,24 @@ const AutoApprovalAuditLog = () => {
       console.error("Error fetching audit logs:", error);
     }
     setIsLoading(false);
+  };
+
+  const handleDateFilter = () => {
+    fetchAuditLogs(startDate, endDate);
+  };
+
+  const clearDateFilter = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    fetchAuditLogs();
+  };
+
+  const applyQuickFilter = (days: number) => {
+    const end = new Date();
+    const start = subDays(end, days);
+    setStartDate(start);
+    setEndDate(end);
+    fetchAuditLogs(start, end);
   };
 
   const filteredLogs = logs.filter((log) => {
@@ -157,7 +190,7 @@ const AutoApprovalAuditLog = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchAuditLogs}
+            onClick={() => fetchAuditLogs(startDate, endDate)}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -166,6 +199,92 @@ const AutoApprovalAuditLog = () => {
               <RefreshCw className="w-4 h-4" />
             )}
           </Button>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="flex flex-wrap items-end gap-2 mt-4 p-3 rounded-lg bg-slate-50 border">
+          <div className="flex-1 min-w-[140px]">
+            <Label className="text-xs text-slate-600 mb-1 block">From Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-8",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-3 w-3" />
+                  {startDate ? format(startDate, "MMM dd, yyyy") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex-1 min-w-[140px]">
+            <Label className="text-xs text-slate-600 mb-1 block">To Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-8",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-3 w-3" />
+                  {endDate ? format(endDate, "MMM dd, yyyy") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex gap-1">
+            <Button size="sm" variant="default" onClick={handleDateFilter} className="h-8 text-xs">
+              Apply
+            </Button>
+            {(startDate || endDate) && (
+              <Button size="sm" variant="ghost" onClick={clearDateFilter} className="h-8 px-2">
+                <X className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Filters */}
+        <div className="flex gap-1 mt-2 flex-wrap">
+          <span className="text-xs text-slate-500 mr-1 self-center">Quick:</span>
+          {[
+            { label: "7 days", days: 7 },
+            { label: "30 days", days: 30 },
+            { label: "90 days", days: 90 },
+          ].map((q) => (
+            <Button
+              key={q.days}
+              variant="ghost"
+              size="sm"
+              onClick={() => applyQuickFilter(q.days)}
+              className="h-6 text-xs px-2"
+            >
+              {q.label}
+            </Button>
+          ))}
         </div>
 
         {/* Filter Tabs */}
