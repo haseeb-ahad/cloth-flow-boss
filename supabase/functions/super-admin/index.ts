@@ -175,6 +175,126 @@ serve(async (req) => {
         );
       }
 
+      case "check_duplicate_transaction": {
+        const { transaction_id, admin_id } = data;
+        
+        const { data: existing } = await supabase
+          .from("payment_requests")
+          .select("id, admin_id, status")
+          .eq("transaction_id", transaction_id)
+          .maybeSingle();
+        
+        if (existing) {
+          return new Response(
+            JSON.stringify({ 
+              is_duplicate: true, 
+              message: "This transaction ID has already been used for a payment request." 
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ is_duplicate: false }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "save_payment_with_audit": {
+        const { image_hash, admin_id, proof_url, payment_request_id, amount, transaction_id, plan_name } = data;
+        
+        // Save image hash
+        if (image_hash) {
+          await supabase.from("payment_image_hashes").insert({
+            image_hash,
+            admin_id,
+            proof_url,
+            payment_request_id,
+            amount,
+            transaction_id,
+          });
+        }
+        
+        // Log to audit table
+        await supabase.from("payment_audit_log").insert({
+          admin_id,
+          action: "payment_submitted",
+          image_hash,
+          transaction_id,
+          amount,
+          details: { plan_name, proof_url, payment_request_id },
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "get_payment_requests_with_security": {
+        const { data: requests, error } = await supabase
+          .from("payment_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const adminIds = [...new Set(requests?.map((r) => r.admin_id) || [])];
+        const planIds = [...new Set(requests?.map((r) => r.plan_id).filter(Boolean) || [])];
+
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, email, full_name")
+          .in("user_id", adminIds);
+
+        const { data: plans } = await supabase
+          .from("plans")
+          .select("id, name, duration_months")
+          .in("id", planIds);
+
+        // Get all image hashes for duplicate detection
+        const { data: imageHashes } = await supabase
+          .from("payment_image_hashes")
+          .select("image_hash, payment_request_id");
+
+        // Check for duplicate hashes and transaction IDs
+        const hashCounts: Record<string, number> = {};
+        const txCounts: Record<string, number> = {};
+
+        imageHashes?.forEach(h => {
+          hashCounts[h.image_hash] = (hashCounts[h.image_hash] || 0) + 1;
+        });
+
+        requests?.forEach(r => {
+          if (r.transaction_id) {
+            txCounts[r.transaction_id] = (txCounts[r.transaction_id] || 0) + 1;
+          }
+        });
+
+        const requestsWithDetails = requests?.map((request) => {
+          const relatedHash = imageHashes?.find(h => h.payment_request_id === request.id);
+          const hasDuplicateHash = relatedHash ? (hashCounts[relatedHash.image_hash] || 0) > 1 : false;
+          const hasDuplicateTx = request.transaction_id ? (txCounts[request.transaction_id] || 0) > 1 : false;
+
+          return {
+            ...request,
+            profile: profiles?.find((p) => p.user_id === request.admin_id),
+            plan: plans?.find((p) => p.id === request.plan_id),
+            duplicate_warning: {
+              has_duplicate_hash: hasDuplicateHash,
+              has_duplicate_transaction: hasDuplicateTx,
+              message: hasDuplicateHash || hasDuplicateTx 
+                ? "This payment may be fraudulent - duplicate detected" 
+                : null,
+            },
+          };
+        });
+
+        return new Response(JSON.stringify({ requests: requestsWithDetails }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "notify_payment_uploaded": {
         const { admin_id, amount, plan_name } = data;
         

@@ -25,10 +25,13 @@ import {
   Clock,
   Eye,
   Search,
-  Filter,
   Loader2,
   Image as ImageIcon,
   AlertCircle,
+  AlertTriangle,
+  Shield,
+  Hash,
+  Copy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,6 +48,8 @@ interface PaymentRequest {
   rejection_reason: string | null;
   created_at: string;
   verified_at: string | null;
+  transaction_id?: string | null;
+  ip_address?: string | null;
   profile?: {
     email: string;
     full_name: string | null;
@@ -52,6 +57,11 @@ interface PaymentRequest {
   plan?: {
     name: string;
     duration_months: number;
+  };
+  duplicate_warning?: {
+    has_duplicate_hash: boolean;
+    has_duplicate_transaction: boolean;
+    message?: string;
   };
 }
 
@@ -74,7 +84,7 @@ const SuperAdminPaymentRequests = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("super-admin", {
-        body: { action: "get_payment_requests" },
+        body: { action: "get_payment_requests_with_security" },
       });
 
       if (error) throw error;
@@ -87,6 +97,12 @@ const SuperAdminPaymentRequests = () => {
   };
 
   const handleApprove = async (request: PaymentRequest) => {
+    // Block if duplicate detected
+    if (request.duplicate_warning?.has_duplicate_hash || request.duplicate_warning?.has_duplicate_transaction) {
+      toast.error("Cannot approve: Duplicate payment detected. Please reject this payment.");
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const { error } = await supabase.functions.invoke("super-admin", {
@@ -134,11 +150,17 @@ const SuperAdminPaymentRequests = () => {
     setIsProcessing(false);
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
       request.profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.profile?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.plan?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      request.plan?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.transaction_id?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || request.status === statusFilter;
 
@@ -173,7 +195,33 @@ const SuperAdminPaymentRequests = () => {
     }
   };
 
+  const getDuplicateWarning = (request: PaymentRequest) => {
+    if (!request.duplicate_warning) return null;
+    
+    const { has_duplicate_hash, has_duplicate_transaction } = request.duplicate_warning;
+    
+    if (has_duplicate_hash || has_duplicate_transaction) {
+      return (
+        <div className="flex items-center gap-1 text-red-600 mt-1">
+          <AlertTriangle className="w-3 h-3" />
+          <span className="text-xs font-medium">
+            {has_duplicate_hash && has_duplicate_transaction
+              ? "Duplicate image & transaction ID"
+              : has_duplicate_hash
+              ? "Duplicate payment image"
+              : "Duplicate transaction ID"}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const duplicateCount = requests.filter(
+    (r) => r.status === "pending" && 
+    (r.duplicate_warning?.has_duplicate_hash || r.duplicate_warning?.has_duplicate_transaction)
+  ).length;
 
   if (isLoading) {
     return (
@@ -184,87 +232,139 @@ const SuperAdminPaymentRequests = () => {
   }
 
   // Mobile card for payment requests
-  const RequestMobileCard = ({ request }: { request: PaymentRequest }) => (
-    <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm space-y-3">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="font-medium text-slate-900 truncate">
-            {request.profile?.full_name || "Unknown"}
-          </p>
-          <p className="text-xs text-slate-500 truncate">{request.profile?.email}</p>
-        </div>
-        {getStatusBadge(request.status)}
-      </div>
-      
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <p className="text-xs text-slate-400">Plan</p>
-          <Badge variant="secondary" className="text-xs">{request.plan?.name || "N/A"}</Badge>
-        </div>
-        <div>
-          <p className="text-xs text-slate-400">Amount</p>
-          <p className="font-medium">Rs {request.amount.toLocaleString()}</p>
-        </div>
-        <div className="col-span-2">
-          <p className="text-xs text-slate-400">Date</p>
-          <p className="text-xs text-slate-600">
-            {format(new Date(request.created_at), "MMM d, yyyy h:mm a")}
-          </p>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between pt-2 border-t">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setSelectedRequest(request);
-            setProofDialog(true);
-          }}
-          className="text-xs"
-        >
-          <Eye className="w-3 h-3 mr-1" />
-          View Proof
-        </Button>
-        
-        {request.status === "pending" && (
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              onClick={() => handleApprove(request)}
-              disabled={isProcessing}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 text-xs px-2"
-            >
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setSelectedRequest(request);
-                setRejectDialog(true);
-              }}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2"
-            >
-              <XCircle className="w-3 h-3" />
-            </Button>
+  const RequestMobileCard = ({ request }: { request: PaymentRequest }) => {
+    const hasDuplicate = request.duplicate_warning?.has_duplicate_hash || 
+                         request.duplicate_warning?.has_duplicate_transaction;
+
+    return (
+      <div className={`p-4 bg-white rounded-xl border shadow-sm space-y-3 ${
+        hasDuplicate && request.status === "pending" ? "border-red-200 bg-red-50/30" : "border-slate-100"
+      }`}>
+        <div className="flex items-start justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-slate-900 truncate">
+              {request.profile?.full_name || "Unknown"}
+            </p>
+            <p className="text-xs text-slate-500 truncate">{request.profile?.email}</p>
+            {getDuplicateWarning(request)}
           </div>
-        )}
+          {getStatusBadge(request.status)}
+        </div>
         
-        {request.status === "rejected" && request.rejection_reason && (
-          <span className="text-xs text-red-500 truncate max-w-[120px]">
-            {request.rejection_reason}
-          </span>
-        )}
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p className="text-xs text-slate-400">Plan</p>
+            <Badge variant="secondary" className="text-xs">{request.plan?.name || "N/A"}</Badge>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Amount</p>
+            <p className="font-medium">Rs {request.amount.toLocaleString()}</p>
+          </div>
+          {request.transaction_id && (
+            <div className="col-span-2">
+              <p className="text-xs text-slate-400">Transaction ID</p>
+              <div className="flex items-center gap-1">
+                <code className="text-xs bg-slate-100 px-1 py-0.5 rounded truncate flex-1">
+                  {request.transaction_id}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0"
+                  onClick={() => copyToClipboard(request.transaction_id!)}
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className="col-span-2">
+            <p className="text-xs text-slate-400">Date</p>
+            <p className="text-xs text-slate-600">
+              {format(new Date(request.created_at), "MMM d, yyyy h:mm a")}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between pt-2 border-t">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedRequest(request);
+              setProofDialog(true);
+            }}
+            className="text-xs"
+          >
+            <Eye className="w-3 h-3 mr-1" />
+            View Proof
+          </Button>
+          
+          {request.status === "pending" && (
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                onClick={() => handleApprove(request)}
+                disabled={isProcessing || hasDuplicate}
+                className={`h-7 text-xs px-2 ${
+                  hasDuplicate 
+                    ? "bg-slate-300 cursor-not-allowed" 
+                    : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                }`}
+                title={hasDuplicate ? "Cannot approve duplicate payment" : ""}
+              >
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSelectedRequest(request);
+                  setRejectDialog(true);
+                }}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 text-xs px-2"
+              >
+                <XCircle className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+          
+          {request.status === "rejected" && request.rejection_reason && (
+            <span className="text-xs text-red-500 truncate max-w-[120px]">
+              {request.rejection_reason}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Stats */}
-      {pendingCount > 0 && (
+      {/* Security Stats */}
+      {duplicateCount > 0 && (
+        <Card className="border-0 shadow-sm bg-gradient-to-r from-red-50 to-orange-50">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-full bg-red-100">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-red-900 text-sm sm:text-base">
+                  {duplicateCount} Suspicious Payment{duplicateCount > 1 ? "s" : ""} Detected
+                </p>
+                <p className="text-xs sm:text-sm text-red-700">
+                  Duplicate screenshots or transaction IDs found - review carefully
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending Stats */}
+      {pendingCount > 0 && duplicateCount === 0 && (
         <Card className="border-0 shadow-sm bg-gradient-to-r from-amber-50 to-orange-50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -286,9 +386,16 @@ const SuperAdminPaymentRequests = () => {
 
       <Card className="border-0 shadow-sm bg-white">
         <CardHeader className="pb-4">
-          <div>
-            <CardTitle className="text-base sm:text-lg font-semibold">Payment Requests</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Review and verify user payment submissions</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-500" />
+                Payment Requests
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Review and verify user payment submissions with fraud protection
+              </CardDescription>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -297,7 +404,7 @@ const SuperAdminPaymentRequests = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
-                placeholder="Search by name, email, or plan..."
+                placeholder="Search by name, email, plan, or transaction ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 h-9 text-sm"
@@ -335,107 +442,142 @@ const SuperAdminPaymentRequests = () => {
 
               {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Proof</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {request.profile?.full_name || "Unknown"}
-                          </p>
-                          <p className="text-sm text-slate-500">
-                            {request.profile?.email}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{request.plan?.name || "N/A"}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Rs {request.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setProofDialog(true);
-                          }}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Transaction ID</TableHead>
+                      <TableHead>Proof</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.map((request) => {
+                      const hasDuplicate = request.duplicate_warning?.has_duplicate_hash || 
+                                           request.duplicate_warning?.has_duplicate_transaction;
+                      return (
+                        <TableRow 
+                          key={request.id}
+                          className={hasDuplicate && request.status === "pending" ? "bg-red-50/50" : ""}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
-                      <TableCell className="text-slate-500">
-                        {format(new Date(request.created_at), "MMM d, yyyy h:mm a")}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(request.status)}</TableCell>
-                      <TableCell>
-                        {request.status === "pending" && (
-                          <div className="flex gap-2">
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">
+                                {request.profile?.full_name || "Unknown"}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                {request.profile?.email}
+                              </p>
+                              {getDuplicateWarning(request)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{request.plan?.name || "N/A"}</Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            Rs {request.amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            {request.transaction_id ? (
+                              <div className="flex items-center gap-1">
+                                <code className="text-xs bg-slate-100 px-2 py-1 rounded">
+                                  {request.transaction_id}
+                                </code>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => copyToClipboard(request.transaction_id!)}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <Button
+                              variant="ghost"
                               size="sm"
-                              onClick={() => handleApprove(request)}
-                              disabled={isProcessing}
-                              className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                            >
-                              {isProcessing ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                                  Approve
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
                               onClick={() => {
                                 setSelectedRequest(request);
-                                setRejectDialog(true);
+                                setProofDialog(true);
                               }}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
                             >
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Reject
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
                             </Button>
-                          </div>
-                        )}
-                        {request.status === "rejected" && request.rejection_reason && (
-                          <span className="text-sm text-red-500">
-                            {request.rejection_reason}
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+                          </TableCell>
+                          <TableCell className="text-slate-500">
+                            {format(new Date(request.created_at), "MMM d, yyyy h:mm a")}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(request.status)}</TableCell>
+                          <TableCell>
+                            {request.status === "pending" && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(request)}
+                                  disabled={isProcessing || hasDuplicate}
+                                  className={hasDuplicate 
+                                    ? "bg-slate-300 cursor-not-allowed"
+                                    : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                  }
+                                  title={hasDuplicate ? "Cannot approve duplicate payment" : ""}
+                                >
+                                  {isProcessing ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                                      Approve
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedRequest(request);
+                                    setRejectDialog(true);
+                                  }}
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                            {request.status === "rejected" && request.rejection_reason && (
+                              <span className="text-sm text-red-500">
+                                {request.rejection_reason}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Proof Dialog */}
       <Dialog open={proofDialog} onOpenChange={setProofDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Payment Proof</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Payment Proof
+            </DialogTitle>
             <DialogDescription>
               Review the payment screenshot submitted by the user
             </DialogDescription>
@@ -443,10 +585,53 @@ const SuperAdminPaymentRequests = () => {
           {selectedRequest && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-slate-50">
-                <p className="text-sm text-slate-500">User</p>
-                <p className="font-medium">{selectedRequest.profile?.full_name}</p>
-                <p className="text-sm text-slate-500">{selectedRequest.profile?.email}</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-slate-500">User</p>
+                    <p className="font-medium">{selectedRequest.profile?.full_name}</p>
+                    <p className="text-sm text-slate-500">{selectedRequest.profile?.email}</p>
+                  </div>
+                  {selectedRequest.transaction_id && (
+                    <div>
+                      <p className="text-sm text-slate-500">Transaction ID</p>
+                      <div className="flex items-center gap-2">
+                        <code className="font-medium bg-white px-2 py-1 rounded border">
+                          {selectedRequest.transaction_id}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(selectedRequest.transaction_id!)}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-slate-500">Amount</p>
+                    <p className="font-medium">Rs {selectedRequest.amount.toLocaleString()}</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Duplicate Warning */}
+              {selectedRequest.duplicate_warning && 
+               (selectedRequest.duplicate_warning.has_duplicate_hash || 
+                selectedRequest.duplicate_warning.has_duplicate_transaction) && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-red-800">Duplicate Detected</p>
+                    <p className="text-sm text-red-600 mt-1">
+                      {selectedRequest.duplicate_warning.message || 
+                       "This payment proof or transaction ID has already been used."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-lg overflow-hidden border">
                 <img
                   src={selectedRequest.proof_url}
@@ -462,16 +647,19 @@ const SuperAdminPaymentRequests = () => {
             </Button>
             {selectedRequest?.status === "pending" && (
               <>
-                <Button
-                  onClick={() => {
-                    setProofDialog(false);
-                    handleApprove(selectedRequest);
-                  }}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Approve
-                </Button>
+                {!(selectedRequest.duplicate_warning?.has_duplicate_hash || 
+                   selectedRequest.duplicate_warning?.has_duplicate_transaction) && (
+                  <Button
+                    onClick={() => {
+                      setProofDialog(false);
+                      handleApprove(selectedRequest);
+                    }}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Approve
+                  </Button>
+                )}
               </>
             )}
           </DialogFooter>
@@ -499,12 +687,15 @@ const SuperAdminPaymentRequests = () => {
             <Button
               onClick={handleReject}
               disabled={isProcessing}
-              variant="destructive"
+              className="bg-red-500 hover:bg-red-600 text-white"
             >
               {isProcessing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Reject Payment"
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </>
               )}
             </Button>
           </DialogFooter>
