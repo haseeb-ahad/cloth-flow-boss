@@ -1523,17 +1523,6 @@ const Invoice = () => {
                 {t("total")}: {items.length}
               </span>
             </div>
-            <div className="flex gap-2">
-              <QRScanner 
-                onScan={handleQRScan} 
-                buttonText={t("scanQR")}
-                buttonVariant="default"
-              />
-              <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving || isLoadingItems}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t("addItem")}
-              </Button>
-            </div>
           </div>
 
           {isLoadingItems ? (
@@ -1769,8 +1758,20 @@ const Invoice = () => {
               );
             })
           )}
+          
+          {/* Scan QR and Add Item buttons */}
+          <div className="flex gap-2 mt-4">
+            <QRScanner 
+              onScan={handleQRScan} 
+              buttonText={t("scanQR")}
+              buttonVariant="default"
+            />
+            <Button onClick={addItem} size="sm" variant="outline" disabled={isSaving || isLoadingItems}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t("addItem")}
+            </Button>
+          </div>
         </div>
-
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
           <div>
