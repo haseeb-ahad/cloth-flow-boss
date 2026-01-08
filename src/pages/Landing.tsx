@@ -106,11 +106,29 @@ const features = [
     bgColor: "bg-gradient-to-br from-emerald-400 to-teal-500"
   },
   {
+    icon: Wallet,
+    title: "Credit Management",
+    description: "Track and manage Udhar payments with customer-wise credit history.",
+    bgColor: "bg-gradient-to-br from-rose-400 to-red-500"
+  },
+  {
+    icon: Banknote,
+    title: "Receive Payment",
+    description: "Record and track incoming payments with image proof uploads.",
+    bgColor: "bg-gradient-to-br from-lime-400 to-green-500"
+  },
+  {
+    icon: Receipt,
+    title: "Expenses",
+    description: "Monitor business expenses with categorization and reporting.",
+    bgColor: "bg-gradient-to-br from-amber-400 to-yellow-500"
+  },
+  {
     icon: Users,
     title: "Customers",
     description: "Manage customer profiles and track their purchase history.",
     bgColor: "bg-gradient-to-br from-violet-400 to-purple-500"
-  }
+  },
 ];
 
 const testimonials = [
