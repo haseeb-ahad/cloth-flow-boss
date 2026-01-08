@@ -1046,6 +1046,83 @@ serve(async (req) => {
         });
       }
 
+      case "get_payment_requests_with_security": {
+        const { data: requests, error } = await supabase
+          .from("payment_requests")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        // Get admin profiles and plans
+        const adminIds = [...new Set(requests?.map((r: any) => r.admin_id) || [])];
+        const planIds = [...new Set(requests?.map((r: any) => r.plan_id).filter(Boolean) || [])];
+
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, email, full_name")
+          .in("user_id", adminIds);
+
+        const { data: plans } = await supabase
+          .from("plans")
+          .select("id, name, duration_months")
+          .in("id", planIds);
+
+        // Get all image hashes and transaction IDs to check for duplicates
+        const { data: imageHashes } = await supabase
+          .from("payment_image_hashes")
+          .select("image_hash, transaction_id, admin_id, payment_request_id");
+
+        // Check for duplicates for each request
+        const requestsWithDetails = await Promise.all(
+          (requests || []).map(async (request: any) => {
+            let duplicate_warning = {
+              has_duplicate_hash: false,
+              has_duplicate_transaction: false,
+              message: ""
+            };
+
+            // Check for duplicate image hash (same hash used by different payment request)
+            if (request.transaction_id) {
+              const hashMatch = imageHashes?.find((h: any) => 
+                h.transaction_id === request.transaction_id && 
+                h.payment_request_id !== request.id
+              );
+              if (hashMatch) {
+                duplicate_warning.has_duplicate_hash = true;
+                duplicate_warning.message = "This screenshot has been used in another payment";
+              }
+            }
+
+            // Check for duplicate transaction ID (same transaction ID used before)
+            const txMatch = imageHashes?.find((h: any) => 
+              h.transaction_id === request.transaction_id && 
+              h.payment_request_id !== request.id &&
+              request.transaction_id
+            );
+            if (txMatch) {
+              duplicate_warning.has_duplicate_transaction = true;
+              duplicate_warning.message = duplicate_warning.message 
+                ? duplicate_warning.message + ". Transaction ID also reused."
+                : "This transaction ID has been used before";
+            }
+
+            return {
+              ...request,
+              profile: profiles?.find((p: any) => p.user_id === request.admin_id),
+              plan: plans?.find((p: any) => p.id === request.plan_id),
+              duplicate_warning: duplicate_warning.has_duplicate_hash || duplicate_warning.has_duplicate_transaction 
+                ? duplicate_warning 
+                : undefined,
+            };
+          })
+        );
+
+        return new Response(JSON.stringify({ requests: requestsWithDetails }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "approve_payment_request": {
         const { request_id } = data;
 
