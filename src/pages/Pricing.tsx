@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Check, ChevronRight, Zap, Crown, Star } from "lucide-react";
+import { useTheme } from "next-themes";
 import invoxaLogo from "@/assets/invoxa-logo.png";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -72,6 +74,21 @@ const getDurationLabel = (plan: Plan) => {
 };
 
 const Pricing = () => {
+  const { setTheme, theme } = useTheme();
+
+  // Force light mode on pricing page
+  useEffect(() => {
+    const previousTheme = theme;
+    setTheme("light");
+    
+    return () => {
+      // Restore previous theme when leaving the page
+      if (previousTheme && previousTheme !== "light") {
+        setTheme(previousTheme);
+      }
+    };
+  }, []);
+
   const { data: plans, isLoading } = useQuery({
     queryKey: ['active-plans'],
     queryFn: async () => {
