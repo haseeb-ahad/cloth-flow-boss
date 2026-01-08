@@ -279,7 +279,7 @@ serve(async (req) => {
         };
 
         if (autoApproveEnabled) {
-          // Check 1: Image hash is unique
+          // Check 1: Image hash is unique (not used before by anyone)
           const { data: existingHash } = await supabase
             .from("payment_image_hashes")
             .select("id")
@@ -289,7 +289,7 @@ serve(async (req) => {
           approvalResult.checks.unique_hash = !existingHash;
           console.log(`Check 1 - Unique hash: ${approvalResult.checks.unique_hash}`);
 
-          // Check 2: Transaction ID is unique
+          // Check 2: Transaction ID is unique (not used in other payment requests)
           const { data: existingTx } = await supabase
             .from("payment_requests")
             .select("id")
@@ -317,28 +317,19 @@ serve(async (req) => {
           }
           console.log(`Check 3 - Amount matches: ${approvalResult.checks.amount_matches}`);
 
-          // Check 4: No duplicate payment with same image hash or transaction ID (prevents true duplicates)
-          const { data: duplicateByHash } = await supabase
-            .from("payment_image_hashes")
-            .select("id")
-            .eq("image_hash", image_hash)
-            .eq("admin_id", admin_id)
-            .limit(1);
-          
-          const { data: duplicateByTx } = await supabase
+          // Check 4: No duplicate approved payment for same user in last 24 hours (prevents rapid re-submissions)
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { data: recentApproved } = await supabase
             .from("payment_requests")
             .select("id")
             .eq("admin_id", admin_id)
-            .eq("transaction_id", transaction_id)
             .eq("status", "approved")
-            .neq("id", payment_request_id)
+            .gte("verified_at", twentyFourHoursAgo)
             .limit(1);
           
-          // Only block if same image or same transaction ID was already used
-          const hasDuplicateHash = duplicateByHash && duplicateByHash.length > 0;
-          const hasDuplicateTx = duplicateByTx && duplicateByTx.length > 0;
-          approvalResult.checks.no_duplicate_approved = !hasDuplicateHash && !hasDuplicateTx;
-          console.log(`Check 4 - No duplicate approved: ${approvalResult.checks.no_duplicate_approved} (hash: ${hasDuplicateHash}, tx: ${hasDuplicateTx})`);
+          // Allow if no recent approved payment or this is the first one
+          approvalResult.checks.no_duplicate_approved = !recentApproved || recentApproved.length === 0;
+          console.log(`Check 4 - No duplicate approved (24h): ${approvalResult.checks.no_duplicate_approved}`);
 
           // All checks must pass for auto-approval
           const allChecksPassed = 
