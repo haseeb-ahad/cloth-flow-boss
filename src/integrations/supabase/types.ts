@@ -632,6 +632,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          amount: number | null
+          created_at: string
+          details: Json | null
+          id: string
+          image_hash: string | null
+          ip_address: string | null
+          transaction_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          amount?: number | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          image_hash?: string | null
+          ip_address?: string | null
+          transaction_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          amount?: number | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          image_hash?: string | null
+          ip_address?: string | null
+          transaction_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       payment_image_hashes: {
         Row: {
           admin_id: string
@@ -641,6 +680,7 @@ export type Database = {
           image_hash: string
           payment_request_id: string | null
           proof_url: string
+          transaction_id: string | null
         }
         Insert: {
           admin_id: string
@@ -650,6 +690,7 @@ export type Database = {
           image_hash: string
           payment_request_id?: string | null
           proof_url: string
+          transaction_id?: string | null
         }
         Update: {
           admin_id?: string
@@ -659,6 +700,7 @@ export type Database = {
           image_hash?: string
           payment_request_id?: string | null
           proof_url?: string
+          transaction_id?: string | null
         }
         Relationships: [
           {
@@ -724,12 +766,15 @@ export type Database = {
           amount: number
           created_at: string
           id: string
+          ip_address: string | null
           payment_method: string
           plan_id: string | null
           proof_url: string
           rejection_reason: string | null
           status: string
+          transaction_id: string | null
           updated_at: string
+          user_agent: string | null
           verified_at: string | null
           verified_by: string | null
         }
@@ -738,12 +783,15 @@ export type Database = {
           amount: number
           created_at?: string
           id?: string
+          ip_address?: string | null
           payment_method?: string
           plan_id?: string | null
           proof_url: string
           rejection_reason?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
+          user_agent?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -752,12 +800,15 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
+          ip_address?: string | null
           payment_method?: string
           plan_id?: string | null
           proof_url?: string
           rejection_reason?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
+          user_agent?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
