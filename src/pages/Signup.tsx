@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff, Store } from "lucide-react";
 import { z } from "zod";
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
 
@@ -41,44 +41,6 @@ export default function Signup() {
   const navigate = useNavigate();
   const { setTheme, theme } = useTheme();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const showcaseRef = useRef<HTMLDivElement>(null);
-
-  // Parallax mouse tracking
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  // Smooth spring animations for parallax
-  const springConfig = { stiffness: 100, damping: 30 };
-  const smoothMouseX = useSpring(mouseX, springConfig);
-  const smoothMouseY = useSpring(mouseY, springConfig);
-
-  // Transform values for different parallax layers
-  const textX = useTransform(smoothMouseX, [-0.5, 0.5], [15, -15]);
-  const textY = useTransform(smoothMouseY, [-0.5, 0.5], [10, -10]);
-  
-  const imageX = useTransform(smoothMouseX, [-0.5, 0.5], [-20, 20]);
-  const imageY = useTransform(smoothMouseY, [-0.5, 0.5], [-15, 15]);
-  const imageRotateX = useTransform(smoothMouseY, [-0.5, 0.5], [5, -5]);
-  const imageRotateY = useTransform(smoothMouseX, [-0.5, 0.5], [-5, 5]);
-  
-  const glowX = useTransform(smoothMouseX, [-0.5, 0.5], [30, -30]);
-  const glowY = useTransform(smoothMouseY, [-0.5, 0.5], [20, -20]);
-
-  const brandX = useTransform(smoothMouseX, [-0.5, 0.5], [-10, 10]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!showcaseRef.current) return;
-    const rect = showcaseRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x);
-    mouseY.set(y);
-  };
-
-  const handleMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
 
   // Force light mode on signup page
   useEffect(() => {
@@ -454,36 +416,19 @@ export default function Signup() {
         </motion.div>
       </div>
 
-      {/* Right Side - Showcase with Parallax */}
-      <div 
-        ref={showcaseRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/70"
-        style={{ perspective: 1000 }}
-      >
+      {/* Right Side - Showcase */}
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/70">
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/85 to-orange-500/80" />
-
-        {/* Floating Glow Orbs with Parallax */}
-        <motion.div 
-          className="absolute top-20 right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"
-          style={{ x: glowX, y: glowY }}
-        />
-        <motion.div 
-          className="absolute bottom-40 left-10 w-48 h-48 bg-orange-300/20 rounded-full blur-2xl"
-          style={{ x: useTransform(glowX, v => -v * 0.7), y: useTransform(glowY, v => -v * 0.7) }}
-        />
         
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 py-12 w-full">
-          {/* Text Content with Parallax */}
+          {/* Text Content */}
           <motion.div 
             className="mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            style={{ x: textX, y: textY }}
           >
             <h2 className="text-3xl xl:text-4xl font-bold text-white mb-4 leading-tight">
               All-in-One Business<br />Management Platform
@@ -494,17 +439,8 @@ export default function Signup() {
             </p>
           </motion.div>
 
-          {/* Dashboard Preview Slider with 3D Parallax */}
-          <motion.div 
-            className="relative"
-            style={{ 
-              x: imageX, 
-              y: imageY,
-              rotateX: imageRotateX,
-              rotateY: imageRotateY,
-              transformStyle: "preserve-3d",
-            }}
-          >
+          {/* Dashboard Preview Slider */}
+          <div className="relative">
             <motion.div 
               className="absolute -inset-4 bg-white/10 rounded-3xl blur-xl"
               animate={{ 
@@ -547,13 +483,10 @@ export default function Signup() {
                 />
               ))}
             </div>
-          </motion.div>
+          </div>
 
-          {/* Floating Brand Text with Parallax */}
-          <motion.div 
-            className="absolute bottom-8 left-0 right-0 overflow-hidden"
-            style={{ x: brandX }}
-          >
+          {/* Floating Brand Text */}
+          <div className="absolute bottom-8 left-0 right-0 overflow-hidden">
             <motion.div 
               className="flex items-center gap-8 whitespace-nowrap opacity-30"
               animate={{ x: [0, -200] }}
@@ -570,7 +503,7 @@ export default function Signup() {
               <span className="text-4xl font-bold text-white">Invoxa</span>
               <span className="text-4xl font-bold text-white/60">Invoxa</span>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>
