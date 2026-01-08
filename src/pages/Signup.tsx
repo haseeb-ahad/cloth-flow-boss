@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Loader2, Lock, Mail, Phone, User, Eye, EyeOff, Store } from "lucide-react";
 import { z } from "zod";
 import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
-import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 
 // Strong password validation schema
 const signupSchema = z.object({
@@ -147,19 +146,6 @@ export default function Signup() {
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-bold text-foreground">Create Admin Account</h1>
           <p className="text-muted-foreground">Sign up as an administrator</p>
-        </div>
-
-        {/* Google Auth Button */}
-        <GoogleAuthButton mode="signup" />
-
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-muted-foreground/20" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white/80 px-2 text-muted-foreground">or continue with email</span>
-          </div>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
