@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,19 @@ const loginSchema = z.object({
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setTheme, theme } = useTheme();
+
+  // Force light mode on login page
+  useEffect(() => {
+    const previousTheme = theme;
+    setTheme("light");
+    
+    return () => {
+      if (previousTheme && previousTheme !== "light") {
+        setTheme(previousTheme);
+      }
+    };
+  }, []);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({

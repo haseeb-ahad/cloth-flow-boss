@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,19 @@ const signupSchema = z.object({
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { setTheme, theme } = useTheme();
+
+  // Force light mode on signup page
+  useEffect(() => {
+    const previousTheme = theme;
+    setTheme("light");
+    
+    return () => {
+      if (previousTheme && previousTheme !== "light") {
+        setTheme(previousTheme);
+      }
+    };
+  }, []);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
