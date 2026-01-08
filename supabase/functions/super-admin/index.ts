@@ -98,6 +98,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action, data } = await req.json();
+    console.log(`[super-admin] Action received: ${action}`);
 
     switch (action) {
       case "get_super_admin_ids": {
