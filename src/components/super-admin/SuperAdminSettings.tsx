@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, Eye, EyeOff, Save, Bell, Copy, CheckCircle2, Loader2, RefreshCw, Zap, Shield } from "lucide-react";
+import AutoApprovalAuditLog from "./AutoApprovalAuditLog";
 
 // Default super admin password (same as in SuperAdminLogin.tsx)
 const DEFAULT_SUPER_ADMIN_PASSWORD = "admin@super123978cv";
@@ -404,6 +405,11 @@ const SuperAdminSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Auto-Approval Audit Log */}
+      <div className="lg:col-span-2">
+        <AutoApprovalAuditLog />
+      </div>
     </div>
   );
 };

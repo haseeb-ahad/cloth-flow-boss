@@ -573,6 +573,38 @@ serve(async (req) => {
         );
       }
 
+      case "get_approval_audit_logs": {
+        // Fetch audit logs with profile info
+        const { data: logs, error } = await supabase
+          .from("payment_audit_log")
+          .select("*")
+          .in("action", ["auto_approved", "manually_approved", "payment_submitted", "payment_rejected"])
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        // Get unique admin IDs
+        const adminIds = [...new Set(logs?.map((l: any) => l.admin_id) || [])];
+
+        // Fetch profiles for these admins
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, email, full_name")
+          .in("user_id", adminIds);
+
+        // Merge profile info into logs
+        const logsWithProfiles = logs?.map((log: any) => ({
+          ...log,
+          profile: profiles?.find((p: any) => p.user_id === log.admin_id) || null,
+        }));
+
+        return new Response(
+          JSON.stringify({ logs: logsWithProfiles }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       case "notify_admin_registered": {
         // Support both naming conventions (email/full_name OR admin_email/admin_name)
         const admin_id = data.admin_id;
