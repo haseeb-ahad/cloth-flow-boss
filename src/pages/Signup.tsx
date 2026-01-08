@@ -219,18 +219,18 @@ export default function Signup() {
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <div className="relative">
+            <div className="relative flex items-center">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Create a strong password"
-                className="pl-10 pr-16"
+                className="pl-10 pr-10 flex-1"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 disabled={loading}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <div className="absolute right-10 top-1/2 -translate-y-1/2">
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -238,27 +238,27 @@ export default function Signup() {
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-                {formData.password && !passwordValidation.isValid && (
-                  <div className="w-3 h-3 rounded-sm bg-destructive" />
-                )}
               </div>
+              {formData.password && !passwordValidation.isValid && (
+                <div className="ml-2 w-3 h-3 rounded-sm bg-destructive flex-shrink-0" />
+              )}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <div className="relative">
+            <div className="relative flex items-center">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your password"
-                className="pl-10 pr-16"
+                className="pl-10 pr-10 flex-1"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 disabled={loading}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <div className="absolute right-10 top-1/2 -translate-y-1/2">
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -266,10 +266,10 @@ export default function Signup() {
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                  <div className="w-3 h-3 rounded-sm bg-destructive" />
-                )}
               </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <div className="ml-2 w-3 h-3 rounded-sm bg-destructive flex-shrink-0" />
+              )}
             </div>
           </div>
 
