@@ -1,5 +1,4 @@
 import { formatDatePKT } from "./utils";
-import { formatDateInTimezone } from "@/contexts/TimezoneContext";
 
 interface CSVColumn {
   header: string;
@@ -113,7 +112,7 @@ export const parseInventoryCSV = (text: string) => {
   })).filter(p => p.name);
 };
 
-// Sales Export with items
+// Sales Export with items - preserves exact raw datetime from database
 export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: string) => Promise<any[]>) => {
   // Flatten sales with their items - each row is one item
   const rows: any[] = [];
@@ -125,7 +124,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
       // Sale with no items - export header only
       rows.push({
         invoice_number: sale.invoice_number,
-        created_at: sale.created_at,
+        created_at: sale.created_at || "", // Keep raw ISO datetime
         customer_name: sale.customer_name || "",
         customer_phone: sale.customer_phone || "",
         total_amount: sale.total_amount,
@@ -134,6 +133,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
         paid_amount: sale.paid_amount || 0,
         payment_method: sale.payment_method || "cash",
         payment_status: sale.payment_status || "pending",
+        description: sale.description || "",
         // Item fields empty
         product_name: "",
         product_id: "",
@@ -148,7 +148,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
       for (const item of items) {
         rows.push({
           invoice_number: sale.invoice_number,
-          created_at: sale.created_at,
+          created_at: sale.created_at || "", // Keep raw ISO datetime
           customer_name: sale.customer_name || "",
           customer_phone: sale.customer_phone || "",
           total_amount: sale.total_amount,
@@ -157,6 +157,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
           paid_amount: sale.paid_amount || 0,
           payment_method: sale.payment_method || "cash",
           payment_status: sale.payment_status || "pending",
+          description: sale.description || "",
           // Item fields
           product_name: item.product_name,
           product_id: item.product_id,
@@ -174,7 +175,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
     filename: `sales_${formatDatePKT(new Date()).replace(/\//g, "-")}`,
     columns: [
       { header: "Invoice Number", key: "invoice_number" },
-      { header: "Date", key: "created_at", format: (v) => formatDatePKT(v, "datetime") },
+      { header: "Date", key: "created_at" }, // Raw ISO datetime - no formatting
       { header: "Customer Name", key: "customer_name" },
       { header: "Customer Phone", key: "customer_phone" },
       { header: "Total Amount", key: "total_amount" },
@@ -183,6 +184,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
       { header: "Paid Amount", key: "paid_amount" },
       { header: "Payment Method", key: "payment_method" },
       { header: "Payment Status", key: "payment_status" },
+      { header: "Description", key: "description" },
       { header: "Product Name", key: "product_name" },
       { header: "Product ID", key: "product_id" },
       { header: "Quantity", key: "quantity" },
@@ -195,7 +197,7 @@ export const exportSalesToCSV = async (sales: any[], fetchSaleItems: (saleId: st
   });
 };
 
-// Parse Sales CSV with items
+// Parse Sales CSV with items - preserves exact datetime from CSV
 export const parseSalesCSV = (text: string) => {
   const { headers, rows } = parseCSV(text);
   const headerMap: Record<string, number> = {};
@@ -208,10 +210,14 @@ export const parseSalesCSV = (text: string) => {
     const invoiceNumber = row[headerMap["invoice number"]] || row[headerMap["invoice_number"]] || "";
     if (!invoiceNumber) continue;
 
+    // Get the raw date value - keep as-is (ISO format from export)
+    const dateValue = row[headerMap["date"]] || row[headerMap["created_at"]] || "";
+
     if (!salesMap.has(invoiceNumber)) {
       salesMap.set(invoiceNumber, {
         sale: {
           invoice_number: invoiceNumber,
+          created_at: dateValue || null, // Keep raw datetime as-is
           customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || null,
           customer_phone: row[headerMap["customer phone"]] || row[headerMap["customer_phone"]] || null,
           total_amount: parseFloat(row[headerMap["total amount"]] || row[headerMap["total_amount"]] || "0") || 0,
@@ -220,6 +226,7 @@ export const parseSalesCSV = (text: string) => {
           paid_amount: parseFloat(row[headerMap["paid amount"]] || row[headerMap["paid_amount"]] || "0") || 0,
           payment_method: row[headerMap["payment method"]] || row[headerMap["payment_method"]] || "cash",
           payment_status: row[headerMap["payment status"]] || row[headerMap["payment_status"]] || "pending",
+          description: row[headerMap["description"]] || null,
         },
         items: [],
       });
@@ -243,7 +250,7 @@ export const parseSalesCSV = (text: string) => {
   return Array.from(salesMap.values()).filter(s => s.sale.final_amount > 0);
 };
 
-// Credits Export
+// Credits Export - preserves exact raw dates from database
 export const exportCreditsToCSV = (credits: any[]) => {
   exportToCSV({
     filename: `credits_${formatDatePKT(new Date()).replace(/\//g, "-")}`,
@@ -254,15 +261,15 @@ export const exportCreditsToCSV = (credits: any[]) => {
       { header: "Paid Amount", key: "paid_amount" },
       { header: "Remaining Amount", key: "remaining_amount" },
       { header: "Status", key: "status" },
-      { header: "Due Date", key: "due_date", format: (v) => v ? formatDatePKT(v) : "" },
+      { header: "Due Date", key: "due_date", format: (v) => v || "" }, // Raw date, no formatting
       { header: "Notes", key: "notes", format: (v) => v || "" },
-      { header: "Created At", key: "created_at", format: (v) => formatDatePKT(v) },
+      { header: "Created At", key: "created_at", format: (v) => v || "" }, // Raw datetime, no formatting
     ],
     data: credits,
   });
 };
 
-// Parse Credits CSV
+// Parse Credits CSV - preserves exact dates from CSV
 export const parseCreditsCSV = (text: string) => {
   const { headers, rows } = parseCSV(text);
   const headerMap: Record<string, number> = {};
@@ -275,22 +282,23 @@ export const parseCreditsCSV = (text: string) => {
     paid_amount: parseFloat(row[headerMap["paid amount"]] || row[headerMap["paid_amount"]] || "0") || 0,
     remaining_amount: parseFloat(row[headerMap["remaining amount"]] || row[headerMap["remaining_amount"]] || "0") || 0,
     status: row[headerMap["status"]] || "pending",
-    due_date: row[headerMap["due date"]] || row[headerMap["due_date"]] || null,
+    due_date: row[headerMap["due date"]] || row[headerMap["due_date"]] || null, // Keep raw date as-is
     notes: row[headerMap["notes"]] || null,
+    created_at: row[headerMap["created at"]] || row[headerMap["created_at"]] || null, // Keep raw datetime
   })).filter(c => c.customer_name && c.amount > 0);
 };
 
-// Expenses Export - includes ID for duplicate prevention
+// Expenses Export - includes ID for duplicate prevention, preserves raw dates
 export const exportExpensesToCSV = (expenses: any[]) => {
   exportToCSV({
     filename: `expenses_${formatDatePKT(new Date()).replace(/\//g, "-")}`,
     columns: [
       { header: "ID", key: "id" },
-      { header: "Date", key: "expense_date" }, // Keep as YYYY-MM-DD for import compatibility
+      { header: "Date", key: "expense_date" }, // Raw date YYYY-MM-DD
       { header: "Type", key: "expense_type" },
       { header: "Description", key: "description", format: (v) => v || "" },
       { header: "Amount", key: "amount" },
-      { header: "Created At", key: "created_at", format: (v) => v ? formatDatePKT(v, "datetime") : "" },
+      { header: "Created At", key: "created_at", format: (v) => v || "" }, // Raw datetime, no formatting
     ],
     data: expenses,
   });
@@ -398,7 +406,7 @@ export const exportCustomersToCSV = (customers: any[]) => {
   });
 };
 
-// Parse Payments CSV
+// Parse Payments CSV - preserves raw dates
 export const parsePaymentsCSV = (text: string) => {
   const { headers, rows } = parseCSV(text);
   const headerMap: Record<string, number> = {};
@@ -408,8 +416,9 @@ export const parsePaymentsCSV = (text: string) => {
     customer_name: row[headerMap["customer name"]] || row[headerMap["customer_name"]] || "",
     customer_phone: row[headerMap["customer phone"]] || row[headerMap["customer_phone"]] || null,
     payment_amount: parseFloat(row[headerMap["amount"]] || row[headerMap["payment_amount"]] || "0") || 0,
-    payment_date: row[headerMap["date"]] || row[headerMap["payment_date"]] || new Date().toISOString().split("T")[0],
+    payment_date: row[headerMap["date"]] || row[headerMap["payment_date"]] || null, // Keep raw date as-is
     notes: row[headerMap["notes"]] || null,
+    created_at: row[headerMap["created at"]] || row[headerMap["created_at"]] || null, // Keep raw datetime
   })).filter(p => p.customer_name && p.payment_amount > 0);
 };
 
@@ -425,16 +434,17 @@ export const parseCustomersCSV = (text: string) => {
   })).filter(c => c.name);
 };
 
-// Payments Export
+// Payments Export - preserves raw dates
 export const exportPaymentsToCSV = (payments: any[]) => {
   exportToCSV({
     filename: `payments_${formatDatePKT(new Date()).replace(/\//g, "-")}`,
     columns: [
-      { header: "Date", key: "payment_date", format: (v) => formatDatePKT(v) },
+      { header: "Date", key: "payment_date" }, // Raw date, no formatting
       { header: "Customer Name", key: "customer_name" },
       { header: "Customer Phone", key: "customer_phone", format: (v) => v || "" },
       { header: "Amount", key: "payment_amount" },
       { header: "Notes", key: "notes", format: (v) => v || "" },
+      { header: "Created At", key: "created_at", format: (v) => v || "" }, // Raw datetime
     ],
     data: payments,
   });
