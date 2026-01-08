@@ -75,19 +75,6 @@ export default function Login() {
           <p className="text-muted-foreground">Login to your account</p>
         </div>
 
-        {/* Google Auth Button */}
-        <GoogleAuthButton mode="login" />
-
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-muted-foreground/20" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white/80 px-2 text-muted-foreground">or continue with email</span>
-          </div>
-        </div>
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -154,6 +141,19 @@ export default function Login() {
             Sign up
           </Link>
         </div>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-muted-foreground/20" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white/80 px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
+
+        {/* Google Auth Button */}
+        <GoogleAuthButton mode="login" />
       </Card>
     </div>
   );
