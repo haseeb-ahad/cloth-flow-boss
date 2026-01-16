@@ -313,7 +313,7 @@ const Layout = ({ children }: LayoutProps) => {
             <NotificationBell />
             
             {/* Theme Toggle for Mobile */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-0.5 rounded-full bg-card border border-border shadow-sm">
               <Sun className={cn(
                 "h-4 w-4 transition-all duration-300",
                 theme === "dark" ? "text-muted-foreground" : "text-amber-500"
