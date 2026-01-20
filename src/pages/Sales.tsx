@@ -107,8 +107,7 @@ const Sales = () => {
 
     switch (dateRangeFilter) {
       case "all":
-        // Include all data from epoch start to far future
-        return { start: new Date(0), end: new Date('2099-12-31T23:59:59.999Z') };
+        return { start: new Date(0), end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset) };
       case "today":
         return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
       case "yesterday": {
@@ -137,8 +136,7 @@ const Sales = () => {
         }
         return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
       default:
-        // Include all data by default
-        return { start: new Date(0), end: new Date('2099-12-31T23:59:59.999Z') };
+        return { start: new Date(0), end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset) };
     }
   };
 

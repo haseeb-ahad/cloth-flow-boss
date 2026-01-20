@@ -135,7 +135,7 @@ const PublicProduct = () => {
   const isInStock = product.stock_quantity > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted overflow-y-auto overflow-x-hidden pb-8" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Shop Header */}
       {shopSettings && (
         <header className="bg-card border-b shadow-sm">
@@ -169,11 +169,11 @@ const PublicProduct = () => {
       )}
 
       {/* Product Details */}
-      <main className="max-w-2xl mx-auto p-4 py-8 pb-20">
+      <main className="max-w-2xl mx-auto p-4 py-8">
         <Card className="overflow-hidden shadow-lg">
           {/* Product Image */}
           {product.image_url ? (
-            <div className="aspect-[4/3] max-h-[400px] w-full bg-muted">
+            <div className="aspect-square w-full bg-muted">
               <img
                 src={product.image_url}
                 alt={product.name}
@@ -181,7 +181,7 @@ const PublicProduct = () => {
               />
             </div>
           ) : (
-            <div className="aspect-[4/3] max-h-[400px] w-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+            <div className="aspect-square w-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
               <Package className="h-24 w-24 text-muted-foreground/50" />
             </div>
           )}

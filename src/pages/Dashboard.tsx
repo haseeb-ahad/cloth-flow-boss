@@ -261,10 +261,10 @@ const Dashboard = () => {
       }
       
       case "grand":
-        // For grand report, use epoch start to far future (includes all data regardless of date)
+        // For grand report, use epoch start to today
         return {
           start: new Date(0),
-          end: new Date('2099-12-31T23:59:59.999Z')
+          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
         };
       
       case "custom":
