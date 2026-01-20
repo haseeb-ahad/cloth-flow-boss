@@ -225,8 +225,8 @@ export default function Expenses() {
     switch (dateFilter) {
       case "all":
         start = new Date(0);
-        const allEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(allEndUTC.getFullYear(), allEndUTC.getMonth(), allEndUTC.getDate(), 23, 59, 59, 999));
+        // Include all data including future dates
+        end = new Date('2099-12-31T23:59:59.999Z');
         break;
       case "today":
         const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -258,8 +258,8 @@ export default function Expenses() {
         break;
       case "grand":
         start = new Date(0);
-        const grandEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(grandEndUTC.getFullYear(), grandEndUTC.getMonth(), grandEndUTC.getDate(), 23, 59, 59, 999));
+        // Include all data including future dates for grand report
+        end = new Date('2099-12-31T23:59:59.999Z');
         break;
       case "custom":
         if (startDate) {
@@ -275,9 +275,9 @@ export default function Expenses() {
         }
         break;
       default:
-        const defaultTodayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 23, 59, 59, 999));
+        // Default to all data
+        start = new Date(0);
+        end = new Date('2099-12-31T23:59:59.999Z');
     }
 
     return { start, end };
