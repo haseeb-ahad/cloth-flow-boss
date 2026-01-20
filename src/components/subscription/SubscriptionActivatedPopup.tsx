@@ -53,7 +53,7 @@ const SubscriptionActivatedPopup = ({
     <>
       {showConfetti && <Confetti />}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-0">
+        <DialogContent className="sm:max-w-sm p-0 overflow-hidden border-0">
           {/* Animated Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
