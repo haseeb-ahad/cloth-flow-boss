@@ -2078,7 +2078,7 @@ const Invoice = () => {
 
       {/* Duplicate Product Confirmation Dialog */}
       <Dialog open={showDuplicateConfirm} onOpenChange={setShowDuplicateConfirm}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xs">
           <DialogHeader>
             <DialogTitle>{t("productAlreadyAdded") || "Product Already Added"}</DialogTitle>
             <DialogDescription>
