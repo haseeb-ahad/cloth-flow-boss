@@ -11,11 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Edit, Trash2, Search, RefreshCw, Download, Upload, FileText, ImageIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Edit, Trash2, Search, RefreshCw, Download, Upload, FileText, ImageIcon, CalendarIcon } from "lucide-react";
 import SalesReport from "@/components/sales/SalesReport";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { exportSalesToCSV, parseSalesCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
 interface Sale {
@@ -54,10 +59,86 @@ const Sales = () => {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { timezone } = useTimezone();
+
+  // Helper function to get current date parts in user's timezone
+  const getDatePartsInTimezone = (date: Date, tz: string) => {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(date);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Get timezone offset in milliseconds
+  const getTimezoneOffsetMs = (tz: string) => {
+    const now = new Date();
+    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    return tzDate.getTime() - utcDate.getTime();
+  };
+
+  const getDateRangeFilter = () => {
+    const now = new Date();
+    const tz = timezone || 'Asia/Karachi';
+    const todayParts = getDatePartsInTimezone(now, tz);
+    const tzOffset = getTimezoneOffsetMs(tz);
+    
+    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
+      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
+      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
+      return {
+        start: new Date(startLocal.getTime() - tzOffset),
+        end: new Date(endLocal.getTime() - tzOffset)
+      };
+    };
+
+    switch (dateRangeFilter) {
+      case "all":
+        return { start: new Date(0), end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset) };
+      case "today":
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
+      case "yesterday": {
+        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
+        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      }
+      case "1week": {
+        const weekAgo = new Date(todayParts.year, todayParts.month, todayParts.day - 7);
+        return createDateRange(weekAgo.getFullYear(), weekAgo.getMonth(), weekAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      case "1month": {
+        const monthAgo = new Date(todayParts.year, todayParts.month - 1, todayParts.day);
+        return createDateRange(monthAgo.getFullYear(), monthAgo.getMonth(), monthAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      case "1year": {
+        const yearAgo = new Date(todayParts.year - 1, todayParts.month, todayParts.day);
+        return createDateRange(yearAgo.getFullYear(), yearAgo.getMonth(), yearAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      case "custom":
+        if (startDate && endDate) {
+          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        } else if (startDate) {
+          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), todayParts.year, todayParts.month, todayParts.day);
+        } else if (endDate) {
+          return { start: new Date(0), end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset) };
+        }
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
+      default:
+        return { start: new Date(0), end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset) };
+    }
+  };
 
   const fetchSaleItems = async (saleId: string) => {
     const { data } = await supabase
@@ -166,7 +247,7 @@ const Sales = () => {
 
   useEffect(() => {
     filterSales();
-  }, [sales, searchTerm, dateFilter]);
+  }, [sales, searchTerm, dateRangeFilter, startDate, endDate]);
 
   const fetchSales = async () => {
     setIsLoading(true);
@@ -221,12 +302,12 @@ const Sales = () => {
       );
     }
 
-    if (dateFilter) {
+    // Apply date range filter
+    if (dateRangeFilter !== "all") {
+      const { start, end } = getDateRangeFilter();
       filtered = filtered.filter(sale => {
-        // Convert created_at to local date string for comparison
         const saleDate = new Date(sale.created_at);
-        const saleDateStr = saleDate.toLocaleDateString('en-CA'); // Format: YYYY-MM-DD
-        return saleDateStr === dateFilter;
+        return saleDate >= start && saleDate <= end;
       });
     }
 
@@ -393,15 +474,56 @@ const Sales = () => {
           </div>
           <div>
             <Label className="text-xs md:text-sm">{t("filterByDate")}</Label>
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
+            <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("selectRange")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("all")}</SelectItem>
+                <SelectItem value="today">{t("today")}</SelectItem>
+                <SelectItem value="yesterday">{t("yesterday")}</SelectItem>
+                <SelectItem value="1week">{t("oneWeek")}</SelectItem>
+                <SelectItem value="1month">{t("oneMonth")}</SelectItem>
+                <SelectItem value="1year">{t("oneYear")}</SelectItem>
+                <SelectItem value="custom">{t("custom")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          {dateRangeFilter === "custom" && (
+            <>
+              <div>
+                <Label className="text-xs md:text-sm">{t("startDate")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "PP") : t("startDate")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label className="text-xs md:text-sm">{t("endDate")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PP") : t("endDate")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setDateFilter(""); }} 
+              onClick={() => { setSearchTerm(""); setDateRangeFilter("all"); setStartDate(undefined); setEndDate(undefined); }} 
               variant="outline"
               className="w-full"
               disabled={isLoading}

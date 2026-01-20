@@ -206,98 +206,83 @@ const Dashboard = () => {
   const getTodayDateRange = () => {
     const now = new Date();
     const tz = timezone || 'Asia/Karachi';
-    const tzOffset = getTimezoneOffsetMs(tz);
     const todayParts = getDatePartsInTimezone(now, tz);
     
-    // Use Date.UTC to create UTC midnight, then subtract timezone offset
-    const createStartOfDay = (year: number, month: number, day: number) => {
-      const utcMidnight = Date.UTC(year, month, day, 0, 0, 0, 0);
-      return new Date(utcMidnight - tzOffset);
-    };
+    // Create dates in local timezone then convert to UTC
+    const startLocal = new Date(todayParts.year, todayParts.month, todayParts.day, 0, 0, 0, 0);
+    const endLocal = new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999);
+    
+    // Get offset and convert to UTC
+    const tzOffset = getTimezoneOffsetMs(tz);
+    const start = new Date(startLocal.getTime() - tzOffset);
+    const end = new Date(endLocal.getTime() - tzOffset);
 
-    const createEndOfDay = (year: number, month: number, day: number) => {
-      const utcEndOfDay = Date.UTC(year, month, day, 23, 59, 59, 999);
-      return new Date(utcEndOfDay - tzOffset);
-    };
-
-    return {
-      start: createStartOfDay(todayParts.year, todayParts.month, todayParts.day),
-      end: createEndOfDay(todayParts.year, todayParts.month, todayParts.day)
-    };
+    return { start, end };
   };
 
   const getDateRangeFilter = () => {
     const now = new Date();
     const tz = timezone || 'Asia/Karachi';
-    const tzOffset = getTimezoneOffsetMs(tz);
     const todayParts = getDatePartsInTimezone(now, tz);
+    const tzOffset = getTimezoneOffsetMs(tz);
     
-    let start: Date;
-    let end: Date;
-
-    // Use Date.UTC to create UTC midnight, then subtract timezone offset to get correct UTC time
-    const createStartOfDay = (year: number, month: number, day: number) => {
-      const utcMidnight = Date.UTC(year, month, day, 0, 0, 0, 0);
-      return new Date(utcMidnight - tzOffset);
-    };
-
-    // Use Date.UTC to create UTC end of day, then subtract timezone offset
-    const createEndOfDay = (year: number, month: number, day: number) => {
-      const utcEndOfDay = Date.UTC(year, month, day, 23, 59, 59, 999);
-      return new Date(utcEndOfDay - tzOffset);
+    // Helper to create date range in UTC from local timezone
+    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
+      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
+      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
+      return {
+        start: new Date(startLocal.getTime() - tzOffset),
+        end: new Date(endLocal.getTime() - tzOffset)
+      };
     };
 
     switch (dateRange) {
       case "today":
-        start = createStartOfDay(todayParts.year, todayParts.month, todayParts.day);
-        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
-        break;
-      case "yesterday":
-        const yesterdayDate = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
-        const yesterdayParts = { year: yesterdayDate.getFullYear(), month: yesterdayDate.getMonth(), day: yesterdayDate.getDate() };
-        start = createStartOfDay(yesterdayParts.year, yesterdayParts.month, yesterdayParts.day);
-        end = createEndOfDay(yesterdayParts.year, yesterdayParts.month, yesterdayParts.day);
-        break;
-      case "1week":
-        const weekAgoDate = new Date(todayParts.year, todayParts.month, todayParts.day - 7);
-        const weekAgoParts = { year: weekAgoDate.getFullYear(), month: weekAgoDate.getMonth(), day: weekAgoDate.getDate() };
-        start = createStartOfDay(weekAgoParts.year, weekAgoParts.month, weekAgoParts.day);
-        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
-        break;
-      case "1month":
-        const monthAgoDate = new Date(todayParts.year, todayParts.month - 1, todayParts.day);
-        const monthAgoParts = { year: monthAgoDate.getFullYear(), month: monthAgoDate.getMonth(), day: monthAgoDate.getDate() };
-        start = createStartOfDay(monthAgoParts.year, monthAgoParts.month, monthAgoParts.day);
-        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
-        break;
-      case "1year":
-        const yearAgoDate = new Date(todayParts.year - 1, todayParts.month, todayParts.day);
-        const yearAgoParts = { year: yearAgoDate.getFullYear(), month: yearAgoDate.getMonth(), day: yearAgoDate.getDate() };
-        start = createStartOfDay(yearAgoParts.year, yearAgoParts.month, yearAgoParts.day);
-        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
-        break;
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
+      
+      case "yesterday": {
+        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
+        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      }
+      
+      case "1week": {
+        const weekAgo = new Date(todayParts.year, todayParts.month, todayParts.day - 7);
+        return createDateRange(weekAgo.getFullYear(), weekAgo.getMonth(), weekAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      
+      case "1month": {
+        const monthAgo = new Date(todayParts.year, todayParts.month - 1, todayParts.day);
+        return createDateRange(monthAgo.getFullYear(), monthAgo.getMonth(), monthAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      
+      case "1year": {
+        const yearAgo = new Date(todayParts.year - 1, todayParts.month, todayParts.day);
+        return createDateRange(yearAgo.getFullYear(), yearAgo.getMonth(), yearAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      
       case "grand":
-        start = new Date(0);
-        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
-        break;
+        // For grand report, use epoch start to today
+        return {
+          start: new Date(0),
+          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
+        };
+      
       case "custom":
-        if (startDate) {
-          start = createStartOfDay(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-        } else {
-          start = new Date(0);
+        if (startDate && endDate) {
+          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        } else if (startDate) {
+          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), todayParts.year, todayParts.month, todayParts.day);
+        } else if (endDate) {
+          return {
+            start: new Date(0),
+            end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset)
+          };
         }
-        if (endDate) {
-          end = createEndOfDay(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        } else {
-          end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
-        }
-        break;
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
+      
       default:
-        start = createStartOfDay(todayParts.year, todayParts.month, todayParts.day);
-        end = createEndOfDay(todayParts.year, todayParts.month, todayParts.day);
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
     }
-
-    return { start, end };
   };
 
   const fetchDashboardStats = async () => {
@@ -627,21 +612,53 @@ const Dashboard = () => {
   };
 
   const fetchCategoryData = async () => {
-    const { data: products } = await supabase
-      .from("products")
-      .select("category")
-      .is("deleted_at", null);
+    const { start, end } = getDateRangeFilter();
 
-    if (!products || products.length === 0) {
+    // Get sales within date range
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("id")
+      .is("deleted_at", null)
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
+
+    const saleIds = sales?.map(sale => sale.id) || [];
+
+    if (saleIds.length === 0) {
       setCategoryData([]);
       return;
     }
 
+    // Get sale items for these sales (filter out returns)
+    const { data: saleItems } = await supabase
+      .from("sale_items")
+      .select("product_id, total_price, is_return")
+      .in("sale_id", saleIds);
+
+    const regularItems = saleItems?.filter(item => !item.is_return) || [];
+
+    if (regularItems.length === 0) {
+      setCategoryData([]);
+      return;
+    }
+
+    // Get product categories
+    const productIds = [...new Set(regularItems.map(item => item.product_id))];
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, category")
+      .in("id", productIds);
+
+    const productCategoryMap: { [key: string]: string } = {};
+    products?.forEach(product => {
+      productCategoryMap[product.id] = product.category || "Uncategorized";
+    });
+
+    // Calculate sales by category
     const categoryMap: { [key: string]: number } = {};
-    
-    products.forEach((product) => {
-      const category = product.category || "Uncategorized";
-      categoryMap[category] = (categoryMap[category] || 0) + 1;
+    regularItems.forEach((item) => {
+      const category = productCategoryMap[item.product_id] || "Uncategorized";
+      categoryMap[category] = (categoryMap[category] || 0) + Number(item.total_price);
     });
 
     const categoryChartData = Object.entries(categoryMap)
