@@ -627,21 +627,53 @@ const Dashboard = () => {
   };
 
   const fetchCategoryData = async () => {
-    const { data: products } = await supabase
-      .from("products")
-      .select("category")
-      .is("deleted_at", null);
+    const { start, end } = getDateRangeFilter();
 
-    if (!products || products.length === 0) {
+    // Get sales within date range
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("id")
+      .is("deleted_at", null)
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
+
+    const saleIds = sales?.map(sale => sale.id) || [];
+
+    if (saleIds.length === 0) {
       setCategoryData([]);
       return;
     }
 
+    // Get sale items for these sales (filter out returns)
+    const { data: saleItems } = await supabase
+      .from("sale_items")
+      .select("product_id, total_price, is_return")
+      .in("sale_id", saleIds);
+
+    const regularItems = saleItems?.filter(item => !item.is_return) || [];
+
+    if (regularItems.length === 0) {
+      setCategoryData([]);
+      return;
+    }
+
+    // Get product categories
+    const productIds = [...new Set(regularItems.map(item => item.product_id))];
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, category")
+      .in("id", productIds);
+
+    const productCategoryMap: { [key: string]: string } = {};
+    products?.forEach(product => {
+      productCategoryMap[product.id] = product.category || "Uncategorized";
+    });
+
+    // Calculate sales by category
     const categoryMap: { [key: string]: number } = {};
-    
-    products.forEach((product) => {
-      const category = product.category || "Uncategorized";
-      categoryMap[category] = (categoryMap[category] || 0) + 1;
+    regularItems.forEach((item) => {
+      const category = productCategoryMap[item.product_id] || "Uncategorized";
+      categoryMap[category] = (categoryMap[category] || 0) + Number(item.total_price);
     });
 
     const categoryChartData = Object.entries(categoryMap)
