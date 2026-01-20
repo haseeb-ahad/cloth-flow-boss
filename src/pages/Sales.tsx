@@ -115,16 +115,20 @@ const Sales = () => {
         return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
       }
       case "1week": {
-        const weekAgo = new Date(todayParts.year, todayParts.month, todayParts.day - 7);
-        return createDateRange(weekAgo.getFullYear(), weekAgo.getMonth(), weekAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+        // Get start of current week (Monday)
+        const todayDate = new Date(todayParts.year, todayParts.month, todayParts.day);
+        const dayOfWeek = todayDate.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const weekStart = new Date(todayParts.year, todayParts.month, todayParts.day - daysFromMonday);
+        return createDateRange(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), todayParts.year, todayParts.month, todayParts.day);
       }
       case "1month": {
-        const monthAgo = new Date(todayParts.year, todayParts.month - 1, todayParts.day);
-        return createDateRange(monthAgo.getFullYear(), monthAgo.getMonth(), monthAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+        // From 1st of current month to today
+        return createDateRange(todayParts.year, todayParts.month, 1, todayParts.year, todayParts.month, todayParts.day);
       }
       case "1year": {
-        const yearAgo = new Date(todayParts.year - 1, todayParts.month, todayParts.day);
-        return createDateRange(yearAgo.getFullYear(), yearAgo.getMonth(), yearAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+        // From January 1st of current year to today
+        return createDateRange(todayParts.year, 0, 1, todayParts.year, todayParts.month, todayParts.day);
       }
       case "custom":
         if (startDate && endDate) {
