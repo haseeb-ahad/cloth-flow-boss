@@ -216,121 +216,151 @@ export default function Expenses() {
     }
   };
 
-  // Calculate date range based on filter
+  // Helper function to get current date parts in user's timezone
+  const getDatePartsInTimezone = (date: Date, tz: string) => {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(date);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Get timezone offset in milliseconds
+  const getTimezoneOffsetMs = (tz: string) => {
+    const now = new Date();
+    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    return tzDate.getTime() - utcDate.getTime();
+  };
+
+  // Calculate date range based on filter - timezone aware (matches Dashboard logic)
   const getDateRange = () => {
     const now = new Date();
-    let start: Date;
-    let end: Date;
+    const tz = 'Asia/Karachi'; // PKT timezone
+    const todayParts = getDatePartsInTimezone(now, tz);
+    const tzOffset = getTimezoneOffsetMs(tz);
+    
+    // Helper to create date range in UTC from local timezone
+    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
+      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
+      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
+      return {
+        start: new Date(startLocal.getTime() - tzOffset),
+        end: new Date(endLocal.getTime() - tzOffset)
+      };
+    };
 
     switch (dateFilter) {
       case "all":
-        start = new Date(0);
-        const allEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(allEndUTC.getFullYear(), allEndUTC.getMonth(), allEndUTC.getDate(), 23, 59, 59, 999));
-        break;
+        return {
+          start: new Date(0),
+          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
+        };
+      
       case "today":
-        const todayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(todayUTC.getFullYear(), todayUTC.getMonth(), todayUTC.getDate(), 23, 59, 59, 999));
-        break;
-      case "yesterday":
-        const yesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        start = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 23, 59, 59, 999));
-        break;
-      case "1week":
-        const weekAgoUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-        start = new Date(Date.UTC(weekAgoUTC.getFullYear(), weekAgoUTC.getMonth(), weekAgoUTC.getDate(), 0, 0, 0, 0));
-        const todayEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(todayEndUTC.getFullYear(), todayEndUTC.getMonth(), todayEndUTC.getDate(), 23, 59, 59, 999));
-        break;
-      case "1month":
-        const monthAgoUTC = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        start = new Date(Date.UTC(monthAgoUTC.getFullYear(), monthAgoUTC.getMonth(), monthAgoUTC.getDate(), 0, 0, 0, 0));
-        const monthEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(monthEndUTC.getFullYear(), monthEndUTC.getMonth(), monthEndUTC.getDate(), 23, 59, 59, 999));
-        break;
-      case "1year":
-        const yearAgoUTC = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(yearAgoUTC.getFullYear(), yearAgoUTC.getMonth(), yearAgoUTC.getDate(), 0, 0, 0, 0));
-        const yearEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(yearEndUTC.getFullYear(), yearEndUTC.getMonth(), yearEndUTC.getDate(), 23, 59, 59, 999));
-        break;
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
+      
+      case "yesterday": {
+        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
+        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      }
+      
+      case "1week": {
+        const weekAgo = new Date(todayParts.year, todayParts.month, todayParts.day - 7);
+        return createDateRange(weekAgo.getFullYear(), weekAgo.getMonth(), weekAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      
+      case "1month": {
+        const monthAgo = new Date(todayParts.year, todayParts.month - 1, todayParts.day);
+        return createDateRange(monthAgo.getFullYear(), monthAgo.getMonth(), monthAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      
+      case "1year": {
+        const yearAgo = new Date(todayParts.year - 1, todayParts.month, todayParts.day);
+        return createDateRange(yearAgo.getFullYear(), yearAgo.getMonth(), yearAgo.getDate(), todayParts.year, todayParts.month, todayParts.day);
+      }
+      
       case "grand":
-        start = new Date(0);
-        const grandEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = new Date(Date.UTC(grandEndUTC.getFullYear(), grandEndUTC.getMonth(), grandEndUTC.getDate(), 23, 59, 59, 999));
-        break;
+        return {
+          start: new Date(0),
+          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
+        };
+      
       case "custom":
-        if (startDate) {
-          start = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0));
-        } else {
-          start = new Date(0);
+        if (startDate && endDate) {
+          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        } else if (startDate) {
+          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), todayParts.year, todayParts.month, todayParts.day);
+        } else if (endDate) {
+          return {
+            start: new Date(0),
+            end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset)
+          };
         }
-        if (endDate) {
-          end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999));
-        } else {
-          const customEndUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          end = new Date(Date.UTC(customEndUTC.getFullYear(), customEndUTC.getMonth(), customEndUTC.getDate(), 23, 59, 59, 999));
-        }
-        break;
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
+      
       default:
-        const defaultTodayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        start = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(defaultTodayUTC.getFullYear(), defaultTodayUTC.getMonth(), defaultTodayUTC.getDate(), 23, 59, 59, 999));
+        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
     }
-
-    return { start, end };
   };
 
-  // Get previous period date range for comparison
+  // Get previous period date range for comparison - timezone aware
   const getPreviousPeriodRange = () => {
     const now = new Date();
-    let start: Date;
-    let end: Date;
+    const tz = 'Asia/Karachi';
+    const todayParts = getDatePartsInTimezone(now, tz);
+    const tzOffset = getTimezoneOffsetMs(tz);
+    
+    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
+      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
+      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
+      return {
+        start: new Date(startLocal.getTime() - tzOffset),
+        end: new Date(endLocal.getTime() - tzOffset)
+      };
+    };
 
     switch (dateFilter) {
-      case "today":
+      case "today": {
         // Compare with yesterday
-        const yesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        start = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(yesterdayUTC.getFullYear(), yesterdayUTC.getMonth(), yesterdayUTC.getDate(), 23, 59, 59, 999));
-        break;
-      case "yesterday":
+        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
+        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      }
+      case "yesterday": {
         // Compare with day before yesterday
-        const dayBeforeUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
-        start = new Date(Date.UTC(dayBeforeUTC.getFullYear(), dayBeforeUTC.getMonth(), dayBeforeUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(dayBeforeUTC.getFullYear(), dayBeforeUTC.getMonth(), dayBeforeUTC.getDate(), 23, 59, 59, 999));
-        break;
-      case "1week":
+        const dayBefore = new Date(todayParts.year, todayParts.month, todayParts.day - 2);
+        return createDateRange(dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate());
+      }
+      case "1week": {
         // Compare with previous week
-        const prevWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
-        const prevWeekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 8);
-        start = new Date(Date.UTC(prevWeekStart.getFullYear(), prevWeekStart.getMonth(), prevWeekStart.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(prevWeekEnd.getFullYear(), prevWeekEnd.getMonth(), prevWeekEnd.getDate(), 23, 59, 59, 999));
-        break;
-      case "1month":
+        const prevWeekStart = new Date(todayParts.year, todayParts.month, todayParts.day - 14);
+        const prevWeekEnd = new Date(todayParts.year, todayParts.month, todayParts.day - 8);
+        return createDateRange(prevWeekStart.getFullYear(), prevWeekStart.getMonth(), prevWeekStart.getDate(), prevWeekEnd.getFullYear(), prevWeekEnd.getMonth(), prevWeekEnd.getDate());
+      }
+      case "1month": {
         // Compare with previous month
-        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
-        const prevMonthEnd = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate() - 1);
-        start = new Date(Date.UTC(prevMonthStart.getFullYear(), prevMonthStart.getMonth(), prevMonthStart.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), prevMonthEnd.getDate(), 23, 59, 59, 999));
-        break;
-      case "1year":
+        const prevMonthStart = new Date(todayParts.year, todayParts.month - 2, todayParts.day);
+        const prevMonthEnd = new Date(todayParts.year, todayParts.month - 1, todayParts.day - 1);
+        return createDateRange(prevMonthStart.getFullYear(), prevMonthStart.getMonth(), prevMonthStart.getDate(), prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), prevMonthEnd.getDate());
+      }
+      case "1year": {
         // Compare with previous year
-        const prevYearStart = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
-        const prevYearEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate() - 1);
-        start = new Date(Date.UTC(prevYearStart.getFullYear(), prevYearStart.getMonth(), prevYearStart.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(prevYearEnd.getFullYear(), prevYearEnd.getMonth(), prevYearEnd.getDate(), 23, 59, 59, 999));
-        break;
-      default:
+        const prevYearStart = new Date(todayParts.year - 2, todayParts.month, todayParts.day);
+        const prevYearEnd = new Date(todayParts.year - 1, todayParts.month, todayParts.day - 1);
+        return createDateRange(prevYearStart.getFullYear(), prevYearStart.getMonth(), prevYearStart.getDate(), prevYearEnd.getFullYear(), prevYearEnd.getMonth(), prevYearEnd.getDate());
+      }
+      default: {
         // Default to yesterday for comparison
-        const defaultYesterdayUTC = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        start = new Date(Date.UTC(defaultYesterdayUTC.getFullYear(), defaultYesterdayUTC.getMonth(), defaultYesterdayUTC.getDate(), 0, 0, 0, 0));
-        end = new Date(Date.UTC(defaultYesterdayUTC.getFullYear(), defaultYesterdayUTC.getMonth(), defaultYesterdayUTC.getDate(), 23, 59, 59, 999));
+        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
+        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      }
     }
-
-    return { start, end };
   };
 
   const getDateRangeLabel = () => {
@@ -398,16 +428,17 @@ export default function Expenses() {
     enabled: !!ownerId
   });
 
-  // Fetch profit based on filter
+  // Fetch profit based on filter - matches Dashboard calculation exactly
   const { data: filteredProfit = 0, isLoading: profitLoading } = useQuery({
     queryKey: ["filteredProfit", dateFilter, ownerId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       const { start, end } = getDateRange();
       
-      // First get sales in the date range
+      // First get sales in the date range (exclude deleted sales)
       const { data: sales } = await supabase
         .from("sales")
         .select("id")
+        .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString());
       
@@ -415,18 +446,23 @@ export default function Expenses() {
       
       const saleIds = sales.map(sale => sale.id);
       
+      // Get sale items excluding returns and deleted items
       const { data, error } = await supabase
         .from("sale_items")
-        .select("profit")
-        .in("sale_id", saleIds);
+        .select("profit, is_return, is_deleted")
+        .in("sale_id", saleIds)
+        .eq("is_deleted", false);
       
       if (error) throw error;
-      return data?.reduce((sum, item) => sum + (Number(item.profit) || 0), 0) || 0;
+      
+      // Filter out return items - they are tracking only
+      const regularItems = data?.filter(item => !item.is_return) || [];
+      return regularItems.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
     },
     enabled: !!ownerId
   });
 
-  // Fetch previous period profit for comparison
+  // Fetch previous period profit for comparison - matches Dashboard calculation
   const { data: previousProfit = 0 } = useQuery({
     queryKey: ["previousProfit", dateFilter, ownerId],
     queryFn: async () => {
@@ -437,6 +473,7 @@ export default function Expenses() {
       const { data: sales } = await supabase
         .from("sales")
         .select("id")
+        .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString());
       
@@ -446,11 +483,15 @@ export default function Expenses() {
       
       const { data, error } = await supabase
         .from("sale_items")
-        .select("profit")
-        .in("sale_id", saleIds);
+        .select("profit, is_return, is_deleted")
+        .in("sale_id", saleIds)
+        .eq("is_deleted", false);
       
       if (error) throw error;
-      return data?.reduce((sum, item) => sum + (Number(item.profit) || 0), 0) || 0;
+      
+      // Filter out return items
+      const regularItems = data?.filter(item => !item.is_return) || [];
+      return regularItems.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
     },
     enabled: !!ownerId && dateFilter !== "all" && dateFilter !== "grand" && dateFilter !== "custom"
   });
