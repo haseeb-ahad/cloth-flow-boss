@@ -441,7 +441,7 @@ export default function Expenses() {
       // First get sales in the date range (exclude deleted sales)
       const { data: sales } = await supabase
         .from("sales")
-        .select("id")
+        .select("id, discount")
         .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString());
@@ -461,7 +461,11 @@ export default function Expenses() {
       
       // Filter out return items - they are tracking only
       const regularItems = data?.filter(item => !item.is_return) || [];
-      return regularItems.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
+      const rawProfit = regularItems.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
+      
+      // Subtract total discount from profit
+      const totalDiscount = sales.reduce((sum, sale) => sum + (sale.discount || 0), 0);
+      return rawProfit - totalDiscount;
     },
     enabled: !!ownerId
   });
@@ -476,7 +480,7 @@ export default function Expenses() {
       
       const { data: sales } = await supabase
         .from("sales")
-        .select("id")
+        .select("id, discount")
         .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString());
@@ -495,7 +499,11 @@ export default function Expenses() {
       
       // Filter out return items
       const regularItems = data?.filter(item => !item.is_return) || [];
-      return regularItems.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
+      const rawProfit = regularItems.reduce((sum, item) => sum + (Number(item.profit) || 0), 0);
+      
+      // Subtract total discount from profit
+      const totalDiscount = sales.reduce((sum, sale) => sum + (sale.discount || 0), 0);
+      return rawProfit - totalDiscount;
     },
     enabled: !!ownerId && dateFilter !== "all" && dateFilter !== "grand" && dateFilter !== "custom"
   });
