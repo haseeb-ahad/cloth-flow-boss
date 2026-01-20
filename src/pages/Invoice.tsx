@@ -504,20 +504,6 @@ const Invoice = () => {
     if (field === "product_id") {
       const product = products.find(p => p.id === value);
       if (product) {
-        // Check if same product already exists (by product_id)
-        const duplicateProduct = items.find((item, idx) => 
-          idx !== index && 
-          item.product_id === product.id
-        );
-
-        if (duplicateProduct) {
-          toast.error(`${product.name} is already added to this invoice`, {
-            duration: 3000,
-            className: "animate-shake",
-          });
-          return;
-        }
-
         newItems[index] = {
           ...newItems[index],
           product_id: value,
