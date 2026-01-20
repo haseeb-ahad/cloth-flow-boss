@@ -81,6 +81,8 @@ const Invoice = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [pendingDuplicateProduct, setPendingDuplicateProduct] = useState<{index: number, product: Product} | null>(null);
   const [additionalPayment, setAdditionalPayment] = useState("");
   const [isFullPayment, setIsFullPayment] = useState(false);
   const [invoiceDate, setInvoiceDate] = useState("");
@@ -497,6 +499,46 @@ const Invoice = () => {
     debugLog("✅ QR SCAN: Product added/updated in invoice");
   };
 
+  // Helper function to apply product to item
+  const applyProductToItem = (index: number, product: Product) => {
+    const newItems = [...items];
+    newItems[index] = {
+      ...newItems[index],
+      product_id: product.id,
+      product_name: product.name,
+      unit_price: product.selling_price,
+      purchase_price: product.purchase_price,
+      quantity_type: product.quantity_type || "Unit",
+      total_price: product.selling_price * newItems[index].quantity,
+    };
+    
+    setItems(newItems);
+    
+    // Auto-focus to quantity input after product selection
+    setTimeout(() => {
+      const quantityInput = quantityInputRefs.current[index];
+      if (quantityInput) {
+        quantityInput.focus();
+        quantityInput.select();
+      }
+    }, 100);
+  };
+
+  // Handle duplicate product confirmation
+  const handleDuplicateConfirm = () => {
+    if (pendingDuplicateProduct) {
+      applyProductToItem(pendingDuplicateProduct.index, pendingDuplicateProduct.product);
+      toast.success(`${pendingDuplicateProduct.product.name} added again`);
+    }
+    setShowDuplicateConfirm(false);
+    setPendingDuplicateProduct(null);
+  };
+
+  const handleDuplicateCancel = () => {
+    setShowDuplicateConfirm(false);
+    setPendingDuplicateProduct(null);
+  };
+
   const updateItem = (index: number, field: string, value: any) => {
     debugLog(`✏️ USER ACTION: Updating item ${index}, field: ${field}, value: ${value}`);
     
@@ -504,26 +546,21 @@ const Invoice = () => {
     if (field === "product_id") {
       const product = products.find(p => p.id === value);
       if (product) {
-        newItems[index] = {
-          ...newItems[index],
-          product_id: value,
-          product_name: product.name,
-          unit_price: product.selling_price,
-          purchase_price: product.purchase_price,
-          quantity_type: product.quantity_type || "Unit",
-          total_price: product.selling_price * newItems[index].quantity,
-        };
-        
-        setItems(newItems);
-        
-        // Auto-focus to quantity input after product selection
-        setTimeout(() => {
-          const quantityInput = quantityInputRefs.current[index];
-          if (quantityInput) {
-            quantityInput.focus();
-            quantityInput.select();
-          }
-        }, 100);
+        // Check if same product already exists (by product_id)
+        const duplicateProduct = items.find((item, idx) => 
+          idx !== index && 
+          item.product_id === product.id
+        );
+
+        if (duplicateProduct) {
+          // Show confirmation popup instead of blocking
+          setPendingDuplicateProduct({ index, product });
+          setShowDuplicateConfirm(true);
+          return;
+        }
+
+        // No duplicate, add directly
+        applyProductToItem(index, product);
         return;
       }
     } else if (field === "quantity") {
@@ -2034,6 +2071,30 @@ const Invoice = () => {
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               {t("confirmReturn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate Product Confirmation Dialog */}
+      <Dialog open={showDuplicateConfirm} onOpenChange={setShowDuplicateConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("productAlreadyAdded") || "Product Already Added"}</DialogTitle>
+            <DialogDescription>
+              {pendingDuplicateProduct && (
+                <span>
+                  <strong>{pendingDuplicateProduct.product.name}</strong> {t("alreadyInInvoice") || "is already in this invoice. Do you want to add it again?"}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleDuplicateCancel}>
+              {t("no") || "No"}
+            </Button>
+            <Button onClick={handleDuplicateConfirm}>
+              {t("yes") || "Yes"}, {t("addAgain") || "Add Again"}
             </Button>
           </DialogFooter>
         </DialogContent>
