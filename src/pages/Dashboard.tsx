@@ -317,16 +317,35 @@ const Dashboard = () => {
     let totalPrice = 0;
     
     if (saleIds.length > 0) {
+      // Fetch sale items
       const { data: saleItems } = await supabase
         .from("sale_items")
-        .select("profit, purchase_price, quantity, unit_price, is_return, is_deleted")
+        .select("profit, purchase_price, quantity, unit_price, is_return, is_deleted, sale_id")
         .in("sale_id", saleIds)
         .eq("is_deleted", false);
+      
+      // Fetch discounts for each sale
+      const { data: salesWithDiscount } = await supabase
+        .from("sales")
+        .select("id, discount")
+        .in("id", saleIds);
+      
+      const discountMap: { [key: string]: number } = {};
+      salesWithDiscount?.forEach(sale => {
+        discountMap[sale.id] = sale.discount || 0;
+      });
       
       // Filter out return items - they are tracking only
       const regularItems = saleItems?.filter(item => !item.is_return) || [];
       
-      totalProfit = regularItems.reduce((sum, item) => sum + Number(item.profit), 0);
+      // Calculate raw profit from items
+      const rawProfit = regularItems.reduce((sum, item) => sum + Number(item.profit), 0);
+      
+      // Calculate total discount
+      const totalDiscount = salesWithDiscount?.reduce((sum, sale) => sum + (sale.discount || 0), 0) || 0;
+      
+      // Profit = Raw Profit - Discount
+      totalProfit = rawProfit - totalDiscount;
       totalCost = regularItems.reduce((sum, item) => sum + (Number(item.purchase_price) * Number(item.quantity)), 0);
       totalPrice = regularItems.reduce((sum, item) => sum + (Number(item.unit_price) * Number(item.quantity)), 0);
     }

@@ -112,7 +112,9 @@ const SalesReport = ({ className }: SalesReportProps) => {
 
             const regularItems = items?.filter((item) => !item.is_return) || [];
             const total_cost = regularItems.reduce((sum, item) => sum + item.purchase_price * item.quantity, 0);
-            const total_profit = regularItems.reduce((sum, item) => sum + item.profit, 0);
+            // Profit = Raw Item Profit - Discount
+            const rawProfit = regularItems.reduce((sum, item) => sum + item.profit, 0);
+            const total_profit = rawProfit - (sale.discount || 0);
 
             return {
               ...sale,
@@ -168,10 +170,10 @@ const SalesReport = ({ className }: SalesReportProps) => {
     return <Badge variant="destructive">Unpaid</Badge>;
   };
 
-  // Summary calculations
+  // Summary calculations (profit already has discount subtracted per-sale)
   const totalAmount = sales.reduce((sum, s) => sum + s.total_amount, 0);
   const totalCost = sales.reduce((sum, s) => sum + s.total_cost, 0);
-  const totalProfit = sales.reduce((sum, s) => sum + s.total_profit, 0);
+  const totalProfit = sales.reduce((sum, s) => sum + s.total_profit, 0); // Already discount-adjusted
   const totalDiscount = sales.reduce((sum, s) => sum + (s.discount || 0), 0);
   const totalFinalAmount = sales.reduce((sum, s) => sum + s.final_amount, 0);
   const totalPaid = sales.reduce((sum, s) => sum + (s.paid_amount || 0), 0);
