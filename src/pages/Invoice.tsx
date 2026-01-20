@@ -664,8 +664,10 @@ const Invoice = () => {
   };
 
   const calculateTotalProfit = () => {
-    // Profit is calculated from non-return items only (since original qty is already reduced)
-    return items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    // Profit = (Selling - Cost) - Discount
+    // Discount is deducted from profit since it reduces the actual margin
+    const rawProfit = items.filter(item => !item.is_return).reduce((sum, item) => sum + ((item.unit_price - item.purchase_price) * item.quantity), 0);
+    return rawProfit - discount;
   };
 
   const calculateChange = () => {
