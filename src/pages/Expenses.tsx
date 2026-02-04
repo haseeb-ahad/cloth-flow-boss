@@ -341,7 +341,6 @@ export default function Expenses() {
       const { data: sales } = await supabase
         .from("sales")
         .select("id, discount")
-        .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString());
       
@@ -352,9 +351,8 @@ export default function Expenses() {
       // Get sale items excluding returns and deleted items
       const { data, error } = await supabase
         .from("sale_items")
-        .select("profit, is_return, is_deleted")
-        .in("sale_id", saleIds)
-        .eq("is_deleted", false);
+        .select("profit, is_return")
+        .in("sale_id", saleIds);
       
       if (error) throw error;
       
@@ -380,7 +378,6 @@ export default function Expenses() {
       const { data: sales } = await supabase
         .from("sales")
         .select("id, discount")
-        .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString());
       
@@ -390,9 +387,8 @@ export default function Expenses() {
       
       const { data, error } = await supabase
         .from("sale_items")
-        .select("profit, is_return, is_deleted")
-        .in("sale_id", saleIds)
-        .eq("is_deleted", false);
+        .select("profit, is_return")
+        .in("sale_id", saleIds);
       
       if (error) throw error;
       

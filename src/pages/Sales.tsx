@@ -195,7 +195,6 @@ const Sales = () => {
       const { data } = await supabase
         .from("sales")
         .select("*")
-        .is("deleted_at", null)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
