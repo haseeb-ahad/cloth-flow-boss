@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDateRangeFilter, DateFilterValue } from "@/hooks/useDateRangeFilter";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -59,90 +60,17 @@ const Sales = () => {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [filteredSales, setFilteredSales] = useState<SaleWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateFilterValue>("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { timezone } = useTimezone();
+  
+  // Use the centralized date range filter hook
+  const { dateRange: computedDateRange } = useDateRangeFilter(dateRangeFilter, startDate, endDate);
 
-  // Helper function to get current date parts in user's timezone
-  const getDatePartsInTimezone = (date: Date, tz: string) => {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const parts = formatter.formatToParts(date);
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-    return { year, month, day };
-  };
-
-  // Get timezone offset in milliseconds
-  const getTimezoneOffsetMs = (tz: string) => {
-    const now = new Date();
-    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    return tzDate.getTime() - utcDate.getTime();
-  };
-
-  const getDateRangeFilter = () => {
-    const now = new Date();
-    const tz = timezone || 'Asia/Karachi';
-    const todayParts = getDatePartsInTimezone(now, tz);
-    const tzOffset = getTimezoneOffsetMs(tz);
-    
-    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
-      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
-      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
-      return {
-        start: new Date(startLocal.getTime() - tzOffset),
-        end: new Date(endLocal.getTime() - tzOffset)
-      };
-    };
-
-    switch (dateRangeFilter) {
-      case "all":
-        return { start: new Date(0), end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset) };
-      case "today":
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-      case "yesterday": {
-        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
-        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-      }
-      case "1week": {
-        // Get start of current week (Monday)
-        const todayDate = new Date(todayParts.year, todayParts.month, todayParts.day);
-        const dayOfWeek = todayDate.getDay();
-        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const weekStart = new Date(todayParts.year, todayParts.month, todayParts.day - daysFromMonday);
-        return createDateRange(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), todayParts.year, todayParts.month, todayParts.day);
-      }
-      case "1month": {
-        // From 1st of current month to today
-        return createDateRange(todayParts.year, todayParts.month, 1, todayParts.year, todayParts.month, todayParts.day);
-      }
-      case "1year": {
-        // From January 1st of current year to today
-        return createDateRange(todayParts.year, 0, 1, todayParts.year, todayParts.month, todayParts.day);
-      }
-      case "custom":
-        if (startDate && endDate) {
-          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        } else if (startDate) {
-          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), todayParts.year, todayParts.month, todayParts.day);
-        } else if (endDate) {
-          return { start: new Date(0), end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset) };
-        }
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-      default:
-        return { start: new Date(0), end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset) };
-    }
-  };
+  const getDateRangeFilter = () => computedDateRange;
 
   const fetchSaleItems = async (saleId: string) => {
     const { data } = await supabase
@@ -249,16 +177,27 @@ const Sales = () => {
     };
   }, []);
 
+  // Refetch when date filter changes for server-side filtering
   useEffect(() => {
-    filterSales();
-  }, [sales, searchTerm, dateRangeFilter, startDate, endDate]);
+    fetchSales();
+  }, [dateRangeFilter, startDate, endDate]);
+
+  useEffect(() => {
+    filterSalesBySearch();
+  }, [sales, searchTerm]);
 
   const fetchSales = async () => {
     setIsLoading(true);
     try {
+      const { start, end } = getDateRangeFilter();
+      
+      // Server-side date filtering
       const { data } = await supabase
         .from("sales")
         .select("*")
+        .is("deleted_at", null)
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
       
       if (data) {
@@ -295,25 +234,19 @@ const Sales = () => {
     }
   };
 
-  const filterSales = () => {
+  // Client-side search filtering only (date filtering is now server-side)
+  const filterSalesBySearch = () => {
     let filtered = [...sales];
 
     if (searchTerm) {
-      filtered = filtered.filter(sale => 
+      filtered = filtered.filter(sale =>
         (sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (sale.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (sale.customer_phone?.includes(searchTerm))
       );
     }
 
-    // Apply date range filter
-    if (dateRangeFilter !== "all") {
-      const { start, end } = getDateRangeFilter();
-      filtered = filtered.filter(sale => {
-        const saleDate = new Date(sale.created_at);
-        return saleDate >= start && saleDate <= end;
-      });
-    }
+    // Date filtering is now done server-side, no need for client-side filtering
 
     setFilteredSales(filtered);
   };
@@ -478,7 +411,7 @@ const Sales = () => {
           </div>
           <div>
             <Label className="text-xs md:text-sm">{t("filterByDate")}</Label>
-            <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+            <Select value={dateRangeFilter} onValueChange={(value) => setDateRangeFilter(value as DateFilterValue)}>
               <SelectTrigger>
                 <SelectValue placeholder={t("selectRange")} />
               </SelectTrigger>

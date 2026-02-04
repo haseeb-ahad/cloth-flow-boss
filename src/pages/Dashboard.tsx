@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useDateRangeFilter, DateFilterValue, getDatePartsInTimezone, getTimezoneOffsetMs } from "@/hooks/useDateRangeFilter";
 import MiniSparkline from "@/components/dashboard/MiniSparkline";
 import SalesAreaChart from "@/components/dashboard/SalesAreaChart";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
@@ -81,7 +82,7 @@ const Dashboard = () => {
     profit: { value: number }[];
     credit: { value: number }[];
   }>({ sales: [], profit: [], credit: [] });
-  const [dateRange, setDateRange] = useState("today");
+  const [dateRange, setDateRange] = useState<DateFilterValue>("today");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
@@ -179,115 +180,11 @@ const Dashboard = () => {
     setIsLoading(false);
   };
 
-  // Helper function to get current date parts in user's timezone
-  const getDatePartsInTimezone = (date: Date, tz: string) => {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const parts = formatter.formatToParts(date);
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-    return { year, month, day };
-  };
+  // Use the centralized date range filter hook
+  const { dateRange: computedDateRange, todayRange, timezone: tz } = useDateRangeFilter(dateRange, startDate, endDate);
 
-  // Get timezone offset in milliseconds
-  const getTimezoneOffsetMs = (tz: string) => {
-    const now = new Date();
-    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    return tzDate.getTime() - utcDate.getTime();
-  };
-
-  // Get today's date range in user's timezone (for todaySales)
-  const getTodayDateRange = () => {
-    const now = new Date();
-    const tz = timezone || 'Asia/Karachi';
-    const todayParts = getDatePartsInTimezone(now, tz);
-    
-    // Create dates in local timezone then convert to UTC
-    const startLocal = new Date(todayParts.year, todayParts.month, todayParts.day, 0, 0, 0, 0);
-    const endLocal = new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999);
-    
-    // Get offset and convert to UTC
-    const tzOffset = getTimezoneOffsetMs(tz);
-    const start = new Date(startLocal.getTime() - tzOffset);
-    const end = new Date(endLocal.getTime() - tzOffset);
-
-    return { start, end };
-  };
-
-  const getDateRangeFilter = () => {
-    const now = new Date();
-    const tz = timezone || 'Asia/Karachi';
-    const todayParts = getDatePartsInTimezone(now, tz);
-    const tzOffset = getTimezoneOffsetMs(tz);
-    
-    // Helper to create date range in UTC from local timezone
-    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
-      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
-      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
-      return {
-        start: new Date(startLocal.getTime() - tzOffset),
-        end: new Date(endLocal.getTime() - tzOffset)
-      };
-    };
-
-    switch (dateRange) {
-      case "today":
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-      
-      case "yesterday": {
-        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
-        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-      }
-      
-      case "1week": {
-        // Get start of current week (Monday)
-        const todayDate = new Date(todayParts.year, todayParts.month, todayParts.day);
-        const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If Sunday, go back 6 days
-        const weekStart = new Date(todayParts.year, todayParts.month, todayParts.day - daysFromMonday);
-        return createDateRange(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), todayParts.year, todayParts.month, todayParts.day);
-      }
-      
-      case "1month": {
-        // From 1st of current month to today
-        return createDateRange(todayParts.year, todayParts.month, 1, todayParts.year, todayParts.month, todayParts.day);
-      }
-      
-      case "1year": {
-        // From January 1st of current year to today
-        return createDateRange(todayParts.year, 0, 1, todayParts.year, todayParts.month, todayParts.day);
-      }
-      
-      case "grand":
-        // For grand report, use epoch start to today
-        return {
-          start: new Date(0),
-          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
-        };
-      
-      case "custom":
-        if (startDate && endDate) {
-          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        } else if (startDate) {
-          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), todayParts.year, todayParts.month, todayParts.day);
-        } else if (endDate) {
-          return {
-            start: new Date(0),
-            end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset)
-          };
-        }
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-      
-      default:
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-    }
-  };
+  const getDateRangeFilter = () => computedDateRange;
+  const getTodayDateRange = () => todayRange;
 
   const fetchDashboardStats = async () => {
     const { start, end } = getDateRangeFilter();
@@ -754,7 +651,7 @@ const Dashboard = () => {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
-            <Select value={dateRange} onValueChange={setDateRange} disabled={isLoading}>
+            <Select value={dateRange} onValueChange={(value) => setDateRange(value as DateFilterValue)} disabled={isLoading}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t("selectRange")} />
               </SelectTrigger>

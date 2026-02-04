@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { calculateDateRange, DateFilterValue } from "@/hooks/useDateRangeFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -46,11 +47,11 @@ interface SalesReportProps {
 }
 
 const SalesReport = ({ className }: SalesReportProps) => {
-  const { formatDate } = useTimezone();
+  const { formatDate, timezone } = useTimezone();
   const [isOpen, setIsOpen] = useState(false);
   const [sales, setSales] = useState<SaleWithItems[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [dateFilter, setDateFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
@@ -61,44 +62,26 @@ const SalesReport = ({ className }: SalesReportProps) => {
       let query = supabase
         .from("sales")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
-      // Apply date filter
-      const now = new Date();
-      let filterStart: Date | null = null;
-      let filterEnd: Date | null = null;
+      // Use centralized date range calculation with timezone awareness
+      const tz = timezone || 'Asia/Karachi';
+      
+      // Parse custom dates if provided
+      const customStartDate = startDate ? new Date(startDate + "T00:00:00") : undefined;
+      const customEndDate = endDate ? new Date(endDate + "T23:59:59") : undefined;
+      
+      const { start, end } = calculateDateRange({
+        dateFilter: dateFilter,
+        startDate: customStartDate,
+        endDate: customEndDate,
+        timezone: tz
+      });
 
-      if (dateFilter === "today") {
-        filterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        filterEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-      } else if (dateFilter === "yesterday") {
-        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        filterStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-        filterEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
-      } else if (dateFilter === "7days") {
-        filterStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        filterEnd = now;
-      } else if (dateFilter === "30days") {
-        filterStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        filterEnd = now;
-      } else if (dateFilter === "90days") {
-        filterStart = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        filterEnd = now;
-      } else if (dateFilter === "custom") {
-        if (startDate) {
-          filterStart = new Date(startDate + "T00:00:00");
-        }
-        if (endDate) {
-          filterEnd = new Date(endDate + "T23:59:59");
-        }
-      }
-
-      if (filterStart) {
-        query = query.gte("created_at", filterStart.toISOString());
-      }
-      if (filterEnd) {
-        query = query.lte("created_at", filterEnd.toISOString());
-      }
+      // Apply server-side date filtering
+      query = query.gte("created_at", start.toISOString())
+                   .lte("created_at", end.toISOString());
 
       const { data: salesData } = await query;
 
@@ -196,7 +179,7 @@ const SalesReport = ({ className }: SalesReportProps) => {
         <div className="flex flex-wrap gap-4 items-end py-4 border-b">
           <div className="space-y-1">
             <Label>Filter by Days</Label>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
+            <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilterValue)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select range" />
               </SelectTrigger>
@@ -204,9 +187,9 @@ const SalesReport = ({ className }: SalesReportProps) => {
                 <SelectItem value="all">All Time</SelectItem>
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="7days">Last 7 Days</SelectItem>
-                <SelectItem value="30days">Last 30 Days</SelectItem>
-                <SelectItem value="90days">Last 90 Days</SelectItem>
+                <SelectItem value="1week">This Week</SelectItem>
+                <SelectItem value="1month">This Month</SelectItem>
+                <SelectItem value="1year">This Year</SelectItem>
                 <SelectItem value="custom">Custom Range</SelectItem>
               </SelectContent>
             </Select>
