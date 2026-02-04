@@ -46,7 +46,6 @@ export const checkCustomerExists = async (
       .select("id, customer_name, customer_phone")
       .eq("owner_id", ownerId)
       .eq("customer_name_normalized", normalizedName)
-      .eq("is_deleted", false)
       .maybeSingle() as any);
 
     if (error) {
@@ -106,7 +105,6 @@ export const getOrCreateCustomer = async (
       .select("id, customer_name, customer_phone")
       .eq("owner_id", ownerId)
       .eq("customer_name_normalized", normalizedName)
-      .eq("is_deleted", false)
       .maybeSingle() as any);
 
     if (existing) {
@@ -180,7 +178,6 @@ export const fetchCustomerSuggestions = async (): Promise<
     const { data, error } = await (supabase
       .from("customers" as any)
       .select("customer_name, customer_phone")
-      .eq("is_deleted", false)
       .order("customer_name", { ascending: true }) as any);
 
     if (error) {

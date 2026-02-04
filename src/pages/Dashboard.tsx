@@ -192,7 +192,6 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id, final_amount")
-      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
     const totalSales = sales?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
@@ -204,7 +203,6 @@ const Dashboard = () => {
     const { data: todaySalesData } = await supabase
       .from("sales")
       .select("final_amount")
-      .is("deleted_at", null)
       .gte("created_at", todayRange.start.toISOString())
       .lte("created_at", todayRange.end.toISOString());
     const todaySales = todaySalesData?.reduce((sum, sale) => sum + Number(sale.final_amount), 0) || 0;
@@ -217,9 +215,8 @@ const Dashboard = () => {
       // Fetch sale items
       const { data: saleItems } = await supabase
         .from("sale_items")
-        .select("profit, purchase_price, quantity, unit_price, is_return, is_deleted, sale_id")
-        .in("sale_id", saleIds)
-        .eq("is_deleted", false);
+        .select("profit, purchase_price, quantity, unit_price, is_return, sale_id")
+        .in("sale_id", saleIds);
       
       // Fetch discounts for each sale
       const { data: salesWithDiscount } = await supabase
@@ -274,7 +271,6 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id, created_at, final_amount")
-      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .order("created_at", { ascending: true });
@@ -361,7 +357,6 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("created_at, final_amount")
-      .is("deleted_at", null)
       .gte("created_at", weekStartUTC.toISOString())
       .order("created_at", { ascending: true });
 
@@ -398,7 +393,6 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id")
-      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 
@@ -446,7 +440,6 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id, customer_name, final_amount")
-      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .not("customer_name", "is", null);
@@ -504,7 +497,6 @@ const Dashboard = () => {
     const { data: sales } = await supabase
       .from("sales")
       .select("id")
-      .is("deleted_at", null)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 

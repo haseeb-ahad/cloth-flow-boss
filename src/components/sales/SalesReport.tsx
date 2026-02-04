@@ -62,7 +62,6 @@ const SalesReport = ({ className }: SalesReportProps) => {
       let query = supabase
         .from("sales")
         .select("*")
-        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       // Use centralized date range calculation with timezone awareness
