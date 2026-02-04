@@ -16,6 +16,7 @@ import { Plus, Loader2, Trash2, TrendingUp, TrendingDown, DollarSign, Download, 
 import { cn } from "@/lib/utils";
 import { exportExpensesToCSV, parseExpensesCSV } from "@/lib/csvExport";
 import { useTimezone } from "@/contexts/TimezoneContext";
+import { useDateRangeFilter, DateFilterValue, calculateDateRange, getDatePartsInTimezone, getTimezoneOffsetMs, createDateRangeUTC } from "@/hooks/useDateRangeFilter";
 import { format } from "date-fns";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 
@@ -37,11 +38,14 @@ export default function Expenses() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [dateFilter, setDateFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Use the centralized date range filter hook
+  const { dateRange: computedDateRange, timezone: tz } = useDateRangeFilter(dateFilter, startDate, endDate);
   
   const [formData, setFormData] = useState({
     expense_type: "",
@@ -216,153 +220,48 @@ export default function Expenses() {
     }
   };
 
-  // Helper function to get current date parts in user's timezone
-  const getDatePartsInTimezone = (date: Date, tz: string) => {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const parts = formatter.formatToParts(date);
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0') - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-    return { year, month, day };
-  };
-
-  // Get timezone offset in milliseconds
-  const getTimezoneOffsetMs = (tz: string) => {
-    const now = new Date();
-    const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-    const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    return tzDate.getTime() - utcDate.getTime();
-  };
-
-  // Calculate date range based on filter - timezone aware (matches Dashboard logic)
-  const getDateRange = () => {
-    const now = new Date();
-    const tz = 'Asia/Karachi'; // PKT timezone
-    const todayParts = getDatePartsInTimezone(now, tz);
-    const tzOffset = getTimezoneOffsetMs(tz);
-    
-    // Helper to create date range in UTC from local timezone
-    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
-      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
-      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
-      return {
-        start: new Date(startLocal.getTime() - tzOffset),
-        end: new Date(endLocal.getTime() - tzOffset)
-      };
-    };
-
-    switch (dateFilter) {
-      case "all":
-        return {
-          start: new Date(0),
-          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
-        };
-      
-      case "today":
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-      
-      case "yesterday": {
-        const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
-        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-      }
-      
-      case "1week": {
-        // Get start of current week (Monday)
-        const todayDate = new Date(todayParts.year, todayParts.month, todayParts.day);
-        const dayOfWeek = todayDate.getDay();
-        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const weekStart = new Date(todayParts.year, todayParts.month, todayParts.day - daysFromMonday);
-        return createDateRange(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), todayParts.year, todayParts.month, todayParts.day);
-      }
-      
-      case "1month": {
-        // From 1st of current month to today
-        return createDateRange(todayParts.year, todayParts.month, 1, todayParts.year, todayParts.month, todayParts.day);
-      }
-      
-      case "1year": {
-        // From January 1st of current year to today
-        return createDateRange(todayParts.year, 0, 1, todayParts.year, todayParts.month, todayParts.day);
-      }
-      
-      case "grand":
-        return {
-          start: new Date(0),
-          end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
-        };
-      
-      case "custom":
-        if (startDate && endDate) {
-          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        } else if (startDate) {
-          return createDateRange(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), todayParts.year, todayParts.month, todayParts.day);
-        } else if (endDate) {
-          return {
-            start: new Date(0),
-            end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset)
-          };
-        }
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-      
-      default:
-        return createDateRange(todayParts.year, todayParts.month, todayParts.day, todayParts.year, todayParts.month, todayParts.day);
-    }
-  };
+  // Use the centralized date range utility
+  const getDateRange = () => computedDateRange;
 
   // Get previous period date range for comparison - timezone aware
   const getPreviousPeriodRange = () => {
     const now = new Date();
-    const tz = 'Asia/Karachi';
     const todayParts = getDatePartsInTimezone(now, tz);
     const tzOffset = getTimezoneOffsetMs(tz);
     
-    const createDateRange = (startYear: number, startMonth: number, startDay: number, endYear: number, endMonth: number, endDay: number) => {
-      const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
-      const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
-      return {
-        start: new Date(startLocal.getTime() - tzOffset),
-        end: new Date(endLocal.getTime() - tzOffset)
-      };
-    };
-
     switch (dateFilter) {
       case "today": {
         // Compare with yesterday
         const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
-        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        return createDateRangeUTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), tzOffset);
       }
       case "yesterday": {
         // Compare with day before yesterday
         const dayBefore = new Date(todayParts.year, todayParts.month, todayParts.day - 2);
-        return createDateRange(dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate());
+        return createDateRangeUTC(dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), dayBefore.getFullYear(), dayBefore.getMonth(), dayBefore.getDate(), tzOffset);
       }
       case "1week": {
         // Compare with previous week
         const prevWeekStart = new Date(todayParts.year, todayParts.month, todayParts.day - 14);
         const prevWeekEnd = new Date(todayParts.year, todayParts.month, todayParts.day - 8);
-        return createDateRange(prevWeekStart.getFullYear(), prevWeekStart.getMonth(), prevWeekStart.getDate(), prevWeekEnd.getFullYear(), prevWeekEnd.getMonth(), prevWeekEnd.getDate());
+        return createDateRangeUTC(prevWeekStart.getFullYear(), prevWeekStart.getMonth(), prevWeekStart.getDate(), prevWeekEnd.getFullYear(), prevWeekEnd.getMonth(), prevWeekEnd.getDate(), tzOffset);
       }
       case "1month": {
         // Compare with previous month
         const prevMonthStart = new Date(todayParts.year, todayParts.month - 2, todayParts.day);
         const prevMonthEnd = new Date(todayParts.year, todayParts.month - 1, todayParts.day - 1);
-        return createDateRange(prevMonthStart.getFullYear(), prevMonthStart.getMonth(), prevMonthStart.getDate(), prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), prevMonthEnd.getDate());
+        return createDateRangeUTC(prevMonthStart.getFullYear(), prevMonthStart.getMonth(), prevMonthStart.getDate(), prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), prevMonthEnd.getDate(), tzOffset);
       }
       case "1year": {
         // Compare with previous year
         const prevYearStart = new Date(todayParts.year - 2, todayParts.month, todayParts.day);
         const prevYearEnd = new Date(todayParts.year - 1, todayParts.month, todayParts.day - 1);
-        return createDateRange(prevYearStart.getFullYear(), prevYearStart.getMonth(), prevYearStart.getDate(), prevYearEnd.getFullYear(), prevYearEnd.getMonth(), prevYearEnd.getDate());
+        return createDateRangeUTC(prevYearStart.getFullYear(), prevYearStart.getMonth(), prevYearStart.getDate(), prevYearEnd.getFullYear(), prevYearEnd.getMonth(), prevYearEnd.getDate(), tzOffset);
       }
       default: {
         // Default to yesterday for comparison
         const yesterday = new Date(todayParts.year, todayParts.month, todayParts.day - 1);
-        return createDateRange(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        return createDateRangeUTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), tzOffset);
       }
     }
   };
@@ -850,7 +749,7 @@ export default function Expenses() {
             <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
               <div className="flex-1 min-w-[150px]">
                 <Label>Date Filter</Label>
-                <Select value={dateFilter} onValueChange={setDateFilter}>
+                <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilterValue)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
