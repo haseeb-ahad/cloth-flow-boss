@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Trash2, Plus, Printer, Check, ChevronsUpDown, ArrowLeft, CheckCircle, Store, Upload, X, RotateCcw, ScanLine } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedTick from "@/components/AnimatedTick";
 import ItemStatusIcon from "@/components/ItemStatusIcon";
@@ -24,6 +25,7 @@ import PrintInvoice from "@/components/PrintInvoice";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import QRScanner from "@/components/inventory/QRScanner";
 import InvoiceQRScanner from "@/components/invoice/InvoiceQRScanner";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 
 // DEBUG FLAG - Set to false after confirming fix
 const DEBUG_MODE = true;
@@ -120,6 +122,17 @@ const Invoice = () => {
   const saveInProgressRef = useRef(false);
   const itemsBeforeSaveRef = useRef<InvoiceItem[]>([]);
   const hasLoadedRef = useRef(false);
+
+  // Refs for barcode scanner callbacks (to avoid hoisting issues)
+  const onProductScanRef = useRef<((code: string) => void) | null>(null);
+  const onInvoiceScanRef = useRef<((saleId: string) => void) | null>(null);
+
+  // Physical barcode scanner hook - captures input from USB/Bluetooth scanners
+  useBarcodeScanner({
+    onProductScanRef,
+    onInvoiceScanRef,
+    enabled: true,
+  });
 
   // Fetch receipt settings from app_settings
   const fetchReceiptSettings = async () => {
@@ -498,6 +511,20 @@ const Invoice = () => {
     
     debugLog("✅ QR SCAN: Product added/updated in invoice");
   };
+
+  // Handle physical barcode scanner for invoice scanning
+  const handleInvoiceBarcodeScan = (saleId: string) => {
+    if (saleId) {
+      toast.success("Invoice found! Loading...");
+      navigate(`/invoice?edit=${saleId}`);
+    }
+  };
+
+  // Set barcode scanner callbacks (after functions are defined)
+  useEffect(() => {
+    onProductScanRef.current = handleQRScan;
+    onInvoiceScanRef.current = handleInvoiceBarcodeScan;
+  });
 
   // Helper function to apply product to item
   const applyProductToItem = (index: number, product: Product) => {
@@ -1437,7 +1464,22 @@ const Invoice = () => {
             </p>
           </div>
         </div>
-        <InvoiceQRScanner buttonText={t("scanInvoice")} buttonVariant="outline" />
+        <div className="flex items-center gap-3">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="hidden sm:inline">Scanner Ready</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">Physical barcode scanner connected! Scan any product QR or invoice QR to add automatically.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <InvoiceQRScanner buttonText={t("scanInvoice")} buttonVariant="outline" />
+        </div>
       </div>
 
       <Card className="p-6">
