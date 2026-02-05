@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard, Wallet } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard } from "lucide-react";
 import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -116,7 +116,6 @@ const Credits = () => {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [creditTypeFilter, setCreditTypeFilter] = useState<string>("all");
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>("");
   const [customerPaymentDateFilters, setCustomerPaymentDateFilters] = useState<{ [key: string]: { start: string; end: string } }>({});
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
@@ -220,7 +219,7 @@ const Credits = () => {
 
   useEffect(() => {
     filterCredits();
-  }, [credits, searchTerm, creditTypeFilter]);
+  }, [credits, searchTerm]);
 
   const fetchProducts = async () => {
     const { data } = await supabase.from("products").select("*").order("name");
@@ -243,37 +242,13 @@ const Credits = () => {
   const fetchCredits = async () => {
     setIsLoading(true);
     try {
-      // Fetch from sales table - only unpaid/partial paid invoices (remaining > 0)
+      // Fetch ONLY from sales table - invoice credits only (remaining > 0)
       const { data: salesData } = await supabase
         .from("sales")
         .select("*")
         .not("customer_name", "is", null)
         .neq("payment_status", "paid")
         .order("created_at", { ascending: true }); // Oldest first for FIFO display
-
-      // Fetch from credits table for credit given only - only with remaining > 0
-      const { data: creditGivenData } = await supabase
-        .from("credits")
-        .select("*")
-        .eq("credit_type", "given")
-        .gt("remaining_amount", 0)
-        .order("created_at", { ascending: true });
-
-      // Fetch last payment dates from credit_transactions for cash credits
-      const { data: transactionsData } = await supabase
-        .from("credit_transactions")
-        .select("credit_id, transaction_date")
-        .order("transaction_date", { ascending: false });
-
-      // Create a map of credit_id to last payment date
-      const lastPaymentDates: { [key: string]: string } = {};
-      if (transactionsData) {
-        transactionsData.forEach(t => {
-          if (!lastPaymentDates[t.credit_id]) {
-            lastPaymentDates[t.credit_id] = t.transaction_date;
-          }
-        });
-      }
 
       let allCredits: Credit[] = [];
 
@@ -285,11 +260,11 @@ const Credits = () => {
             id: sale.id,
             customer_name: sale.customer_name || "",
             customer_phone: sale.customer_phone || null,
-            amount: sale.final_amount, // Total invoice amount
-            paid_amount: sale.paid_amount || 0, // Exact value from sales table
-            remaining_amount: sale.final_amount - (sale.paid_amount || 0), // Calculated from sales table values
+            amount: sale.final_amount,
+            paid_amount: sale.paid_amount || 0,
+            remaining_amount: sale.final_amount - (sale.paid_amount || 0),
             due_date: null,
-            status: sale.payment_status || "pending", // Exact status from sales table
+            status: sale.payment_status || "pending",
             notes: null,
             created_at: sale.created_at || "",
             invoice_number: sale.invoice_number,
@@ -297,32 +272,9 @@ const Credits = () => {
             image_url: sale.image_url || null,
             credit_type: "invoice",
             person_type: "customer",
-            last_payment_date: null, // Invoice credits don't track this here
+            last_payment_date: null,
           }));
-        allCredits = [...allCredits, ...creditsFromSales];
-      }
-
-      if (creditGivenData) {
-        // Map credit given - only those with remaining > 0 (already filtered in query)
-        const givenCredits: Credit[] = creditGivenData.map(credit => ({
-          id: credit.id,
-          customer_name: credit.customer_name || "",
-          customer_phone: credit.customer_phone || null,
-          amount: credit.amount,
-          paid_amount: credit.paid_amount || 0,
-          remaining_amount: credit.remaining_amount,
-          due_date: credit.due_date,
-          status: credit.status || "pending",
-          notes: credit.notes,
-          created_at: credit.created_at || "",
-          invoice_number: `CG-${credit.id.slice(0, 8).toUpperCase()}`,
-          description: credit.notes,
-          image_url: null,
-          credit_type: "given",
-          person_type: credit.person_type || "other",
-          last_payment_date: lastPaymentDates[credit.id] || null,
-        }));
-        allCredits = [...allCredits, ...givenCredits];
+        allCredits = creditsFromSales;
       }
 
       // Sort by created_at
@@ -348,10 +300,7 @@ const Credits = () => {
       );
     }
 
-    if (creditTypeFilter !== "all") {
-      filtered = filtered.filter(credit => credit.credit_type === creditTypeFilter);
-    }
-
+    // Credits page only shows invoice credits - no filter needed
     setFilteredCredits(filtered);
   };
 
@@ -997,22 +946,9 @@ const Credits = () => {
               />
             </div>
           </div>
-          <div>
-            <Label>Credit Type</Label>
-            <Select value={creditTypeFilter} onValueChange={setCreditTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="invoice">Invoice Credit</SelectItem>
-                <SelectItem value="given">Credit Given</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="flex items-end">
             <Button 
-              onClick={() => { setSearchTerm(""); setCreditTypeFilter("all"); setCustomerPaymentDateFilters({}); }} 
+              onClick={() => { setSearchTerm(""); setCustomerPaymentDateFilters({}); }} 
               variant="outline"
               className="w-full"
               disabled={isLoading}
@@ -1034,30 +970,11 @@ const Credits = () => {
             // Skip customers with no remaining balance
             if (totalRemaining <= 0) return null;
 
-            // Check if any credits for this customer are invoice or given credits
-            const hasInvoiceCredit = customerCredits.some(credit => credit.credit_type === "invoice");
-            const hasCreditGiven = customerCredits.some(credit => credit.credit_type === "given");
-            const hasAnyLabel = hasInvoiceCredit || hasCreditGiven;
-
             return (
               <Collapsible key={key} open={isExpanded} onOpenChange={() => toggleCustomer(key)}>
-                <Card className="p-4 bg-muted/30 relative">
-                  <div className="absolute top-2 left-2 flex items-center gap-2">
-                    {hasInvoiceCredit && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md text-xs font-medium">
-                        <CreditCard className="h-3.5 w-3.5" />
-                        <span>Invoice Credit</span>
-                      </div>
-                    )}
-                    {hasCreditGiven && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-success/20 text-success rounded-md text-xs font-medium">
-                        <Wallet className="h-3.5 w-3.5" />
-                        <span>Credit Given</span>
-                      </div>
-                    )}
-                  </div>
+                <Card className="p-4 bg-muted/30">
                   <CollapsibleTrigger className="w-full">
-                    <div className={`flex items-center justify-between ${hasAnyLabel ? "mt-6" : ""}`}>
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                         <div className="text-left">
@@ -1081,7 +998,6 @@ const Credits = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Invoice #</TableHead>
-                          <TableHead>Type</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>Payment Date</TableHead>
                           <TableHead className="text-right">Total</TableHead>
@@ -1096,14 +1012,6 @@ const Credits = () => {
                         {unpaidCredits.map((credit) => (
                           <TableRow key={credit.id}>
                             <TableCell className="font-medium">{credit.invoice_number}</TableCell>
-                          <TableCell>
-                              <Badge 
-                                variant={credit.credit_type === "given" ? "success" : "outline"} 
-                                className="text-xs"
-                              >
-                                {credit.credit_type === "given" ? "Credit Given" : "Invoice"}
-                              </Badge>
-                            </TableCell>
                             <TableCell>{formatDate(credit.created_at)}</TableCell>
                             <TableCell>
                               {credit.last_payment_date ? formatDate(credit.last_payment_date) : <span className="text-muted-foreground">-</span>}
