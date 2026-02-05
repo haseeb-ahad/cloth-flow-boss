@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff, Crown } from "lucide-react";
+import { ShoppingCart, TrendingUp, CreditCard, CalendarIcon, RefreshCw, Eye, EyeOff, Crown, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,6 +28,8 @@ interface DashboardStats {
   todaySales: number;
   totalCost: number;
   totalPrice: number;
+  creditGiven: number;
+  creditTaken: number;
 }
 
 interface ChartData {
@@ -71,6 +73,8 @@ const Dashboard = () => {
     todaySales: 0,
     totalCost: 0,
     totalPrice: 0,
+    creditGiven: 0,
+    creditTaken: 0,
   });
   const [salesChartData, setSalesChartData] = useState<ChartData[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
@@ -254,6 +258,16 @@ const Dashboard = () => {
       .lte("created_at", end.toISOString());
     
     const totalCredit = allCredits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
+    
+    // Fetch Credit Given (money to receive) - credit_type = 'given'
+    const creditGiven = allCredits
+      ?.filter(c => c.credit_type === "given")
+      .reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
+    
+    // Fetch Credit Taken (money to pay) - credit_type = 'taken'
+    const creditTaken = allCredits
+      ?.filter(c => c.credit_type === "taken")
+      .reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
 
     setStats({
       totalSales,
@@ -262,6 +276,8 @@ const Dashboard = () => {
       todaySales,
       totalCost,
       totalPrice,
+      creditGiven,
+      creditTaken,
     });
   };
 
@@ -687,7 +703,7 @@ const Dashboard = () => {
         </div>
 
         {/* KPI Cards with Mini Sparklines */}
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr w-full">
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr w-full">
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '100ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t("sale")}</CardTitle>
@@ -738,6 +754,36 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
                 <MiniSparkline data={sparklineData.credit} color="#6366f1" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '250ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Given</CardTitle>
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ArrowDownCircle className="h-5 w-5 text-emerald-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col">
+                <div className="text-2xl sm:text-3xl font-bold text-emerald-500 tracking-tight">{formatCurrency(stats.creditGiven)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Money to receive</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '300ms' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Taken</CardTitle>
+              <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ArrowUpCircle className="h-5 w-5 text-rose-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col">
+                <div className="text-2xl sm:text-3xl font-bold text-rose-500 tracking-tight">{formatCurrency(stats.creditTaken)}</div>
+                <p className="text-xs text-muted-foreground mt-1">Money to pay</p>
               </div>
             </CardContent>
           </Card>
