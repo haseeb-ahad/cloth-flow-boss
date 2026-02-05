@@ -249,7 +249,7 @@ const Dashboard = () => {
     }
 
     // Fetch credits filtered by selected date range
-    // Get all credits from credits table within date range (includes invoice, given, cash types)
+    // Get all credits from credits table within date range
     const { data: allCredits } = await supabase
       .from("credits")
       .select("remaining_amount, credit_type")
@@ -257,7 +257,10 @@ const Dashboard = () => {
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
     
-    const totalCredit = allCredits?.reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
+    // Credit card shows only invoice credits (remaining from sales history)
+    const totalCredit = allCredits
+      ?.filter(c => c.credit_type === "invoice")
+      .reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
     
     // Fetch Credit Given (money to receive) - credit_type = 'given'
     const creditGiven = allCredits
