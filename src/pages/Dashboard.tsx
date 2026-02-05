@@ -249,18 +249,26 @@ const Dashboard = () => {
     }
 
     // Fetch credits filtered by selected date range
-    // Get all credits from credits table within date range
+    // Calculate credit directly from sales remaining amounts (final_amount - paid_amount)
+    const { data: salesWithRemaining } = await supabase
+      .from("sales")
+      .select("final_amount, paid_amount")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
+    
+    // Credit card shows remaining from sales (final_amount - paid_amount) where remaining > 0
+    const totalCredit = salesWithRemaining?.reduce((sum, sale) => {
+      const remaining = Number(sale.final_amount) - Number(sale.paid_amount || 0);
+      return sum + (remaining > 0 ? remaining : 0);
+    }, 0) || 0;
+    
+    // Fetch credit given/taken from credits table for Credit Summary card
     const { data: allCredits } = await supabase
       .from("credits")
       .select("remaining_amount, credit_type")
       .gt("remaining_amount", 0)
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
-    
-    // Credit card shows only invoice credits (remaining from sales history)
-    const totalCredit = allCredits
-      ?.filter(c => c.credit_type === "invoice")
-      .reduce((sum, credit) => sum + Number(credit.remaining_amount), 0) || 0;
     
     // Fetch Credit Given (money to receive) - credit_type = 'given'
     const creditGiven = allCredits
