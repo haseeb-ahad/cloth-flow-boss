@@ -13,9 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search } from "lucide-react";
+import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Users } from "lucide-react";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
+import CustomerSearch from "./CustomerSearch";
+import CustomerCreditProfile from "./CustomerCreditProfile";
 
 interface CustomerSuggestion {
   name: string;
@@ -51,11 +53,15 @@ const CreditManagement = () => {
   const canEdit = userRole === "admin" || hasPermission("credits", "edit");
   const canDelete = userRole === "admin" || hasPermission("credits", "delete");
 
-  const [activeTab, setActiveTab] = useState<"given" | "taken">("given");
+  const [activeTab, setActiveTab] = useState<"profile" | "given" | "taken">("profile");
   const [credits, setCredits] = useState<CreditEntry[]>([]);
   const [filteredCredits, setFilteredCredits] = useState<CreditEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Customer profile state
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerSuggestion | null>(null);
+  const [allCustomersWithCredit, setAllCustomersWithCredit] = useState<CustomerSuggestion[]>([]);
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -112,10 +118,17 @@ const CreditManagement = () => {
   useEffect(() => {
     fetchCredits();
     fetchCustomerSuggestions();
+    fetchCustomersWithCredit();
 
     const channel = supabase
       .channel('credit-management-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'credits' }, () => fetchCredits())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'credits' }, () => {
+        fetchCredits();
+        fetchCustomersWithCredit();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
+        fetchCustomersWithCredit();
+      })
       .subscribe();
 
     return () => {
@@ -126,6 +139,36 @@ const CreditManagement = () => {
   useEffect(() => {
     filterCredits();
   }, [credits, activeTab, searchTerm]);
+
+  const fetchCustomersWithCredit = async () => {
+    try {
+      // Fetch customers who have credit balance from sales
+      const { data: salesData, error } = await supabase
+        .from("sales")
+        .select("customer_name, customer_phone")
+        .not("customer_name", "is", null)
+        .order("customer_name");
+
+      if (error) throw error;
+
+      // Get unique customers with their phone numbers
+      const customerMap = new Map<string, string | null>();
+      (salesData || []).forEach((sale: any) => {
+        if (sale.customer_name && !customerMap.has(sale.customer_name)) {
+          customerMap.set(sale.customer_name, sale.customer_phone);
+        }
+      });
+
+      const uniqueCustomers: CustomerSuggestion[] = Array.from(customerMap.entries()).map(([name, phone]) => ({
+        name,
+        phone
+      }));
+
+      setAllCustomersWithCredit(uniqueCustomers);
+    } catch (error) {
+      console.error("Error fetching customers with credit:", error);
+    }
+  };
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -216,7 +259,7 @@ const CreditManagement = () => {
   };
 
   const filterCredits = () => {
-    let filtered = credits.filter(c => c.credit_type === activeTab);
+    let filtered = credits.filter(c => c.credit_type === activeTab || activeTab === "profile");
     
     if (searchTerm) {
       filtered = filtered.filter(c => 
@@ -234,7 +277,7 @@ const CreditManagement = () => {
     setFormData({
       party_name: "",
       party_phone: "",
-      credit_type: activeTab,
+      credit_type: activeTab === "given" || activeTab === "taken" ? activeTab : "given",
       total_amount: "",
       credit_date: localDate,
       due_date: "",
@@ -512,6 +555,14 @@ const CreditManagement = () => {
         </div>
       )}
 
+      {/* Customer Profile View */}
+      {selectedCustomer ? (
+        <CustomerCreditProfile
+          customer={selectedCustomer}
+          onBack={() => setSelectedCustomer(null)}
+        />
+      ) : (
+      <>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
         <Card className="p-3 md:p-4 bg-success/10 border-success/30">
@@ -553,12 +604,20 @@ const CreditManagement = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "given" | "taken")}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profile" | "given" | "taken")}>
         <div className="flex items-center justify-between gap-2 w-full">
-            <TabsList className="grid grid-cols-2 bg-transparent gap-2 flex-1">
+            <TabsList className="grid grid-cols-3 bg-transparent gap-2 flex-1">
+              <TabsTrigger 
+                value="profile" 
+                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:bg-muted border data-[state=active]:border-primary/30 data-[state=inactive]:border-border"
+              >
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Credit Profile</span>
+                <span className="sm:hidden">Profile</span>
+              </TabsTrigger>
               <TabsTrigger 
                 value="given" 
-                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=inactive]:bg-muted border data-[state=active]:border-green-300 data-[state=inactive]:border-border"
+                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-success/10 data-[state=active]:text-success data-[state=inactive]:bg-muted border data-[state=active]:border-success/30 data-[state=inactive]:border-border"
               >
                 <ArrowDownCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Credit Given</span>
@@ -566,7 +625,7 @@ const CreditManagement = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="taken" 
-                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-red-100 data-[state=active]:text-red-700 data-[state=inactive]:bg-muted border data-[state=active]:border-red-300 data-[state=inactive]:border-border"
+                className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-destructive/10 data-[state=active]:text-destructive data-[state=inactive]:bg-muted border data-[state=active]:border-destructive/30 data-[state=inactive]:border-border"
               >
                 <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Credit Taken</span>
@@ -584,10 +643,10 @@ const CreditManagement = () => {
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
-              {canCreate && (
+              {canCreate && activeTab !== "profile" && (
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="icon" className="h-9 w-9" onClick={() => setFormData({ ...formData, credit_type: activeTab })}>
+                    <Button size="icon" className="h-9 w-9" onClick={() => setFormData({ ...formData, credit_type: activeTab === "given" ? "given" : "taken" })}>
                       <Plus className="h-4 w-4" />
                     </Button>
                   </DialogTrigger>
@@ -708,20 +767,68 @@ const CreditManagement = () => {
               )}
             </div>
           </div>
-        {/* Search */}
-        <Card className="p-4 mt-4 w-full max-w-full">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by party name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 w-full"
-            />
-          </div>
-        </Card>
+
+        {/* Credit Profile Tab - Customer Search */}
+        <TabsContent value="profile" className="mt-4">
+          <Card className="p-4">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Customer Credit Profile</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Search for a customer to view their complete credit history, invoice-wise breakdown, and receive payments.
+                </p>
+                <CustomerSearch
+                  customers={allCustomersWithCredit}
+                  selectedCustomer={null}
+                  onSelect={(customer) => setSelectedCustomer(customer)}
+                  onClear={() => {}}
+                />
+              </div>
+              
+              {/* Quick list of customers with pending credit */}
+              {allCustomersWithCredit.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3">Recent Customers</h4>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {allCustomersWithCredit.slice(0, 6).map((customer, index) => (
+                      <Card 
+                        key={index}
+                        className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                        onClick={() => setSelectedCustomer(customer)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                            {customer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{customer.name}</p>
+                            {customer.phone && (
+                              <p className="text-xs text-muted-foreground">{customer.phone}</p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="given" className="mt-4">
+          {/* Search */}
+          <Card className="p-4 mb-4 w-full max-w-full">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by party name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-full"
+              />
+            </div>
+          </Card>
           <CreditList 
             credits={filteredCredits}
             formatDate={formatDate}
@@ -736,6 +843,18 @@ const CreditManagement = () => {
         </TabsContent>
 
         <TabsContent value="taken" className="mt-4">
+          {/* Search */}
+          <Card className="p-4 mb-4 w-full max-w-full">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by party name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-full"
+              />
+            </div>
+          </Card>
           <CreditList 
             credits={filteredCredits}
             formatDate={formatDate}
@@ -749,6 +868,8 @@ const CreditManagement = () => {
           />
         </TabsContent>
       </Tabs>
+      </>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
