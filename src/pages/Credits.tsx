@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard } from "lucide-react";
+import { Plus, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw, X, Search, Download, Upload, FileText, ImageIcon, Calendar, CreditCard, CheckCircle2 } from "lucide-react";
 import { exportCreditsToCSV, parseCreditsCSV } from "@/lib/csvExport";
 import AnimatedTick from "@/components/AnimatedTick";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -1131,6 +1131,7 @@ const Credits = () => {
                                 <TableRow>
                                   <TableHead>Date</TableHead>
                                   <TableHead>Invoice #</TableHead>
+                                  <TableHead className="text-center">Paid</TableHead>
                                   <TableHead className="text-right">Amount</TableHead>
                                   <TableHead>Description</TableHead>
                                   <TableHead className="text-center">Image</TableHead>
@@ -1154,6 +1155,16 @@ const Credits = () => {
                                       ) : (
                                         <span className="text-muted-foreground">-</span>
                                       )}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex items-center justify-center">
+                                        <div className="relative">
+                                          <div className="w-7 h-7 rounded-full bg-success/20 flex items-center justify-center">
+                                            <CheckCircle2 className="w-5 h-5 text-success animate-[pulse_2s_ease-in-out_infinite]" />
+                                          </div>
+                                          <div className="absolute inset-0 rounded-full bg-success/10 animate-ping" style={{ animationDuration: '2s' }} />
+                                        </div>
+                                      </div>
                                     </TableCell>
                                     <TableCell className="text-right font-medium text-success whitespace-nowrap">
                                       Rs. {payment.payment_amount.toFixed(2)}
