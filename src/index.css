@@ -217,17 +217,25 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
-    /* Prevent overscroll bounce for app-like feel */
-    overscroll-behavior: none;
-  }
-
   html {
     scroll-behavior: smooth;
     /* Smooth scrolling with momentum on iOS */
     -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    /* Prevent overscroll bounce for app-like feel */
+    overscroll-behavior-y: contain;
+    min-height: 100%;
+    height: 100%;
+  }
+
+  #root {
+    min-height: 100%;
+    height: 100%;
   }
 }
 

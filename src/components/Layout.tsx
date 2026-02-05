@@ -414,7 +414,7 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* Main Content Area */}
         <div className={cn(
-          "flex-1 transition-all duration-300 ease-smooth",
+          "flex-1 transition-all duration-300 ease-smooth overflow-y-auto",
           "mt-14 mb-16 lg:mt-0 lg:mb-0", // Mobile/Tablet: account for header and bottom nav
           sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
         )}>
