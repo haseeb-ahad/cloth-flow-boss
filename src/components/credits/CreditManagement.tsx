@@ -773,9 +773,9 @@ const CreditManagement = () => {
           <Card className="p-4">
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Customer Credit Profile</h3>
+                <h3 className="text-lg font-semibold mb-2">Credit Management Profile</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Search for a customer to view their complete credit history, invoice-wise breakdown, and receive payments.
+                  Search for a customer to view their cash credit (Udhar) history and manage payments.
                 </p>
                 <CustomerSearch
                   customers={allCustomersWithCredit}
