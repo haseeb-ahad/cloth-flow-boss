@@ -142,20 +142,21 @@ const CreditManagement = () => {
 
   const fetchCustomersWithCredit = async () => {
     try {
-      // Fetch customers who have credit balance from sales
-      const { data: salesData, error } = await supabase
-        .from("sales")
+      // Fetch customers who have cash credit (Udhar) entries from credits table only
+      const { data: creditsData, error } = await supabase
+        .from("credits")
         .select("customer_name, customer_phone")
+        .in("credit_type", ["given", "taken"])
         .not("customer_name", "is", null)
-        .order("customer_name");
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
       // Get unique customers with their phone numbers
       const customerMap = new Map<string, string | null>();
-      (salesData || []).forEach((sale: any) => {
-        if (sale.customer_name && !customerMap.has(sale.customer_name)) {
-          customerMap.set(sale.customer_name, sale.customer_phone);
+      (creditsData || []).forEach((credit: any) => {
+        if (credit.customer_name && !customerMap.has(credit.customer_name)) {
+          customerMap.set(credit.customer_name, credit.customer_phone);
         }
       });
 
