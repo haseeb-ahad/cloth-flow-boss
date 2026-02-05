@@ -4,7 +4,12 @@ import { Card } from "@/components/ui/card";
  import { Badge } from "@/components/ui/badge";
  import { Input } from "@/components/ui/input";
  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { Search, Filter } from "lucide-react";
+ import { Button } from "@/components/ui/button";
+ import { Calendar } from "@/components/ui/calendar";
+ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+ import { Search, Filter, CalendarIcon } from "lucide-react";
+ import { format, parse } from "date-fns";
+ import { cn } from "@/lib/utils";
  
  export interface InvoiceCredit {
    id: string;
@@ -36,6 +41,18 @@ import { Card } from "@/components/ui/card";
  }: InvoiceCreditTableProps) => {
    const [statusFilter, setStatusFilter] = useState<string>("all");
    const [searchTerm, setSearchTerm] = useState("");
+ 
+   // Convert string dates to Date objects for calendar
+   const startDateObj = startDate ? parse(startDate, 'yyyy-MM-dd', new Date()) : undefined;
+   const endDateObj = endDate ? parse(endDate, 'yyyy-MM-dd', new Date()) : undefined;
+ 
+   const handleStartDateSelect = (date: Date | undefined) => {
+     onStartDateChange(date ? format(date, 'yyyy-MM-dd') : '');
+   };
+ 
+   const handleEndDateSelect = (date: Date | undefined) => {
+     onEndDateChange(date ? format(date, 'yyyy-MM-dd') : '');
+   };
  
    const filteredInvoices = useMemo(() => {
      let filtered = [...invoices];
@@ -105,19 +122,55 @@ import { Card } from "@/components/ui/card";
              </SelectContent>
            </Select>
  
-           <Input
-             type="date"
-             value={startDate}
-             onChange={(e) => onStartDateChange(e.target.value)}
-             className="w-32 h-9"
-           />
+             <Popover>
+               <PopoverTrigger asChild>
+                 <Button
+                   variant="outline"
+                   className={cn(
+                     "w-[130px] h-9 justify-start text-left font-normal",
+                     !startDate && "text-muted-foreground"
+                   )}
+                 >
+                   <CalendarIcon className="mr-2 h-4 w-4" />
+                   {startDate ? format(startDateObj!, 'dd/MM/yyyy') : <span>From</span>}
+                 </Button>
+               </PopoverTrigger>
+               <PopoverContent className="w-auto p-0" align="start">
+                 <Calendar
+                   mode="single"
+                   selected={startDateObj}
+                   onSelect={handleStartDateSelect}
+                   initialFocus
+                   className="pointer-events-auto"
+                 />
+               </PopoverContent>
+             </Popover>
+             
            <span className="text-muted-foreground">to</span>
-           <Input
-             type="date"
-             value={endDate}
-             onChange={(e) => onEndDateChange(e.target.value)}
-             className="w-32 h-9"
-           />
+             
+             <Popover>
+               <PopoverTrigger asChild>
+                 <Button
+                   variant="outline"
+                   className={cn(
+                     "w-[130px] h-9 justify-start text-left font-normal",
+                     !endDate && "text-muted-foreground"
+                   )}
+                 >
+                   <CalendarIcon className="mr-2 h-4 w-4" />
+                   {endDate ? format(endDateObj!, 'dd/MM/yyyy') : <span>To</span>}
+                 </Button>
+               </PopoverTrigger>
+               <PopoverContent className="w-auto p-0" align="start">
+                 <Calendar
+                   mode="single"
+                   selected={endDateObj}
+                   onSelect={handleEndDateSelect}
+                   initialFocus
+                   className="pointer-events-auto"
+                 />
+               </PopoverContent>
+             </Popover>
          </div>
        </div>
  
