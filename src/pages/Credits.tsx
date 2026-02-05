@@ -85,6 +85,7 @@ interface PaymentRecord {
   description: string | null;
   image_url: string | null;
   notes: string | null;
+  details: { invoice_id: string; invoice_number: string; adjusted: number }[] | null;
 }
 
 const Credits = () => {
@@ -205,9 +206,16 @@ const Credits = () => {
   const fetchPaymentRecords = async () => {
     const { data } = await supabase
       .from("payment_ledger")
-      .select("id, customer_name, customer_phone, payment_amount, payment_date, description, image_url, notes")
+      .select("id, customer_name, customer_phone, payment_amount, payment_date, description, image_url, notes, details")
       .order("payment_date", { ascending: false });
-    if (data) setPaymentRecords(data);
+    if (data) {
+      // Parse details JSON if needed
+      const records = data.map(record => ({
+        ...record,
+        details: record.details ? (Array.isArray(record.details) ? record.details : []) : null
+      }));
+      setPaymentRecords(records as PaymentRecord[]);
+    }
   };
 
   const getCustomerPayments = (customerName: string, customerPhone: string | null) => {
@@ -1122,6 +1130,7 @@ const Credits = () => {
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>Date</TableHead>
+                                  <TableHead>Invoice #</TableHead>
                                   <TableHead className="text-right">Amount</TableHead>
                                   <TableHead>Description</TableHead>
                                   <TableHead className="text-center">Image</TableHead>
@@ -1132,6 +1141,19 @@ const Credits = () => {
                                   <TableRow key={payment.id}>
                                     <TableCell className="whitespace-nowrap">
                                       {formatDate(payment.payment_date)}
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                      {payment.details && payment.details.length > 0 ? (
+                                        <div className="space-y-0.5">
+                                          {payment.details.map((d, idx) => (
+                                            <div key={idx} className="text-muted-foreground">
+                                              {d.invoice_number}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                      )}
                                     </TableCell>
                                     <TableCell className="text-right font-medium text-success whitespace-nowrap">
                                       Rs. {payment.payment_amount.toFixed(2)}
