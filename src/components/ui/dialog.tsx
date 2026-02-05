@@ -42,13 +42,8 @@ const DialogContent = React.forwardRef<
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        // Desktop: Centered modal style
-        "md:inset-auto md:left-[50%] md:top-[50%] md:max-h-[85vh] md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg",
-        "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
-        "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",
-        "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
-        // Large Desktop: Centered modal style full width
-        "lg:inset-auto lg:left-[50%] lg:top-[50%] lg:max-h-[85vh] lg:max-w-[1440px] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg",
+        // Desktop: Centered modal style with auto-fit width
+        "md:inset-auto md:left-[50%] md:top-[50%] md:max-h-[85vh] md:w-auto md:min-w-[400px] md:max-w-[90vw] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg",
         "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
         "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",
         "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
