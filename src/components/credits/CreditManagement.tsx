@@ -17,7 +17,7 @@ import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCirc
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import CustomerSearch from "./CustomerSearch";
-import CustomerCreditProfile from "./CustomerCreditProfile";
+import CashCreditProfile from "./CashCreditProfile";
 
 interface CustomerSuggestion {
   name: string;
@@ -558,7 +558,7 @@ const CreditManagement = () => {
 
       {/* Customer Profile View */}
       {selectedCustomer ? (
-        <CustomerCreditProfile
+        <CashCreditProfile
           customer={selectedCustomer}
           onBack={() => setSelectedCustomer(null)}
         />
