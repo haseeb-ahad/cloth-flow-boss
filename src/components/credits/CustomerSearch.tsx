@@ -1,4 +1,5 @@
  import { useState, useRef, useEffect } from "react";
+ import React from "react";
  import { Input } from "@/components/ui/input";
  import { Card } from "@/components/ui/card";
  import { Search, User, Phone, X } from "lucide-react";
