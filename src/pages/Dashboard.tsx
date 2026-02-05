@@ -703,7 +703,7 @@ const Dashboard = () => {
         </div>
 
         {/* KPI Cards with Mini Sparklines */}
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-fr w-full">
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '100ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t("sale")}</CardTitle>
@@ -760,30 +760,42 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '250ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Given</CardTitle>
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ArrowDownCircle className="h-5 w-5 text-emerald-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Summary</CardTitle>
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CreditCard className="h-5 w-5 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col">
-                <div className="text-2xl sm:text-3xl font-bold text-emerald-500 tracking-tight">{formatCurrency(stats.creditGiven)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Money to receive</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '300ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Taken</CardTitle>
-              <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ArrowUpCircle className="h-5 w-5 text-rose-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col">
-                <div className="text-2xl sm:text-3xl font-bold text-rose-500 tracking-tight">{formatCurrency(stats.creditTaken)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Money to pay</p>
+              <div className="flex flex-col space-y-3">
+                {/* Credit Given */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                      <ArrowDownCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Given</p>
+                      <p className="text-[10px] text-muted-foreground/70">Money to receive</p>
+                    </div>
+                  </div>
+                  <div className="text-lg sm:text-xl font-bold text-emerald-500 tracking-tight">{formatCurrency(stats.creditGiven)}</div>
+                </div>
+                
+                <div className="border-t border-border/50" />
+                
+                {/* Credit Taken */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
+                      <ArrowUpCircle className="h-4 w-4 text-rose-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Taken</p>
+                      <p className="text-[10px] text-muted-foreground/70">Money to pay</p>
+                    </div>
+                  </div>
+                  <div className="text-lg sm:text-xl font-bold text-rose-500 tracking-tight">{formatCurrency(stats.creditTaken)}</div>
+                </div>
               </div>
             </CardContent>
           </Card>
