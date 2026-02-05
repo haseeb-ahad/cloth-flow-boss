@@ -17,7 +17,7 @@ import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCirc
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import CustomerSearch from "./CustomerSearch";
-import CashCreditProfile from "./CashCreditProfile";
+import CustomerCreditProfile from "./CustomerCreditProfile";
 
 interface CustomerSuggestion {
   name: string;
@@ -142,21 +142,20 @@ const CreditManagement = () => {
 
   const fetchCustomersWithCredit = async () => {
     try {
-      // Fetch customers who have cash credit (Udhar) entries from credits table only
-      const { data: creditsData, error } = await supabase
-        .from("credits")
+      // Fetch customers who have credit balance from sales
+      const { data: salesData, error } = await supabase
+        .from("sales")
         .select("customer_name, customer_phone")
-        .in("credit_type", ["given", "taken"])
         .not("customer_name", "is", null)
-        .order("created_at", { ascending: false });
+        .order("customer_name");
 
       if (error) throw error;
 
       // Get unique customers with their phone numbers
       const customerMap = new Map<string, string | null>();
-      (creditsData || []).forEach((credit: any) => {
-        if (credit.customer_name && !customerMap.has(credit.customer_name)) {
-          customerMap.set(credit.customer_name, credit.customer_phone);
+      (salesData || []).forEach((sale: any) => {
+        if (sale.customer_name && !customerMap.has(sale.customer_name)) {
+          customerMap.set(sale.customer_name, sale.customer_phone);
         }
       });
 
@@ -558,7 +557,7 @@ const CreditManagement = () => {
 
       {/* Customer Profile View */}
       {selectedCustomer ? (
-        <CashCreditProfile
+        <CustomerCreditProfile
           customer={selectedCustomer}
           onBack={() => setSelectedCustomer(null)}
         />
@@ -774,9 +773,9 @@ const CreditManagement = () => {
           <Card className="p-4">
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Credit Management Profile</h3>
+                <h3 className="text-lg font-semibold mb-2">Customer Credit Profile</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Search for a customer to view their cash credit (Udhar) history and manage payments.
+                  Search for a customer to view their complete credit history, invoice-wise breakdown, and receive payments.
                 </p>
                 <CustomerSearch
                   customers={allCustomersWithCredit}
