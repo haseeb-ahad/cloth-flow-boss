@@ -11,7 +11,6 @@ export interface LedgerEntry {
   source: "invoice" | "cash_credit" | "payment" | "credit_payment";
   invoice_number: string | null;
   amount: number;
-  pending_amount: number | null;
   payment_method: string | null;
   balance_after: number;
   notes: string | null;
@@ -60,34 +59,24 @@ export interface LedgerEntry {
                <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
              </div>
              
-              <div className="flex items-center justify-between">
-                <div>
-                  {entry.invoice_number && (
-                    <p className="text-xs text-muted-foreground">Invoice: {entry.invoice_number}</p>
-                  )}
-                  {entry.payment_method && (
-                    <p className="text-xs text-muted-foreground capitalize">{entry.payment_method}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className={`font-bold ${entry.transaction_type === "payment_received" ? "text-success" : "text-primary"}`}>
-                    {entry.transaction_type === "payment_received" ? "-" : "+"} Rs. {entry.amount.toLocaleString()}
-                  </p>
-                  {entry.pending_amount !== null && entry.pending_amount > 0 && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive text-destructive">
-                      Pending: Rs. {entry.pending_amount.toLocaleString()}
-                    </Badge>
-                  )}
-                  {entry.pending_amount !== null && entry.pending_amount <= 0 && entry.transaction_type === "credit_given" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success text-success">
-                      Cleared
-                    </Badge>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Balance: Rs. {entry.balance_after.toLocaleString()}
-                  </p>
-                </div>
-              </div>
+             <div className="flex items-center justify-between">
+               <div>
+                 {entry.invoice_number && (
+                   <p className="text-xs text-muted-foreground">Invoice: {entry.invoice_number}</p>
+                 )}
+                 {entry.payment_method && (
+                   <p className="text-xs text-muted-foreground capitalize">{entry.payment_method}</p>
+                 )}
+               </div>
+               <div className="text-right">
+                 <p className={`font-bold ${entry.transaction_type === "payment_received" ? "text-success" : "text-primary"}`}>
+                   {entry.transaction_type === "payment_received" ? "-" : "+"} Rs. {entry.amount.toLocaleString()}
+                 </p>
+                 <p className="text-xs text-muted-foreground">
+                   Balance: Rs. {entry.balance_after.toLocaleString()}
+                 </p>
+               </div>
+             </div>
              {entry.notes && (
                <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">{entry.notes}</p>
              )}
@@ -101,12 +90,11 @@ export interface LedgerEntry {
            <TableHeader>
              <TableRow>
                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Invoice #</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Pending</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead className="text-right">Balance After</TableHead>
+               <TableHead>Type</TableHead>
+               <TableHead>Invoice #</TableHead>
+               <TableHead className="text-right">Amount</TableHead>
+               <TableHead>Method</TableHead>
+               <TableHead className="text-right">Balance After</TableHead>
              </TableRow>
            </TableHeader>
            <TableBody>
@@ -128,24 +116,13 @@ export interface LedgerEntry {
                       </Badge>
                    </div>
                  </TableCell>
-                  <TableCell>{entry.invoice_number || "-"}</TableCell>
-                  <TableCell className={`text-right font-semibold ${
-                    entry.transaction_type === "payment_received" ? "text-success" : "text-primary"
-                  }`}>
-                    {entry.transaction_type === "payment_received" ? "-" : "+"} Rs. {entry.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {entry.pending_amount !== null && entry.pending_amount > 0 ? (
-                      <Badge variant="outline" className="border-destructive text-destructive text-xs">
-                        Rs. {entry.pending_amount.toLocaleString()}
-                      </Badge>
-                    ) : entry.pending_amount !== null && entry.pending_amount <= 0 && entry.transaction_type === "credit_given" ? (
-                      <Badge variant="outline" className="border-success text-success text-xs">
-                        Cleared
-                      </Badge>
-                    ) : "-"}
-                  </TableCell>
-                  <TableCell className="capitalize">{entry.payment_method || "-"}</TableCell>
+                 <TableCell>{entry.invoice_number || "-"}</TableCell>
+                 <TableCell className={`text-right font-semibold ${
+                   entry.transaction_type === "payment_received" ? "text-success" : "text-primary"
+                 }`}>
+                   {entry.transaction_type === "payment_received" ? "-" : "+"} Rs. {entry.amount.toLocaleString()}
+                 </TableCell>
+                 <TableCell className="capitalize">{entry.payment_method || "-"}</TableCell>
                  <TableCell className="text-right font-medium">
                    Rs. {entry.balance_after.toLocaleString()}
                  </TableCell>

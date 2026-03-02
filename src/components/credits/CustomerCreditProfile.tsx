@@ -141,32 +141,30 @@
         let runningBalance = 0;
 
         // First add all credits (invoices) sorted by date
-         const creditEntries = creditInvoices.map(inv => ({
-           id: `credit-${inv.id}`,
-           date: inv.invoice_date,
-           transaction_type: "credit_given" as const,
-           source: "invoice" as const,
-           invoice_number: inv.invoice_number,
-           amount: inv.invoice_amount,
-           pending_amount: inv.pending_amount,
-           payment_method: null,
-           balance_after: 0,
-           notes: null
-         }));
+        const creditEntries = creditInvoices.map(inv => ({
+          id: `credit-${inv.id}`,
+          date: inv.invoice_date,
+          transaction_type: "credit_given" as const,
+          source: "invoice" as const,
+          invoice_number: inv.invoice_number,
+          amount: inv.invoice_amount,
+          payment_method: null,
+          balance_after: 0,
+          notes: null
+        }));
 
         // Add cash credit given entries from credits table
-         const cashCreditEntries = (creditGivenData || []).map((credit: any) => ({
-           id: `cash-credit-${credit.id}`,
-           date: credit.created_at?.split('T')[0] || '',
-           transaction_type: "credit_given" as const,
-           source: "cash_credit" as const,
-           invoice_number: null,
-           amount: credit.amount,
-           pending_amount: credit.remaining_amount ?? credit.amount,
-           payment_method: null,
-           balance_after: 0,
-           notes: credit.notes || "Cash Credit (Udhar)"
-         }));
+        const cashCreditEntries = (creditGivenData || []).map((credit: any) => ({
+          id: `cash-credit-${credit.id}`,
+          date: credit.created_at?.split('T')[0] || '',
+          transaction_type: "credit_given" as const,
+          source: "cash_credit" as const,
+          invoice_number: null,
+          amount: credit.amount,
+          payment_method: null,
+          balance_after: 0,
+          notes: credit.notes || "Cash Credit (Udhar)"
+        }));
 
         // Fetch credit_transactions (payments against cash credits)
         const { data: creditTxnData, error: creditTxnError } = await supabase
@@ -178,32 +176,30 @@
         if (creditTxnError) throw creditTxnError;
 
         // Add payment entries from ledger (invoice payments)
-         const paymentEntries = (ledgerData || []).map((payment: any) => ({
-           id: payment.id,
-           date: payment.payment_date,
-           transaction_type: "payment_received" as const,
-           source: "payment" as const,
-           invoice_number: payment.details?.[0]?.invoice_number || null,
-           amount: payment.payment_amount,
-           pending_amount: null,
-           payment_method: payment.details?.[0]?.payment_method || "cash",
-           balance_after: 0,
-           notes: payment.notes
-         }));
+        const paymentEntries = (ledgerData || []).map((payment: any) => ({
+          id: payment.id,
+          date: payment.payment_date,
+          transaction_type: "payment_received" as const,
+          source: "payment" as const,
+          invoice_number: payment.details?.[0]?.invoice_number || null,
+          amount: payment.payment_amount,
+          payment_method: payment.details?.[0]?.payment_method || "cash",
+          balance_after: 0,
+          notes: payment.notes
+        }));
 
         // Add credit transaction payments (cash credit payments)
-         const creditTxnEntries = (creditTxnData || []).map((txn: any) => ({
-           id: `credit-txn-${txn.id}`,
-           date: txn.transaction_date,
-           transaction_type: "payment_received" as const,
-           source: "credit_payment" as const,
-           invoice_number: null,
-           amount: txn.amount,
-           pending_amount: null,
-           payment_method: null,
-           balance_after: 0,
-           notes: txn.notes
-         }));
+        const creditTxnEntries = (creditTxnData || []).map((txn: any) => ({
+          id: `credit-txn-${txn.id}`,
+          date: txn.transaction_date,
+          transaction_type: "payment_received" as const,
+          source: "credit_payment" as const,
+          invoice_number: null,
+          amount: txn.amount,
+          payment_method: null,
+          balance_after: 0,
+          notes: txn.notes
+        }));
 
         // Combine and sort by date
         const combined = [...creditEntries, ...cashCreditEntries, ...paymentEntries, ...creditTxnEntries]
