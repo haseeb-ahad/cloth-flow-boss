@@ -53,11 +53,12 @@
      fetchCustomerData();
  
      // Real-time subscription
-     const channel = supabase
-       .channel(`customer-credit-${customer.name}`)
-       .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => fetchCustomerData())
-       .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_ledger' }, () => fetchCustomerData())
-       .subscribe();
+      const channel = supabase
+        .channel(`customer-credit-${customer.name}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => fetchCustomerData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_ledger' }, () => fetchCustomerData())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'credits' }, () => fetchCustomerData())
+        .subscribe();
  
      return () => {
        supabase.removeChannel(channel);
@@ -103,46 +104,68 @@
  
        setInvoices(creditInvoices);
  
-       // Fetch payment ledger entries for this customer
-       const { data: ledgerData, error: ledgerError } = await supabase
-         .from("payment_ledger")
-         .select("*")
-         .eq("customer_name", customer.name)
-         .order("payment_date", { ascending: false });
- 
-       if (ledgerError) throw ledgerError;
- 
-       // Build ledger entries including credits (invoices) and payments
-       const allEntries: LedgerEntry[] = [];
-       let runningBalance = 0;
- 
-       // First add all credits (invoices) sorted by date
-       const creditEntries = creditInvoices.map(inv => ({
-         id: `credit-${inv.id}`,
-         date: inv.invoice_date,
-         transaction_type: "credit_given" as const,
-         invoice_number: inv.invoice_number,
-         amount: inv.invoice_amount,
-         payment_method: null,
-         balance_after: 0, // Will calculate
-         notes: null
-       }));
- 
-       // Add payment entries from ledger
-       const paymentEntries = (ledgerData || []).map((payment: any) => ({
-         id: payment.id,
-         date: payment.payment_date,
-         transaction_type: "payment_received" as const,
-         invoice_number: payment.details?.[0]?.invoice_number || null,
-         amount: payment.payment_amount,
-         payment_method: payment.details?.[0]?.payment_method || "cash",
-         balance_after: 0,
-         notes: payment.notes
-       }));
- 
-       // Combine and sort by date
-       const combined = [...creditEntries, ...paymentEntries]
-         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Fetch payment ledger entries for this customer
+        const { data: ledgerData, error: ledgerError } = await supabase
+          .from("payment_ledger")
+          .select("*")
+          .eq("customer_name", customer.name)
+          .order("payment_date", { ascending: false });
+
+        if (ledgerError) throw ledgerError;
+
+        // Fetch "credit given" entries from credits table for this customer
+        const { data: creditGivenData, error: creditGivenError } = await supabase
+          .from("credits")
+          .select("*")
+          .eq("customer_name", customer.name)
+          .eq("credit_type", "given")
+          .order("created_at", { ascending: true });
+
+        if (creditGivenError) throw creditGivenError;
+
+        // Build ledger entries including credits (invoices), cash credits, and payments
+        const allEntries: LedgerEntry[] = [];
+        let runningBalance = 0;
+
+        // First add all credits (invoices) sorted by date
+        const creditEntries = creditInvoices.map(inv => ({
+          id: `credit-${inv.id}`,
+          date: inv.invoice_date,
+          transaction_type: "credit_given" as const,
+          invoice_number: inv.invoice_number,
+          amount: inv.invoice_amount,
+          payment_method: null,
+          balance_after: 0,
+          notes: null
+        }));
+
+        // Add cash credit given entries from credits table
+        const cashCreditEntries = (creditGivenData || []).map((credit: any) => ({
+          id: `cash-credit-${credit.id}`,
+          date: credit.created_at?.split('T')[0] || '',
+          transaction_type: "credit_given" as const,
+          invoice_number: null,
+          amount: credit.amount,
+          payment_method: null,
+          balance_after: 0,
+          notes: credit.notes || "Cash Credit (Udhar)"
+        }));
+
+        // Add payment entries from ledger
+        const paymentEntries = (ledgerData || []).map((payment: any) => ({
+          id: payment.id,
+          date: payment.payment_date,
+          transaction_type: "payment_received" as const,
+          invoice_number: payment.details?.[0]?.invoice_number || null,
+          amount: payment.payment_amount,
+          payment_method: payment.details?.[0]?.payment_method || "cash",
+          balance_after: 0,
+          notes: payment.notes
+        }));
+
+        // Combine and sort by date
+        const combined = [...creditEntries, ...cashCreditEntries, ...paymentEntries]
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
  
        // Calculate running balance
        for (const entry of combined) {
