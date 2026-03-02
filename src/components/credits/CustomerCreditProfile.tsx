@@ -37,13 +37,25 @@
    const [startDate, setStartDate] = useState("");
    const [endDate, setEndDate] = useState("");
  
-   // Calculate summaries
-   const summary = useMemo(() => {
-     const totalCreditGiven = invoices.reduce((sum, inv) => sum + inv.invoice_amount, 0);
-     const totalPaid = invoices.reduce((sum, inv) => sum + inv.paid_amount, 0);
-     const outstandingBalance = invoices.reduce((sum, inv) => sum + inv.pending_amount, 0);
-     return { totalCreditGiven, totalPaid, outstandingBalance };
-   }, [invoices]);
+    // Calculate summaries (invoices + cash credits)
+    const summary = useMemo(() => {
+      const invoiceCreditGiven = invoices.reduce((sum, inv) => sum + inv.invoice_amount, 0);
+      const invoicePaid = invoices.reduce((sum, inv) => sum + inv.paid_amount, 0);
+      const invoiceOutstanding = invoices.reduce((sum, inv) => sum + inv.pending_amount, 0);
+      
+      // Cash credits will be added from ledger entries
+      const cashCreditGiven = ledgerEntries
+        .filter(e => e.source === "cash_credit" && e.transaction_type === "credit_given")
+        .reduce((sum, e) => sum + e.amount, 0);
+      const cashCreditPaid = ledgerEntries
+        .filter(e => e.source === "credit_payment" && e.transaction_type === "payment_received")
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      const totalCreditGiven = invoiceCreditGiven + cashCreditGiven;
+      const totalPaid = invoicePaid + cashCreditPaid;
+      const outstandingBalance = invoiceOutstanding + (cashCreditGiven - cashCreditPaid);
+      return { totalCreditGiven, totalPaid, outstandingBalance };
+    }, [invoices, ledgerEntries]);
  
    const pendingInvoices = useMemo(() => 
      invoices.filter(inv => inv.pending_amount > 0),
@@ -53,12 +65,13 @@
      fetchCustomerData();
  
      // Real-time subscription
-      const channel = supabase
-        .channel(`customer-credit-${customer.name}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => fetchCustomerData())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_ledger' }, () => fetchCustomerData())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'credits' }, () => fetchCustomerData())
-        .subscribe();
+       const channel = supabase
+         .channel(`customer-credit-${customer.name}`)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => fetchCustomerData())
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_ledger' }, () => fetchCustomerData())
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'credits' }, () => fetchCustomerData())
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'credit_transactions' }, () => fetchCustomerData())
+         .subscribe();
  
      return () => {
        supabase.removeChannel(channel);
@@ -132,6 +145,7 @@
           id: `credit-${inv.id}`,
           date: inv.invoice_date,
           transaction_type: "credit_given" as const,
+          source: "invoice" as const,
           invoice_number: inv.invoice_number,
           amount: inv.invoice_amount,
           payment_method: null,
@@ -144,6 +158,7 @@
           id: `cash-credit-${credit.id}`,
           date: credit.created_at?.split('T')[0] || '',
           transaction_type: "credit_given" as const,
+          source: "cash_credit" as const,
           invoice_number: null,
           amount: credit.amount,
           payment_method: null,
@@ -151,11 +166,21 @@
           notes: credit.notes || "Cash Credit (Udhar)"
         }));
 
-        // Add payment entries from ledger
+        // Fetch credit_transactions (payments against cash credits)
+        const { data: creditTxnData, error: creditTxnError } = await supabase
+          .from("credit_transactions")
+          .select("*")
+          .eq("customer_name", customer.name)
+          .order("transaction_date", { ascending: true });
+
+        if (creditTxnError) throw creditTxnError;
+
+        // Add payment entries from ledger (invoice payments)
         const paymentEntries = (ledgerData || []).map((payment: any) => ({
           id: payment.id,
           date: payment.payment_date,
           transaction_type: "payment_received" as const,
+          source: "payment" as const,
           invoice_number: payment.details?.[0]?.invoice_number || null,
           amount: payment.payment_amount,
           payment_method: payment.details?.[0]?.payment_method || "cash",
@@ -163,8 +188,21 @@
           notes: payment.notes
         }));
 
+        // Add credit transaction payments (cash credit payments)
+        const creditTxnEntries = (creditTxnData || []).map((txn: any) => ({
+          id: `credit-txn-${txn.id}`,
+          date: txn.transaction_date,
+          transaction_type: "payment_received" as const,
+          source: "credit_payment" as const,
+          invoice_number: null,
+          amount: txn.amount,
+          payment_method: null,
+          balance_after: 0,
+          notes: txn.notes
+        }));
+
         // Combine and sort by date
-        const combined = [...creditEntries, ...cashCreditEntries, ...paymentEntries]
+        const combined = [...creditEntries, ...cashCreditEntries, ...paymentEntries, ...creditTxnEntries]
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
  
        // Calculate running balance
