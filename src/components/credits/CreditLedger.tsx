@@ -4,16 +4,17 @@ import React from "react";
  import { Badge } from "@/components/ui/badge";
  import { History, ArrowDownLeft, ArrowUpRight } from "lucide-react";
  
- export interface LedgerEntry {
-   id: string;
-   date: string;
-   transaction_type: "credit_given" | "payment_received";
-   invoice_number: string | null;
-   amount: number;
-   payment_method: string | null;
-   balance_after: number;
-   notes: string | null;
- }
+export interface LedgerEntry {
+  id: string;
+  date: string;
+  transaction_type: "credit_given" | "payment_received";
+  source: "invoice" | "cash_credit" | "payment" | "credit_payment";
+  invoice_number: string | null;
+  amount: number;
+  payment_method: string | null;
+  balance_after: number;
+  notes: string | null;
+}
  
  interface CreditLedgerProps {
    entries: LedgerEntry[];
@@ -50,10 +51,10 @@ import React from "react";
                  ) : (
                    <ArrowUpRight className="h-4 w-4 text-primary" />
                  )}
-                 <Badge variant={entry.transaction_type === "payment_received" ? "default" : "secondary"} 
-                   className={entry.transaction_type === "payment_received" ? "bg-success" : ""}>
-                   {entry.transaction_type === "payment_received" ? "Payment" : "Credit"}
-                 </Badge>
+                <Badge variant={entry.transaction_type === "payment_received" ? "default" : "secondary"} 
+                    className={entry.transaction_type === "payment_received" ? "bg-success" : ""}>
+                    {entry.source === "invoice" ? "Invoice Credit" : entry.source === "cash_credit" ? "Cash Credit (Udhar)" : entry.source === "credit_payment" ? "Credit Payment" : "Payment"}
+                  </Badge>
                </div>
                <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
              </div>
@@ -109,10 +110,10 @@ import React from "react";
                      ) : (
                        <ArrowUpRight className="h-4 w-4 text-primary" />
                      )}
-                     <Badge variant={entry.transaction_type === "payment_received" ? "default" : "secondary"}
-                       className={entry.transaction_type === "payment_received" ? "bg-success" : ""}>
-                       {entry.transaction_type === "payment_received" ? "Payment Received" : "Credit Given"}
-                     </Badge>
+                    <Badge variant={entry.transaction_type === "payment_received" ? "default" : "secondary"}
+                        className={entry.transaction_type === "payment_received" ? "bg-success" : ""}>
+                        {entry.source === "invoice" ? "Invoice Credit" : entry.source === "cash_credit" ? "Cash Credit (Udhar)" : entry.source === "credit_payment" ? "Credit Payment" : "Payment Received"}
+                      </Badge>
                    </div>
                  </TableCell>
                  <TableCell>{entry.invoice_number || "-"}</TableCell>
