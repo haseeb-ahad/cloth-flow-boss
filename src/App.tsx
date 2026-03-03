@@ -68,7 +68,7 @@ const App = () => (
                 <Route path="/credit-management" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><CreditManagement /></Layout></ProtectedRoute>} />
                 
                 <Route path="/customers" element={<ProtectedRoute feature="customers" requirePermission="view"><Layout><Customers /></Layout></ProtectedRoute>} />
-                <Route path="/receive-payment" element={<ProtectedRoute feature="credits" requirePermission="view"><Layout><ReceivePayment /></Layout></ProtectedRoute>} />
+                
                 <Route path="/expenses" element={<ProtectedRoute adminOnly><Layout><Expenses /></Layout></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                 <Route path="/workers" element={<ProtectedRoute><Layout><Workers /></Layout></ProtectedRoute>} />

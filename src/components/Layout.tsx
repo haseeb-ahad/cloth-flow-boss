@@ -94,7 +94,7 @@ const Layout = ({ children }: LayoutProps) => {
       { path: "/credits", icon: CreditCard, label: t("credits"), feature: "credits", adminOnly: false },
       { path: "/credit-management", icon: Wallet, label: t("creditManagement"), feature: "credits", adminOnly: false },
       
-      { path: "/receive-payment", icon: Banknote, label: t("receivePayment"), feature: "receive_payment", adminOnly: false },
+      
       { path: "/expenses", icon: Receipt, label: t("expenses"), feature: "expenses", adminOnly: false },
       { path: "/customers", icon: Users, label: t("customers"), feature: "customers", adminOnly: false },
       { path: "/workers", icon: UserCog, label: t("manageWorkers"), feature: null, adminOnly: true },
