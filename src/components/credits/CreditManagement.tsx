@@ -18,6 +18,7 @@ import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import CustomerSearch from "./CustomerSearch";
 import CustomerCreditProfile from "./CustomerCreditProfile";
+import CreditPaymentDialog from "./CreditPaymentDialog";
 
 interface CustomerSuggestion {
   name: string;
@@ -39,11 +40,7 @@ interface CreditEntry {
   created_at: string;
 }
 
-interface PaymentFormData {
-  amount: string;
-  payment_date: string;
-  notes: string;
-}
+// PaymentFormData removed - now using CreditPaymentDialog
 
 const CreditManagement = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
@@ -93,11 +90,7 @@ const CreditManagement = () => {
     notes: "",
   });
 
-  const [paymentData, setPaymentData] = useState<PaymentFormData>({
-    amount: "",
-    payment_date: getLocalDate(),
-    notes: "",
-  });
+  // Payment data removed - now using CreditPaymentDialog
 
   // Summary calculations
   const totalCreditGiven = credits
@@ -445,78 +438,12 @@ const CreditManagement = () => {
 
   const openPaymentDialog = (credit: CreditEntry) => {
     setSelectedCredit(credit);
-    setPaymentData({
-      amount: "",
-      payment_date: getLocalDate(),
-      notes: "",
-    });
     setIsPaymentDialogOpen(true);
   };
 
-  const handlePayment = async () => {
-    if (!selectedCredit || !canEdit) {
-      toast.error("You do not have permission to record payments");
-      return;
-    }
-
-    const payment = parseFloat(paymentData.amount);
-    if (isNaN(payment) || payment <= 0) {
-      toast.error("Please enter a valid payment amount");
-      return;
-    }
-
-    if (payment > selectedCredit.remaining_amount) {
-      toast.error("Payment amount cannot exceed remaining balance");
-      return;
-    }
-
-    const newPaidAmount = selectedCredit.paid_amount + payment;
-    const newRemaining = selectedCredit.remaining_amount - payment;
-    
-    let newStatus = "partial";
-    if (newRemaining <= 0) {
-      newStatus = "paid";
-    } else if (selectedCredit.due_date && new Date(selectedCredit.due_date) < new Date()) {
-      newStatus = "overdue";
-    }
-
-    setIsLoading(true);
-    try {
-      const { error: updateError } = await supabase
-        .from("credits")
-        .update({
-          paid_amount: newPaidAmount,
-          remaining_amount: newRemaining,
-          status: newStatus,
-        })
-        .eq("id", selectedCredit.id);
-
-      if (updateError) throw updateError;
-
-      // Record transaction
-      const { error: transactionError } = await supabase
-        .from("credit_transactions")
-        .insert({
-          credit_id: selectedCredit.id,
-          customer_name: selectedCredit.party_name,
-          amount: payment,
-          transaction_date: paymentData.payment_date,
-          notes: paymentData.notes || `${selectedCredit.credit_type === "given" ? "Payment received" : "Payment made"}`,
-          owner_id: ownerId,
-        });
-
-      if (transactionError) throw transactionError;
-
-      toast.success(selectedCredit.credit_type === "given" ? "Payment received" : "Payment made");
-      setIsPaymentDialogOpen(false);
-      setSelectedCredit(null);
-      fetchCredits();
-    } catch (error) {
-      console.error("Error recording payment:", error);
-      toast.error("Failed to record payment");
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePaymentComplete = () => {
+    setSelectedCredit(null);
+    fetchCredits();
   };
 
   const openEditDialog = (credit: CreditEntry) => {
@@ -961,106 +888,17 @@ const CreditManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Dialog */}
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              {selectedCredit?.credit_type === "given" ? "Receive Payment" : "Make Payment"}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedCredit && (
-            <div className="space-y-4">
-              <Card className="p-4 bg-muted/50">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Party</span>
-                    <span className="font-semibold">{selectedCredit.party_name}</span>
-                  </div>
-                  <div className="border-t pt-2 mt-2">
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                        <p className="font-semibold text-sm">Rs. {selectedCredit.total_amount.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Paid</p>
-                        <p className="font-semibold text-sm text-success">Rs. {selectedCredit.paid_amount.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Remaining</p>
-                        <p className="font-bold text-sm text-warning">Rs. {selectedCredit.remaining_amount.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <div>
-                <Label htmlFor="payment_amount">Payment Amount *</Label>
-                <Input
-                  id="payment_amount"
-                  type="number"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
-                  placeholder="Enter amount"
-                  max={selectedCredit.remaining_amount}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Max: Rs. {selectedCredit.remaining_amount.toLocaleString()}
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="payment_date">Payment Date</Label>
-                <Input
-                  id="payment_date"
-                  type="date"
-                  value={paymentData.payment_date}
-                  onChange={(e) => setPaymentData({ ...paymentData, payment_date: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="payment_notes">Note (Optional)</Label>
-                <Textarea
-                  id="payment_notes"
-                  value={paymentData.notes}
-                  onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
-                  placeholder="Add a reference..."
-                  rows={2}
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button 
-                  onClick={handlePayment} 
-                  className="flex-1"
-                  disabled={isLoading || !paymentData.amount}
-                >
-                  {isLoading ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <DollarSign className="h-4 w-4 mr-2" />
-                  )}
-                  {selectedCredit.credit_type === "given" ? "Receive Payment" : "Make Payment"}
-                </Button>
-                <Button 
-                  onClick={() => setIsPaymentDialogOpen(false)} 
-                  variant="outline"
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Payment Dialog - FIFO Auto-Adjust */}
+      {selectedCredit && (
+        <CreditPaymentDialog
+          open={isPaymentDialogOpen}
+          onOpenChange={setIsPaymentDialogOpen}
+          selectedCredit={selectedCredit}
+          creditType={selectedCredit.credit_type}
+          onPaymentComplete={handlePaymentComplete}
+          ownerId={ownerId}
+        />
+      )}
     </div>
   );
 };
