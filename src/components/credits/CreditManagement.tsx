@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
@@ -7,19 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Users, ChevronDown, ChevronRight, Hash } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Users } from "lucide-react";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import CustomerSearch from "./CustomerSearch";
 import CustomerCreditProfile from "./CustomerCreditProfile";
-import CreditPaymentDialog from "./CreditPaymentDialog";
+import CreditTypeProfile from "./CreditTypeProfile";
 
 interface CustomerSuggestion {
   name: string;
@@ -53,9 +50,7 @@ const CreditManagement = () => {
 
   const [activeTab, setActiveTab] = useState<"profile" | "given" | "taken">("profile");
   const [credits, setCredits] = useState<CreditEntry[]>([]);
-  const [filteredCredits, setFilteredCredits] = useState<CreditEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Customer profile state
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSuggestion | null>(null);
@@ -64,7 +59,6 @@ const CreditManagement = () => {
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<CreditEntry | null>(null);
 
   // Customer autocomplete
@@ -130,9 +124,6 @@ const CreditManagement = () => {
     };
   }, []);
 
-  useEffect(() => {
-    filterCredits();
-  }, [credits, activeTab, searchTerm]);
 
   const fetchCustomersWithCredit = async () => {
     try {
@@ -252,17 +243,6 @@ const CreditManagement = () => {
     return "pending";
   };
 
-  const filterCredits = () => {
-    let filtered = credits.filter(c => c.credit_type === activeTab || activeTab === "profile");
-    
-    if (searchTerm) {
-      filtered = filtered.filter(c => 
-        c.party_name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredCredits(filtered);
-  };
 
   const resetForm = () => {
     const today = new Date();
@@ -437,15 +417,6 @@ const CreditManagement = () => {
     }
   };
 
-  const openPaymentDialog = (credit: CreditEntry) => {
-    setSelectedCredit(credit);
-    setIsPaymentDialogOpen(true);
-  };
-
-  const handlePaymentComplete = () => {
-    setSelectedCredit(null);
-    fetchCredits();
-  };
 
   const openEditDialog = (credit: CreditEntry) => {
     setSelectedCredit(credit);
@@ -462,18 +433,6 @@ const CreditManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <Badge className="bg-success text-success-foreground">Paid</Badge>;
-      case "partial":
-        return <Badge className="bg-warning text-warning-foreground">Partial</Badge>;
-      case "overdue":
-        return <Badge className="bg-destructive text-destructive-foreground">Overdue</Badge>;
-      default:
-        return <Badge variant="secondary">Pending</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-4 md:space-y-6 w-full max-w-full overflow-hidden">
@@ -745,54 +704,32 @@ const CreditManagement = () => {
         </TabsContent>
 
         <TabsContent value="given" className="mt-4">
-          {/* Search */}
-          <Card className="p-4 mb-4 w-full max-w-full">
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by party name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full"
-              />
-            </div>
-          </Card>
-          <CreditList 
-            credits={filteredCredits}
-            formatDate={formatDate}
-            getStatusBadge={getStatusBadge}
+          <CreditTypeProfile
+            type="given"
+            credits={credits}
+            isLoading={isLoading}
+            onRefresh={fetchCredits}
             canEdit={canEdit}
             canDelete={canDelete}
-            onPayment={openPaymentDialog}
             onEdit={openEditDialog}
             onDelete={handleDeleteCredit}
-            type="given"
+            ownerId={ownerId}
+            onPaymentComplete={() => fetchCredits()}
           />
         </TabsContent>
 
         <TabsContent value="taken" className="mt-4">
-          {/* Search */}
-          <Card className="p-4 mb-4 w-full max-w-full">
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by party name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full"
-              />
-            </div>
-          </Card>
-          <CreditList 
-            credits={filteredCredits}
-            formatDate={formatDate}
-            getStatusBadge={getStatusBadge}
+          <CreditTypeProfile
+            type="taken"
+            credits={credits}
+            isLoading={isLoading}
+            onRefresh={fetchCredits}
             canEdit={canEdit}
             canDelete={canDelete}
-            onPayment={openPaymentDialog}
             onEdit={openEditDialog}
             onDelete={handleDeleteCredit}
-            type="taken"
+            ownerId={ownerId}
+            onPaymentComplete={() => fetchCredits()}
           />
         </TabsContent>
       </Tabs>
@@ -889,299 +826,9 @@ const CreditManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Dialog - FIFO Auto-Adjust */}
-      {selectedCredit && (
-        <CreditPaymentDialog
-          open={isPaymentDialogOpen}
-          onOpenChange={setIsPaymentDialogOpen}
-          selectedCredit={selectedCredit}
-          creditType={selectedCredit.credit_type}
-          onPaymentComplete={handlePaymentComplete}
-          ownerId={ownerId}
-        />
-      )}
     </div>
   );
 };
 
-interface CreditListProps {
-  credits: CreditEntry[];
-  formatDate: (date: string) => string;
-  getStatusBadge: (status: string) => React.ReactNode;
-  canEdit: boolean;
-  canDelete: boolean;
-  onPayment: (credit: CreditEntry) => void;
-  onEdit: (credit: CreditEntry) => void;
-  onDelete: (id: string) => void;
-  type: "given" | "taken";
-}
-
-interface GroupedCustomer {
-  name: string;
-  phone: string | null;
-  entries: CreditEntry[];
-  totalAmount: number;
-  totalPaid: number;
-  totalRemaining: number;
-  hasOverdue: boolean;
-}
-
-const CreditList = ({ 
-  credits, 
-  formatDate, 
-  getStatusBadge, 
-  canEdit, 
-  canDelete, 
-  onPayment, 
-  onEdit, 
-  onDelete,
-  type 
-}: CreditListProps) => {
-  const [openCustomers, setOpenCustomers] = useState<Set<string>>(new Set());
-
-  const toggleCustomer = (name: string) => {
-    setOpenCustomers(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
-
-  // Group credits by customer
-  const grouped: GroupedCustomer[] = useMemo(() => {
-    const map = new Map<string, GroupedCustomer>();
-    for (const credit of credits) {
-      const existing = map.get(credit.party_name);
-      if (existing) {
-        existing.entries.push(credit);
-        existing.totalAmount += credit.total_amount;
-        existing.totalPaid += credit.paid_amount;
-        existing.totalRemaining += credit.remaining_amount;
-        if (credit.status === "overdue") existing.hasOverdue = true;
-      } else {
-        map.set(credit.party_name, {
-          name: credit.party_name,
-          phone: credit.party_phone,
-          entries: [credit],
-          totalAmount: credit.total_amount,
-          totalPaid: credit.paid_amount,
-          totalRemaining: credit.remaining_amount,
-          hasOverdue: credit.status === "overdue",
-        });
-      }
-    }
-    return Array.from(map.values());
-  }, [credits]);
-
-  if (credits.length === 0) {
-    return (
-      <Card className="p-12 text-center">
-        <div className="text-muted-foreground">
-          <p className="text-lg font-medium">No credits found</p>
-          <p className="text-sm mt-1">
-            {type === "given" 
-              ? "Add credit entries for customers who owe you money" 
-              : "Add credit entries for suppliers you owe money to"}
-          </p>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
-    <>
-      {/* Mobile/Tablet Card View */}
-      <div className="lg:hidden space-y-3">
-        {grouped.map((group) => (
-          <Collapsible
-            key={group.name}
-            open={openCustomers.has(group.name)}
-            onOpenChange={() => toggleCustomer(group.name)}
-          >
-            <Card className="overflow-hidden">
-              <CollapsibleTrigger className="w-full p-4 text-left">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
-                      {group.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">{group.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {group.entries.length} {group.entries.length === 1 ? 'entry' : 'entries'} • Remaining: Rs. {group.totalRemaining.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {group.hasOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px]">Overdue</Badge>}
-                    {openCustomers.has(group.name) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="border-t space-y-0 divide-y">
-                  {group.entries.map((credit) => (
-                    <div key={credit.id} className="p-4">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Hash className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] font-mono text-muted-foreground">{credit.id.slice(0, 8)}</span>
-                        <span className="ml-auto">{getStatusBadge(credit.status)}</span>
-                      </div>
-                      {credit.notes && (
-                        <p className="text-xs text-muted-foreground truncate mb-2">{credit.notes}</p>
-                      )}
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Total</p>
-                          <p className="text-xs font-semibold">Rs. {credit.total_amount.toLocaleString()}</p>
-                        </div>
-                        <div className="bg-success/10 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Paid</p>
-                          <p className="text-xs font-semibold text-success">Rs. {credit.paid_amount.toLocaleString()}</p>
-                        </div>
-                        <div className="bg-warning/10 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Due</p>
-                          <p className="text-xs font-bold text-warning">Rs. {credit.remaining_amount.toLocaleString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-dashed">
-                        <div className="text-xs text-muted-foreground">
-                          <span>{credit.created_at ? formatDate(credit.created_at.split('T')[0]) : '-'}</span>
-                          {credit.due_date && <span className="ml-2">Due: {formatDate(credit.due_date)}</span>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {credit.remaining_amount > 0 && canEdit && (
-                            <Button size="sm" variant="outline" onClick={() => onPayment(credit)} className="h-7 gap-1 text-xs">
-                              <DollarSign className="h-3 w-3" />
-                              {type === "given" ? "Receive" : "Pay"}
-                            </Button>
-                          )}
-                          {canEdit && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(credit)}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDelete(credit.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        ))}
-      </div>
-
-      {/* Desktop Table View */}
-      <Card className="hidden lg:block w-full overflow-x-auto">
-        <Table className="w-full">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8"></TableHead>
-              <TableHead>Party Name</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
-              <TableHead className="text-right">Paid Amount</TableHead>
-              <TableHead className="text-right">Remaining</TableHead>
-              <TableHead>Credit Date</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {grouped.map((group) => (
-              <Collapsible key={group.name} asChild open={openCustomers.has(group.name)} onOpenChange={() => toggleCustomer(group.name)}>
-                <>
-                  <CollapsibleTrigger asChild>
-                    <TableRow className="cursor-pointer bg-muted/30 hover:bg-muted/50 font-medium">
-                      <TableCell className="w-8 px-2">
-                        {openCustomers.has(group.name) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-xs">
-                            {group.name.charAt(0).toUpperCase()}
-                          </div>
-                          {group.name}
-                          <Badge variant="secondary" className="text-[10px]">{group.entries.length}</Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">—</TableCell>
-                      <TableCell className="text-right font-semibold">Rs. {group.totalAmount.toLocaleString()}</TableCell>
-                      <TableCell className="text-right text-success font-semibold">Rs. {group.totalPaid.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-bold text-warning">Rs. {group.totalRemaining.toLocaleString()}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell>
-                        {group.hasOverdue && <Badge className="bg-destructive text-destructive-foreground">Overdue</Badge>}
-                      </TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent asChild>
-                    <>
-                      {group.entries.map((credit) => (
-                        <TableRow key={credit.id} className="bg-background">
-                          <TableCell></TableCell>
-                          <TableCell>
-                            {credit.notes && (
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{credit.notes}</p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono text-xs text-muted-foreground">{credit.id.slice(0, 8)}</span>
-                          </TableCell>
-                          <TableCell className="text-right">Rs. {credit.total_amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold text-warning">
-                            Rs. {credit.remaining_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell>
-                            {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(credit.status)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-1">
-                              {credit.remaining_amount > 0 && canEdit && (
-                                <Button size="sm" variant="outline" onClick={() => onPayment(credit)} className="gap-1">
-                                  <DollarSign className="h-3.5 w-3.5" />
-                                  {type === "given" ? "Receive" : "Pay"}
-                                </Button>
-                              )}
-                              {canEdit && (
-                                <Button size="icon" variant="ghost" onClick={() => onEdit(credit)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {canDelete && (
-                                <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(credit.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </>
-                  </CollapsibleContent>
-                </>
-              </Collapsible>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-    </>
-  );
-};
 
 export default CreditManagement;
