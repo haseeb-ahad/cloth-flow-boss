@@ -184,19 +184,7 @@ const CreditPaymentDialog = ({
         if (newRemaining <= 0) newStatus = "paid";
         else if (credit.due_date && new Date(credit.due_date) < new Date()) newStatus = "overdue";
 
-        // Update credit record
-        const { error: updateError } = await supabase
-          .from("credits")
-          .update({
-            paid_amount: newPaid,
-            remaining_amount: Math.max(0, newRemaining),
-            status: newStatus,
-          })
-          .eq("id", credit.id);
-
-        if (updateError) throw updateError;
-
-        // Record transaction
+        // Record transaction FIRST (before credit update/auto-delete)
         const { error: txnError } = await supabase
           .from("credit_transactions")
           .insert({
@@ -209,6 +197,18 @@ const CreditPaymentDialog = ({
           });
 
         if (txnError) throw txnError;
+
+        // Update credit record (may trigger auto-delete if remaining=0)
+        const { error: updateError } = await supabase
+          .from("credits")
+          .update({
+            paid_amount: newPaid,
+            remaining_amount: Math.max(0, newRemaining),
+            status: newStatus,
+          })
+          .eq("id", credit.id);
+
+        if (updateError) throw updateError;
 
         remainingPayment -= allocated;
       }
