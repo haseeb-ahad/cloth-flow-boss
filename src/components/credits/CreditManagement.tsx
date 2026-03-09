@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Users, ChevronDown, ChevronRight, Hash } from "lucide-react";
+import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Users, ChevronDown, ChevronRight, Hash, History, CheckCircle2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
@@ -926,6 +926,54 @@ interface GroupedCustomer {
   hasOverdue: boolean;
 }
 
+interface CreditTransaction {
+  id: string;
+  amount: number;
+  transaction_date: string;
+  notes: string | null;
+  created_at: string | null;
+}
+
+// Sub-component to show payment history per credit entry
+const CreditPaymentHistory = ({ creditId, formatDate }: { creditId: string; formatDate: (d: string) => string }) => {
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const { data, error } = await supabase
+        .from("credit_transactions")
+        .select("id, amount, transaction_date, notes, created_at")
+        .eq("credit_id", creditId)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setTransactions(data);
+      }
+      setIsLoading(false);
+    };
+    fetchHistory();
+  }, [creditId]);
+
+  if (isLoading) return <p className="text-xs text-muted-foreground py-1">Loading...</p>;
+  if (transactions.length === 0) return <p className="text-xs text-muted-foreground py-1">No payments yet</p>;
+
+  return (
+    <div className="space-y-1.5">
+      {transactions.map((txn) => (
+        <div key={txn.id} className="flex items-center justify-between text-xs bg-success/5 rounded px-2 py-1.5 border border-success/10">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+            <span className="text-muted-foreground">{formatDate(txn.transaction_date)}</span>
+            {txn.notes && <span className="text-muted-foreground truncate max-w-[150px]">• {txn.notes}</span>}
+          </div>
+          <span className="font-semibold text-success shrink-0 ml-2">+ Rs. {txn.amount.toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const CreditList = ({ 
   credits, 
   formatDate, 
@@ -938,12 +986,22 @@ const CreditList = ({
   type 
 }: CreditListProps) => {
   const [openCustomers, setOpenCustomers] = useState<Set<string>>(new Set());
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
 
   const toggleCustomer = (name: string) => {
     setOpenCustomers(prev => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
+      return next;
+    });
+  };
+
+  const toggleHistory = (id: string) => {
+    setExpandedHistory(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -1014,12 +1072,33 @@ const CreditList = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {group.hasOverdue && <Badge className="bg-destructive text-destructive-foreground text-[10px]">Overdue</Badge>}
+                    {group.totalRemaining <= 0 
+                      ? <Badge className="bg-success text-success-foreground text-[10px]">Paid</Badge>
+                      : group.hasOverdue 
+                        ? <Badge className="bg-destructive text-destructive-foreground text-[10px]">Overdue</Badge>
+                        : null
+                    }
                     {openCustomers.has(group.name) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
+                {/* Group-level Receive/Pay button */}
+                {group.totalRemaining > 0 && canEdit && (
+                  <div className="px-4 pb-2">
+                    <Button 
+                      size="sm" 
+                      className="w-full gap-1.5" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPayment(group.entries[0]);
+                      }}
+                    >
+                      <DollarSign className="h-3.5 w-3.5" />
+                      {type === "given" ? "Receive Payment" : "Make Payment"} — Rs. {group.totalRemaining.toLocaleString()}
+                    </Button>
+                  </div>
+                )}
                 <div className="border-t space-y-0 divide-y">
                   {group.entries.map((credit) => (
                     <div key={credit.id} className="p-4">
@@ -1051,10 +1130,10 @@ const CreditList = ({
                           {credit.due_date && <span className="ml-2">Due: {formatDate(credit.due_date)}</span>}
                         </div>
                         <div className="flex items-center gap-1">
-                          {credit.remaining_amount > 0 && canEdit && (
-                            <Button size="sm" variant="outline" onClick={() => onPayment(credit)} className="h-7 gap-1 text-xs">
-                              <DollarSign className="h-3 w-3" />
-                              {type === "given" ? "Receive" : "Pay"}
+                          {credit.paid_amount > 0 && (
+                            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => toggleHistory(credit.id)}>
+                              <History className="h-3 w-3" />
+                              History
                             </Button>
                           )}
                           {canEdit && (
@@ -1069,6 +1148,12 @@ const CreditList = ({
                           )}
                         </div>
                       </div>
+                      {/* Payment History */}
+                      {expandedHistory.has(credit.id) && (
+                        <div className="mt-2 pt-2 border-t border-dashed">
+                          <CreditPaymentHistory creditId={credit.id} formatDate={formatDate} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1120,57 +1205,93 @@ const CreditList = ({
                       <TableCell></TableCell>
                       <TableCell></TableCell>
                       <TableCell>
-                        {group.hasOverdue && <Badge className="bg-destructive text-destructive-foreground">Overdue</Badge>}
+                        {group.totalRemaining <= 0 
+                          ? <Badge className="bg-success text-success-foreground">Paid</Badge>
+                          : group.hasOverdue 
+                            ? <Badge className="bg-destructive text-destructive-foreground">Overdue</Badge>
+                            : null
+                        }
                       </TableCell>
-                      <TableCell></TableCell>
+                      <TableCell>
+                        {group.totalRemaining > 0 && canEdit && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onPayment(group.entries[0]);
+                            }}
+                          >
+                            <DollarSign className="h-3.5 w-3.5" />
+                            {type === "given" ? "Receive" : "Pay"}
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   </CollapsibleTrigger>
                   <CollapsibleContent asChild>
                     <>
                       {group.entries.map((credit) => (
-                        <TableRow key={credit.id} className="bg-background">
-                          <TableCell></TableCell>
-                          <TableCell>
-                            {credit.notes && (
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{credit.notes}</p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono text-xs text-muted-foreground">{credit.id.slice(0, 8)}</span>
-                          </TableCell>
-                          <TableCell className="text-right">Rs. {credit.total_amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-semibold text-warning">
-                            Rs. {credit.remaining_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell>
-                            {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(credit.status)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-1">
-                              {credit.remaining_amount > 0 && canEdit && (
-                                <Button size="sm" variant="outline" onClick={() => onPayment(credit)} className="gap-1">
-                                  <DollarSign className="h-3.5 w-3.5" />
-                                  {type === "given" ? "Receive" : "Pay"}
-                                </Button>
+                        <React.Fragment key={credit.id}>
+                          <TableRow className="bg-background">
+                            <TableCell></TableCell>
+                            <TableCell>
+                              {credit.notes && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">{credit.notes}</p>
                               )}
-                              {canEdit && (
-                                <Button size="icon" variant="ghost" onClick={() => onEdit(credit)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {canDelete && (
-                                <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(credit.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-mono text-xs text-muted-foreground">{credit.id.slice(0, 8)}</span>
+                            </TableCell>
+                            <TableCell className="text-right">Rs. {credit.total_amount.toLocaleString()}</TableCell>
+                            <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-semibold text-warning">
+                              Rs. {credit.remaining_amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell>
+                              {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(credit.status)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-1">
+                                {credit.paid_amount > 0 && (
+                                  <Button size="sm" variant="ghost" onClick={() => toggleHistory(credit.id)} className="gap-1 text-xs">
+                                    <History className="h-3.5 w-3.5" />
+                                    History
+                                  </Button>
+                                )}
+                                {canEdit && (
+                                  <Button size="icon" variant="ghost" onClick={() => onEdit(credit)}>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {canDelete && (
+                                  <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(credit.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {/* Payment History Row */}
+                          {expandedHistory.has(credit.id) && (
+                            <TableRow className="bg-muted/10">
+                              <TableCell></TableCell>
+                              <TableCell colSpan={9} className="py-2">
+                                <div className="pl-2">
+                                  <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+                                    <History className="h-3 w-3" /> Payment History — {credit.id.slice(0, 8)}
+                                  </p>
+                                  <CreditPaymentHistory creditId={credit.id} formatDate={formatDate} />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
                       ))}
                     </>
                   </CollapsibleContent>
