@@ -152,7 +152,7 @@ export function calculateDateRange(options: DateRangeOptions): DateRange {
       // All time: From epoch to today end
       return {
         start: new Date(0),
-        end: new Date(new Date(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999).getTime() - tzOffset)
+        end: new Date(Date.UTC(todayParts.year, todayParts.month, todayParts.day, 23, 59, 59, 999) - tzOffset)
       };
 
     case "7days": {
@@ -197,7 +197,7 @@ export function calculateDateRange(options: DateRangeOptions): DateRange {
       } else if (endDate) {
         return {
           start: new Date(0),
-          end: new Date(new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime() - tzOffset)
+          end: new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999) - tzOffset)
         };
       }
       // Default to today if no dates specified
