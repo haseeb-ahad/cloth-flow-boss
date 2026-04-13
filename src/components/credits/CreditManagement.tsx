@@ -13,8 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Users, ChevronDown, ChevronRight, Hash, History, CheckCircle2 } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Edit, Trash2, DollarSign, RefreshCw, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Search, Users, Hash, History, CheckCircle2, ArrowLeft } from "lucide-react";
+
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader";
 import { cleanCustomerName, getOrCreateCustomer, fetchCustomerSuggestions as fetchCustomersFromTable } from "@/lib/customerUtils";
 import CustomerSearch from "./CustomerSearch";
@@ -961,7 +961,7 @@ const CreditPaymentHistory = ({ creditId, formatDate }: { creditId: string; form
   return (
     <div className="space-y-1.5">
       {transactions.map((txn) => (
-        <div key={txn.id} className="flex items-center justify-between text-xs bg-success/5 rounded px-2 py-1.5 border border-success/10">
+        <div key={txn.id} className="flex items-center justify-between text-xs bg-success/5 rounded-lg px-3 py-2 border border-success/10">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
             <span className="text-muted-foreground">{formatDate(txn.transaction_date)}</span>
@@ -970,6 +970,214 @@ const CreditPaymentHistory = ({ creditId, formatDate }: { creditId: string; form
           <span className="font-semibold text-success shrink-0 ml-2">+ Rs. {txn.amount.toLocaleString()}</span>
         </div>
       ))}
+    </div>
+  );
+};
+
+// Individual customer detail view (profile-like)
+const CustomerCreditDetail = ({
+  group,
+  type,
+  formatDate,
+  getStatusBadge,
+  canEdit,
+  canDelete,
+  onPayment,
+  onEdit,
+  onDelete,
+  onBack,
+}: {
+  group: GroupedCustomer;
+  type: "given" | "taken";
+  formatDate: (date: string) => string;
+  getStatusBadge: (status: string) => React.ReactNode;
+  canEdit: boolean;
+  canDelete: boolean;
+  onPayment: (credit: CreditEntry) => void;
+  onEdit: (credit: CreditEntry) => void;
+  onDelete: (id: string) => void;
+  onBack: () => void;
+}) => {
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+
+  const toggleHistory = (id: string) => {
+    setExpandedHistory(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="ghost" onClick={onBack} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        {group.totalRemaining > 0 && canEdit && (
+          <Button onClick={() => onPayment(group.entries[0])} className="gap-2">
+            <DollarSign className="h-4 w-4" />
+            {type === "given" ? "Receive Payment" : "Make Payment"}
+          </Button>
+        )}
+      </div>
+
+      {/* Customer Card */}
+      <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+          {group.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-xl font-bold">{group.name}</h2>
+          {group.phone && (
+            <p className="text-sm text-muted-foreground">{group.phone}</p>
+          )}
+        </div>
+        {group.totalRemaining <= 0 && (
+          <Badge className="bg-success text-success-foreground">All Paid</Badge>
+        )}
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="p-4 bg-primary/5 border-primary/20">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {type === "given" ? "Total Credit Given" : "Total Credit Taken"}
+              </p>
+              <p className="text-xl md:text-2xl font-bold text-primary">
+                Rs. {group.totalAmount.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">{group.entries.length} entries</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              {type === "given" ? <ArrowDownCircle className="h-5 w-5 text-primary" /> : <ArrowUpCircle className="h-5 w-5 text-primary" />}
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-success/10 border-success/30">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-muted-foreground">Total Paid</p>
+              <p className="text-xl md:text-2xl font-bold text-success">
+                Rs. {group.totalPaid.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">Amount {type === "given" ? "received" : "paid"}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+              <DollarSign className="h-5 w-5 text-success" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-warning/10 border-warning/30">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-muted-foreground">Outstanding Balance</p>
+              <p className="text-xl md:text-2xl font-bold text-warning">
+                Rs. {group.totalRemaining.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">Pending amount</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Entries List */}
+      <Card className="p-4">
+        <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+          <History className="h-4 w-4" />
+          Credit Entries
+        </h3>
+        <div className="space-y-3">
+          {group.entries.map((credit) => (
+            <Card key={credit.id} className={`p-4 border ${
+              credit.remaining_amount <= 0 
+                ? "border-success/30 bg-success/5" 
+                : credit.status === "overdue" 
+                  ? "border-destructive/30 bg-destructive/5" 
+                  : "border-border"
+            }`}>
+              {/* Entry Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-mono text-muted-foreground">{credit.id.slice(0, 8)}</span>
+                  {credit.notes && (
+                    <span className="text-xs text-muted-foreground">• {credit.notes}</span>
+                  )}
+                </div>
+                {getStatusBadge(credit.status)}
+              </div>
+
+              {/* Amount Grid */}
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+                  <p className="text-sm font-bold mt-0.5">Rs. {credit.total_amount.toLocaleString()}</p>
+                </div>
+                <div className="bg-success/10 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Paid</p>
+                  <p className="text-sm font-bold text-success mt-0.5">Rs. {credit.paid_amount.toLocaleString()}</p>
+                </div>
+                <div className="bg-warning/10 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Due</p>
+                  <p className="text-sm font-bold text-warning mt-0.5">Rs. {credit.remaining_amount.toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Date & Actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-dashed">
+                <div className="text-xs text-muted-foreground space-x-3">
+                  <span>Created: {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : '-'}</span>
+                  {credit.due_date && <span>Due: {formatDate(credit.due_date)}</span>}
+                </div>
+                <div className="flex items-center gap-1">
+                  {credit.paid_amount > 0 && (
+                    <Button 
+                      size="sm" 
+                      variant={expandedHistory.has(credit.id) ? "secondary" : "ghost"} 
+                      className="h-7 gap-1 text-xs" 
+                      onClick={() => toggleHistory(credit.id)}
+                    >
+                      <History className="h-3 w-3" />
+                      History
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(credit)}>
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(credit.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment History */}
+              {expandedHistory.has(credit.id) && (
+                <div className="mt-3 pt-3 border-t border-dashed">
+                  <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                    <History className="h-3 w-3" /> Payment History
+                  </p>
+                  <CreditPaymentHistory creditId={credit.id} formatDate={formatDate} />
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 };
@@ -985,26 +1193,7 @@ const CreditList = ({
   onDelete,
   type 
 }: CreditListProps) => {
-  const [openCustomers, setOpenCustomers] = useState<Set<string>>(new Set());
-  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
-
-  const toggleCustomer = (name: string) => {
-    setOpenCustomers(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
-
-  const toggleHistory = (id: string) => {
-    setExpandedHistory(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
   // Group credits by customer
   const grouped: GroupedCustomer[] = useMemo(() => {
@@ -1032,6 +1221,25 @@ const CreditList = ({
     return Array.from(map.values());
   }, [credits]);
 
+  // If a group is selected, show detail view
+  const activeGroup = selectedGroup ? grouped.find(g => g.name === selectedGroup) : null;
+  if (activeGroup) {
+    return (
+      <CustomerCreditDetail
+        group={activeGroup}
+        type={type}
+        formatDate={formatDate}
+        getStatusBadge={getStatusBadge}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        onPayment={onPayment}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onBack={() => setSelectedGroup(null)}
+      />
+    );
+  }
+
   if (credits.length === 0) {
     return (
       <Card className="p-12 text-center">
@@ -1048,260 +1256,49 @@ const CreditList = ({
   }
 
   return (
-    <>
-      {/* Mobile/Tablet Card View */}
-      <div className="lg:hidden space-y-3">
-        {grouped.map((group) => (
-          <Collapsible
-            key={group.name}
-            open={openCustomers.has(group.name)}
-            onOpenChange={() => toggleCustomer(group.name)}
-          >
-            <Card className="overflow-hidden">
-              <CollapsibleTrigger className="w-full p-4 text-left">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
-                      {group.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">{group.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {group.entries.length} {group.entries.length === 1 ? 'entry' : 'entries'} • Remaining: Rs. {group.totalRemaining.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {group.totalRemaining <= 0 
-                      ? <Badge className="bg-success text-success-foreground text-[10px]">Paid</Badge>
-                      : group.hasOverdue 
-                        ? <Badge className="bg-destructive text-destructive-foreground text-[10px]">Overdue</Badge>
-                        : null
-                    }
-                    {openCustomers.has(group.name) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                {/* Group-level Receive/Pay button */}
-                {group.totalRemaining > 0 && canEdit && (
-                  <div className="px-4 pb-2">
-                    <Button 
-                      size="sm" 
-                      className="w-full gap-1.5" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPayment(group.entries[0]);
-                      }}
-                    >
-                      <DollarSign className="h-3.5 w-3.5" />
-                      {type === "given" ? "Receive Payment" : "Make Payment"} — Rs. {group.totalRemaining.toLocaleString()}
-                    </Button>
-                  </div>
-                )}
-                <div className="border-t space-y-0 divide-y">
-                  {group.entries.map((credit) => (
-                    <div key={credit.id} className="p-4">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Hash className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] font-mono text-muted-foreground">{credit.id.slice(0, 8)}</span>
-                        <span className="ml-auto">{getStatusBadge(credit.status)}</span>
-                      </div>
-                      {credit.notes && (
-                        <p className="text-xs text-muted-foreground truncate mb-2">{credit.notes}</p>
-                      )}
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Total</p>
-                          <p className="text-xs font-semibold">Rs. {credit.total_amount.toLocaleString()}</p>
-                        </div>
-                        <div className="bg-success/10 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Paid</p>
-                          <p className="text-xs font-semibold text-success">Rs. {credit.paid_amount.toLocaleString()}</p>
-                        </div>
-                        <div className="bg-warning/10 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Due</p>
-                          <p className="text-xs font-bold text-warning">Rs. {credit.remaining_amount.toLocaleString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-dashed">
-                        <div className="text-xs text-muted-foreground">
-                          <span>{credit.created_at ? formatDate(credit.created_at.split('T')[0]) : '-'}</span>
-                          {credit.due_date && <span className="ml-2">Due: {formatDate(credit.due_date)}</span>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {credit.paid_amount > 0 && (
-                            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => toggleHistory(credit.id)}>
-                              <History className="h-3 w-3" />
-                              History
-                            </Button>
-                          )}
-                          {canEdit && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(credit)}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDelete(credit.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      {/* Payment History */}
-                      {expandedHistory.has(credit.id) && (
-                        <div className="mt-2 pt-2 border-t border-dashed">
-                          <CreditPaymentHistory creditId={credit.id} formatDate={formatDate} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        ))}
-      </div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {grouped.map((group) => (
+        <Card 
+          key={group.name}
+          className="p-4 cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md"
+          onClick={() => setSelectedGroup(group.name)}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+              {group.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold truncate">{group.name}</p>
+              {group.phone && (
+                <p className="text-xs text-muted-foreground">{group.phone}</p>
+              )}
+            </div>
+            {group.totalRemaining <= 0 ? (
+              <Badge className="bg-success text-success-foreground text-[10px]">Paid</Badge>
+            ) : group.hasOverdue ? (
+              <Badge className="bg-destructive text-destructive-foreground text-[10px]">Overdue</Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px]">{group.entries.length}</Badge>
+            )}
+          </div>
 
-      {/* Desktop Table View */}
-      <Card className="hidden lg:block w-full overflow-x-auto">
-        <Table className="w-full">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8"></TableHead>
-              <TableHead>Party Name</TableHead>
-              <TableHead>ID</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
-              <TableHead className="text-right">Paid Amount</TableHead>
-              <TableHead className="text-right">Remaining</TableHead>
-              <TableHead>Credit Date</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {grouped.map((group) => (
-              <Collapsible key={group.name} asChild open={openCustomers.has(group.name)} onOpenChange={() => toggleCustomer(group.name)}>
-                <>
-                  <CollapsibleTrigger asChild>
-                    <TableRow className="cursor-pointer bg-muted/30 hover:bg-muted/50 font-medium">
-                      <TableCell className="w-8 px-2">
-                        {openCustomers.has(group.name) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-xs">
-                            {group.name.charAt(0).toUpperCase()}
-                          </div>
-                          {group.name}
-                          <Badge variant="secondary" className="text-[10px]">{group.entries.length}</Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">—</TableCell>
-                      <TableCell className="text-right font-semibold">Rs. {group.totalAmount.toLocaleString()}</TableCell>
-                      <TableCell className="text-right text-success font-semibold">Rs. {group.totalPaid.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-bold text-warning">Rs. {group.totalRemaining.toLocaleString()}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell>
-                        {group.totalRemaining <= 0 
-                          ? <Badge className="bg-success text-success-foreground">Paid</Badge>
-                          : group.hasOverdue 
-                            ? <Badge className="bg-destructive text-destructive-foreground">Overdue</Badge>
-                            : null
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {group.totalRemaining > 0 && canEdit && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="gap-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onPayment(group.entries[0]);
-                            }}
-                          >
-                            <DollarSign className="h-3.5 w-3.5" />
-                            {type === "given" ? "Receive" : "Pay"}
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent asChild>
-                    <>
-                      {group.entries.map((credit) => (
-                        <React.Fragment key={credit.id}>
-                          <TableRow className="bg-background">
-                            <TableCell></TableCell>
-                            <TableCell>
-                              {credit.notes && (
-                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">{credit.notes}</p>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-mono text-xs text-muted-foreground">{credit.id.slice(0, 8)}</span>
-                            </TableCell>
-                            <TableCell className="text-right">Rs. {credit.total_amount.toLocaleString()}</TableCell>
-                            <TableCell className="text-right text-success">Rs. {credit.paid_amount.toLocaleString()}</TableCell>
-                            <TableCell className="text-right font-semibold text-warning">
-                              Rs. {credit.remaining_amount.toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              {credit.created_at ? formatDate(credit.created_at.split('T')[0]) : <span className="text-muted-foreground">-</span>}
-                            </TableCell>
-                            <TableCell>
-                              {credit.due_date ? formatDate(credit.due_date) : <span className="text-muted-foreground">-</span>}
-                            </TableCell>
-                            <TableCell>{getStatusBadge(credit.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-1">
-                                {credit.paid_amount > 0 && (
-                                  <Button size="sm" variant="ghost" onClick={() => toggleHistory(credit.id)} className="gap-1 text-xs">
-                                    <History className="h-3.5 w-3.5" />
-                                    History
-                                  </Button>
-                                )}
-                                {canEdit && (
-                                  <Button size="icon" variant="ghost" onClick={() => onEdit(credit)}>
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {canDelete && (
-                                  <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(credit.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                          {/* Payment History Row */}
-                          {expandedHistory.has(credit.id) && (
-                            <TableRow className="bg-muted/10">
-                              <TableCell></TableCell>
-                              <TableCell colSpan={9} className="py-2">
-                                <div className="pl-2">
-                                  <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                                    <History className="h-3 w-3" /> Payment History — {credit.id.slice(0, 8)}
-                                  </p>
-                                  <CreditPaymentHistory creditId={credit.id} formatDate={formatDate} />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </>
-                  </CollapsibleContent>
-                </>
-              </Collapsible>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-    </>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-muted/50 rounded-lg p-2">
+              <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+              <p className="text-xs font-bold">Rs. {group.totalAmount.toLocaleString()}</p>
+            </div>
+            <div className="bg-success/10 rounded-lg p-2">
+              <p className="text-[10px] text-muted-foreground uppercase">Paid</p>
+              <p className="text-xs font-bold text-success">Rs. {group.totalPaid.toLocaleString()}</p>
+            </div>
+            <div className="bg-warning/10 rounded-lg p-2">
+              <p className="text-[10px] text-muted-foreground uppercase">Due</p>
+              <p className="text-xs font-bold text-warning">Rs. {group.totalRemaining.toLocaleString()}</p>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
   );
 };
 
