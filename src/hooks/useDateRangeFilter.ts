@@ -67,8 +67,8 @@ export function createDateRangeUTC(
   endDay: number,
   tzOffset: number
 ): DateRange {
-  const startLocal = new Date(startYear, startMonth, startDay, 0, 0, 0, 0);
-  const endLocal = new Date(endYear, endMonth, endDay, 23, 59, 59, 999);
+  const startLocal = new Date(Date.UTC(startYear, startMonth, startDay, 0, 0, 0, 0));
+  const endLocal = new Date(Date.UTC(endYear, endMonth, endDay, 23, 59, 59, 999));
   return {
     start: new Date(startLocal.getTime() - tzOffset),
     end: new Date(endLocal.getTime() - tzOffset)
