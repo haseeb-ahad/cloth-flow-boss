@@ -869,12 +869,6 @@ const Credits = () => {
           </Button>
           {canCreate && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                  <Button size="sm" disabled={isLoading}>
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  Add credit
-                </Button>
-              </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <div className="flex items-center justify-between">
