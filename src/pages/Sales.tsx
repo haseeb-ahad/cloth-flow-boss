@@ -641,7 +641,7 @@ const Sales = () => {
                                   <FileText className="h-4 w-4 text-muted-foreground" />
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="bg-gray-900 text-white text-xs max-w-[200px] px-3 py-2 rounded-md shadow-lg border-0">
+                              <TooltipContent side="top" className="bg-popover text-popover-foreground text-xs max-w-[200px] px-3 py-2 rounded-md shadow-lg border dark:bg-gray-900 dark:text-white dark:border-0">
                                 <p>{sale.description}</p>
                               </TooltipContent>
                             </Tooltip>
