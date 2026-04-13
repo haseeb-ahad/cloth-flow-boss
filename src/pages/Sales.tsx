@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -633,9 +634,18 @@ const Sales = () => {
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-2">
                         {sale.description && (
-                          <span title={sale.description} className="cursor-help">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                          </span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help">
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[200px] text-xs">
+                                <p>{sale.description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                         {sale.image_url && (
                           <Dialog>
