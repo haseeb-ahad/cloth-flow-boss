@@ -207,16 +207,17 @@
         const combined = [...creditEntries, ...cashCreditEntries, ...paymentEntries, ...creditTxnEntries]
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
  
-       // Calculate running balance
-       for (const entry of combined) {
-         if (entry.transaction_type === "credit_given") {
-           runningBalance += entry.amount;
-         } else {
-           runningBalance -= entry.amount;
-         }
-         entry.balance_after = Math.max(0, runningBalance);
-         allEntries.push(entry);
-       }
+        // Calculate running balance using balance_impact (pending for invoices, amount for others)
+        for (const entry of combined) {
+          const impact = (entry as any).balance_impact ?? entry.amount;
+          if (entry.transaction_type === "credit_given") {
+            runningBalance += impact;
+          } else {
+            runningBalance -= impact;
+          }
+          entry.balance_after = Math.max(0, runningBalance);
+          allEntries.push(entry);
+        }
  
        // Reverse for display (newest first)
        setLedgerEntries(allEntries.reverse());
