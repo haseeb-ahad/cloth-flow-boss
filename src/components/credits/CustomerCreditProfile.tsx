@@ -388,8 +388,6 @@
          onEndDateChange={setEndDate}
        />
  
-       {/* Credit & Payment History */}
-       <CreditLedger entries={ledgerEntries} formatDate={formatDate} />
  
        {/* Receive Payment Dialog */}
        <ReceivePaymentDialog
