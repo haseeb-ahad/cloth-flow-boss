@@ -136,19 +136,21 @@ const CreditManagement = () => {
 
   const fetchCustomersWithCredit = async () => {
     try {
-      // Fetch customers who have credit balance from sales
+      // Fetch customers who still have outstanding balance in sales
       const { data: salesData, error } = await supabase
         .from("sales")
-        .select("customer_name, customer_phone")
+        .select("customer_name, customer_phone, final_amount, paid_amount")
         .not("customer_name", "is", null)
         .order("customer_name");
 
       if (error) throw error;
 
-      // Get unique customers with their phone numbers
+      // Get unique customers whose invoices are not fully paid
       const customerMap = new Map<string, string | null>();
       (salesData || []).forEach((sale: any) => {
-        if (sale.customer_name && !customerMap.has(sale.customer_name)) {
+        const remaining = Number(sale.final_amount || 0) - Number(sale.paid_amount || 0);
+
+        if (sale.customer_name && remaining > 0 && !customerMap.has(sale.customer_name)) {
           customerMap.set(sale.customer_name, sale.customer_phone);
         }
       });
