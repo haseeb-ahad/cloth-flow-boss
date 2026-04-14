@@ -141,6 +141,7 @@
         let runningBalance = 0;
 
         // First add all credits (invoices) sorted by date
+        // Use pending_amount for balance calculation since paid portion is tracked on sales record
         const creditEntries = creditInvoices.map(inv => ({
           id: `credit-${inv.id}`,
           date: inv.invoice_date,
@@ -148,6 +149,7 @@
           source: "invoice" as const,
           invoice_number: inv.invoice_number,
           amount: inv.invoice_amount,
+          balance_impact: inv.pending_amount,
           payment_method: null,
           balance_after: 0,
           notes: null
