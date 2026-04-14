@@ -90,13 +90,15 @@
  
        if (salesError) throw salesError;
  
-       // Filter to only those with credit (remaining balance > 0 OR was credit at some point)
-        const creditInvoices: InvoiceCredit[] = (salesData || [])
-          .filter(sale => {
-            const remaining = sale.final_amount - (sale.paid_amount || 0);
-            // Only include invoices that still have a remaining balance (exclude fully paid)
-            return remaining > 0;
-          })
+        // Show ALL invoices that had any credit involvement (paid or pending) for complete history
+         const creditInvoices: InvoiceCredit[] = (salesData || [])
+           .filter(sale => {
+             // Include invoices that have/had credit: partial payments, or fully paid with payment history
+             return (sale.paid_amount || 0) < sale.final_amount || 
+                    sale.payment_status === "paid" || 
+                    sale.payment_status === "partial" ||
+                    (sale.paid_amount || 0) > 0;
+           })
          .map(sale => {
            const remaining = Math.max(0, sale.final_amount - (sale.paid_amount || 0));
            let status: "cleared" | "pending" | "partial" = "pending";
