@@ -25,7 +25,7 @@
  const CustomerCreditProfile = ({ customer, onBack }: CustomerCreditProfileProps) => {
    const { ownerId, hasPermission, userRole } = useAuth();
    const { formatDate } = useTimezone();
-   const canEdit = userRole === "admin" || hasPermission("credits", "edit");
+   const canEdit = userRole === "admin" || hasPermission("credit_management", "edit");
  
    const [isLoading, setIsLoading] = useState(true);
    const [invoices, setInvoices] = useState<InvoiceCredit[]>([]);
