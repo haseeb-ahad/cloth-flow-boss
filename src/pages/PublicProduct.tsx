@@ -89,7 +89,7 @@ const PublicProduct = () => {
           .maybeSingle();
 
         if (settingsData) {
-          setShopSettings(settingsData);
+          setShopSettings(settingsData as any);
         }
       }
     } catch (err) {
