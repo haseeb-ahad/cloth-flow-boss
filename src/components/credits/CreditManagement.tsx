@@ -47,9 +47,9 @@ const CreditManagement = () => {
   const { ownerId, hasPermission, userRole } = useAuth();
   const { formatDate } = useTimezone();
   
-  const canCreate = userRole === "admin" || hasPermission("credits", "create");
-  const canEdit = userRole === "admin" || hasPermission("credits", "edit");
-  const canDelete = userRole === "admin" || hasPermission("credits", "delete");
+  const canCreate = userRole === "admin" || hasPermission("credit_management", "create");
+  const canEdit = userRole === "admin" || hasPermission("credit_management", "edit");
+  const canDelete = userRole === "admin" || hasPermission("credit_management", "delete");
 
   const [activeTab, setActiveTab] = useState<"profile" | "given" | "taken">("profile");
   const [credits, setCredits] = useState<CreditEntry[]>([]);
