@@ -272,7 +272,21 @@ export default function Workers() {
         },
       });
 
-      if (response.error) throw response.error;
+      // Extract server-provided error message even for non-2xx responses
+      let serverError: string | null = null;
+      if (response.error) {
+        try {
+          const ctx: any = (response.error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            serverError = body?.error || null;
+          } else if (ctx && typeof ctx.text === "function") {
+            const txt = await ctx.text();
+            try { serverError = JSON.parse(txt)?.error || txt; } catch { serverError = txt; }
+          }
+        } catch {/* ignore */}
+        throw new Error(serverError || response.error.message || "Failed to create worker");
+      }
       if (response.data?.error) throw new Error(response.data.error);
 
       toast.success("Worker created successfully! They can now login with their credentials.");
@@ -285,7 +299,14 @@ export default function Workers() {
       }, 1000);
     } catch (error: any) {
       console.error("Error creating worker:", error);
-      toast.error(error.message || "Failed to create worker");
+      const msg = (error?.message || "").toLowerCase();
+      if (msg.includes("already exists") || msg.includes("already registered") || msg.includes("duplicate")) {
+        const friendly = "This email is already registered. Please use a unique email address.";
+        setFormErrors({ email: friendly });
+        toast.error(friendly);
+      } else {
+        toast.error(error.message || "Failed to create worker");
+      }
     } finally {
       setCreatingWorker(false);
     }
