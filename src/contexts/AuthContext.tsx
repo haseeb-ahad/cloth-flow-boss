@@ -230,7 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       credits: "/credits",
       customers: "/customers",
       expenses: "/expenses",
-      receive_payment: "/receive-payment",
+      credit_management: "/credit-management",
     };
     
     const firstPermittedFeature = permissions.find(p => p.can_view);
