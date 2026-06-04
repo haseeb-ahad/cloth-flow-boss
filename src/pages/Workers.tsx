@@ -42,7 +42,7 @@ interface Permission {
   can_delete: boolean;
 }
 
-const FEATURES = ["invoice", "inventory", "sales", "credits", "customers", "expenses", "receive_payment"];
+const FEATURES = ["invoice", "inventory", "sales", "credits", "customers", "expenses", "credit_management"];
 
 const FEATURE_LABELS: Record<string, string> = {
   invoice: "Invoice",
@@ -51,7 +51,7 @@ const FEATURE_LABELS: Record<string, string> = {
   credits: "Credits",
   customers: "Customers",
   expenses: "Expenses",
-  receive_payment: "Receive Payment",
+  credit_management: "Credit Management",
 };
 
 const workerSchema = z.object({
