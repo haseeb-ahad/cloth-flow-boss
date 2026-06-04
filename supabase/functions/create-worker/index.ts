@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       console.log(`[CREATE-WORKER] User with email ${email} already exists`);
       return new Response(
         JSON.stringify({ error: "A user with this email already exists" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
