@@ -1074,6 +1074,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sale_items_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
@@ -1278,6 +1285,7 @@ export type Database = {
       }
       worker_permissions: {
         Row: {
+          admin_id: string | null
           can_create: boolean | null
           can_delete: boolean | null
           can_edit: boolean | null
@@ -1288,6 +1296,7 @@ export type Database = {
           worker_id: string
         }
         Insert: {
+          admin_id?: string | null
           can_create?: boolean | null
           can_delete?: boolean | null
           can_edit?: boolean | null
@@ -1298,6 +1307,7 @@ export type Database = {
           worker_id: string
         }
         Update: {
+          admin_id?: string | null
           can_create?: boolean | null
           can_delete?: boolean | null
           can_edit?: boolean | null
@@ -1311,7 +1321,69 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_products: {
+        Row: {
+          category: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          owner_id: string | null
+          quantity_type: string | null
+          selling_price: number | null
+          sku: string | null
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          owner_id?: string | null
+          quantity_type?: string | null
+          selling_price?: number | null
+          sku?: string | null
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          owner_id?: string | null
+          quantity_type?: string | null
+          selling_price?: number | null
+          sku?: string | null
+        }
+        Relationships: []
+      }
+      public_shop_settings: {
+        Row: {
+          app_name: string | null
+          description: string | null
+          logo_url: string | null
+          owner_id: string | null
+          shop_address: string | null
+          shop_name: string | null
+        }
+        Insert: {
+          app_name?: string | null
+          description?: string | null
+          logo_url?: string | null
+          owner_id?: string | null
+          shop_address?: string | null
+          shop_name?: string | null
+        }
+        Update: {
+          app_name?: string | null
+          description?: string | null
+          logo_url?: string | null
+          owner_id?: string | null
+          shop_address?: string | null
+          shop_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_admin_offline: { Args: never; Returns: undefined }

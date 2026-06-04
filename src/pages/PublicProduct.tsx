@@ -52,23 +52,23 @@ const PublicProduct = () => {
       
       // First try SKU lookup
       const { data: skuData, error: skuError } = await supabase
-        .from("products")
+        .from("public_products" as any)
         .select("*")
         .eq("sku", productId)
         .maybeSingle();
 
       if (skuData) {
-        productData = skuData;
+        productData = skuData as any;
       } else {
         // Try ID lookup
         const { data: idData, error: idError } = await supabase
-          .from("products")
+          .from("public_products" as any)
           .select("*")
           .eq("id", productId)
           .maybeSingle();
 
         if (idData) {
-          productData = idData;
+          productData = idData as any;
         }
       }
 
@@ -83,13 +83,13 @@ const PublicProduct = () => {
       // Fetch shop settings for this product's owner
       if (productData.owner_id) {
         const { data: settingsData } = await supabase
-          .from("app_settings")
-          .select("shop_name, shop_address, phone_numbers, logo_url, description")
+          .from("public_shop_settings" as any)
+          .select("shop_name, shop_address, logo_url, description")
           .eq("owner_id", productData.owner_id)
           .maybeSingle();
 
         if (settingsData) {
-          setShopSettings(settingsData);
+          setShopSettings(settingsData as any);
         }
       }
     } catch (err) {
