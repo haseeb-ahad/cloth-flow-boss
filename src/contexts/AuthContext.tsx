@@ -62,7 +62,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role and permissions after state is set
+          // Keep loading true until role+permissions are fetched
+          setLoading(true);
           setTimeout(() => {
             fetchUserRoleAndPermissions(session.user.id);
           }, 0);
@@ -70,8 +71,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserRole(null);
           setPermissions([]);
           setAdminFeatureOverrides([]);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
