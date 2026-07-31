@@ -124,15 +124,6 @@ const Pricing = () => {
     return icons[index % icons.length];
   };
 
-  const getPlanColor = (index: number) => {
-    const colors = [
-      "from-blue-500 to-cyan-500",
-      "from-purple-500 to-pink-500",
-      "from-amber-500 to-orange-500"
-    ];
-    return colors[index % colors.length];
-  };
-
   return (
     <div className="landing-midnight min-h-screen overflow-hidden">
       {/* Ambient background */}
@@ -229,7 +220,6 @@ const Pricing = () => {
             >
               {plans?.map((plan, index) => {
                 const Icon = getPlanIcon(index);
-                const colorGradient = getPlanColor(index);
                 const featureList = getFeatureList(plan.features);
                 const isPopular = index === 1;
                 const { price, period } = getPlanPrice(plan);
