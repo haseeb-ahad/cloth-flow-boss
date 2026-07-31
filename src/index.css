@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @tailwind base;
 
 /* Marquee Animation */
@@ -791,4 +792,70 @@
     width: 100%;
     max-width: 100%;
   }
+}
+/* ============ Landing Page Scope: Midnight Indigo ============ */
+
+.landing-midnight {
+  --background: 240 47% 6%;
+  --foreground: 230 40% 96%;
+  --card: 240 42% 14%;
+  --card-foreground: 230 40% 96%;
+  --popover: 240 42% 14%;
+  --popover-foreground: 230 40% 96%;
+  --primary: 243 75% 59%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 51% 23%;
+  --secondary-foreground: 230 40% 96%;
+  --muted: 240 42% 14%;
+  --muted-foreground: 232 20% 68%;
+  --accent: 243 75% 59%;
+  --accent-foreground: 0 0% 100%;
+  --border: 240 40% 20%;
+  --input: 240 40% 20%;
+  --ring: 243 75% 59%;
+  --radius: 1rem;
+
+  --gradient-hero: linear-gradient(135deg, hsl(243 75% 59%), hsl(268 70% 62%));
+  --gradient-surface: linear-gradient(160deg, hsl(240 45% 12%), hsl(240 47% 8%));
+  --shadow-bento: 0 24px 60px -24px hsl(243 75% 59% / 0.45);
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.landing-midnight h1,
+.landing-midnight h2,
+.landing-midnight h3,
+.landing-midnight .font-display {
+  font-family: 'Syne', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.landing-midnight .bento-card {
+  background-image: var(--gradient-surface);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.landing-midnight .bento-card:hover {
+  transform: translateY(-6px);
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: var(--shadow-bento);
+}
+
+.landing-midnight .gradient-text {
+  background-image: var(--gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.landing-midnight .grid-lines {
+  background-image:
+    linear-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border) / 0.5) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 75%);
 }
