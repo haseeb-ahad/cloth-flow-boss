@@ -124,28 +124,20 @@ const Pricing = () => {
     return icons[index % icons.length];
   };
 
-  const getPlanColor = (index: number) => {
-    const colors = [
-      "from-blue-500 to-cyan-500",
-      "from-purple-500 to-pink-500",
-      "from-amber-500 to-orange-500"
-    ];
-    return colors[index % colors.length];
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div className="landing-midnight min-h-screen overflow-hidden">
+      {/* Ambient background */}
+      <div className="pointer-events-none fixed inset-0">
+        <div className="grid-lines absolute inset-0 opacity-60" />
         <motion.div
-          animate={{ x: [0, 100, 0], y: [0, -50, 0], rotate: [0, 180, 360] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl"
+          animate={{ x: [0, 80, 0], y: [0, -40, 0] }}
+          transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-40 right-0 h-[28rem] w-[28rem] rounded-full bg-primary/25 blur-[140px]"
         />
         <motion.div
-          animate={{ x: [0, -80, 0], y: [0, 80, 0] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/2 -left-40 w-80 h-80 bg-gradient-to-br from-pink-200/30 to-orange-200/30 rounded-full blur-3xl"
+          animate={{ x: [0, -60, 0], y: [0, 60, 0] }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/2 -left-40 h-96 w-96 rounded-full bg-secondary/60 blur-[140px]"
         />
       </div>
 
@@ -155,28 +147,26 @@ const Pricing = () => {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-50 px-6 py-4 lg:px-12"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-border/70 bg-card/50 px-4 py-3 backdrop-blur-xl">
           <Link to="/">
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
               <img src={invoxaLogo} alt="Invoxa Logo" className="h-10 w-auto" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Invoxa
-              </span>
+              <span className="font-display text-2xl font-bold text-foreground">Invoxa</span>
             </motion.div>
           </Link>
           
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/#features" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Features</Link>
-            <Link to="/#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors font-semibold">Testimonials</Link>
-            <Link to="/pricing" className="text-blue-600 font-semibold">Pricing</Link>
+            <Link to="/#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Features</Link>
+            <Link to="/#testimonials" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Testimonials</Link>
+            <Link to="/pricing" className="text-sm font-semibold text-primary">Pricing</Link>
           </div>
 
           <div className="flex items-center gap-3">
             <Link to="/login">
-              <Button variant="ghost" className="text-slate-700 hover:text-slate-900">Login</Button>
+              <Button variant="ghost" className="text-foreground hover:bg-secondary/60">Login</Button>
             </Link>
             <Link to="/signup">
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Button className="bg-primary text-primary-foreground shadow-glow hover:bg-primary/90">
                 Get Started
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -193,15 +183,14 @@ const Pricing = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 text-sm font-medium mb-4">
-              <Crown className="w-4 h-4" />
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-muted-foreground">
+              <Crown className="h-4 w-4 text-primary" />
               Simple Pricing
             </div>
-            <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
-              Choose Your
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Perfect Plan</span>
+            <h1 className="mb-4 text-4xl font-bold text-foreground lg:text-6xl">
+              Choose your <span className="gradient-text">perfect plan</span>
             </h1>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
               Start with a free trial and upgrade when you're ready. All plans include full access to core features.
             </p>
           </motion.div>
@@ -209,7 +198,7 @@ const Pricing = () => {
           {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-8 border border-slate-200">
+                <div key={i} className="bento-card p-8">
                   <Skeleton className="h-12 w-12 rounded-xl mb-4" />
                   <Skeleton className="h-8 w-32 mb-2" />
                   <Skeleton className="h-4 w-full mb-6" />
@@ -231,7 +220,6 @@ const Pricing = () => {
             >
               {plans?.map((plan, index) => {
                 const Icon = getPlanIcon(index);
-                const colorGradient = getPlanColor(index);
                 const featureList = getFeatureList(plan.features);
                 const isPopular = index === 1;
                 const { price, period } = getPlanPrice(plan);
@@ -242,38 +230,38 @@ const Pricing = () => {
                     key={plan.id}
                     variants={fadeInUp}
                     whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)" }}
-                    className={`relative bg-white rounded-2xl p-8 border ${isPopular ? 'border-purple-300 ring-2 ring-purple-100' : 'border-slate-200'} shadow-sm transition-all duration-300`}
+                    className={`bento-card relative p-8 ${isPopular ? 'ring-2 ring-primary/60' : ''}`}
                   >
                     {isPopular && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full">
+                        <span className="whitespace-nowrap rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-glow">
                           Most Popular
                         </span>
                       </div>
                     )}
 
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colorGradient} flex items-center justify-center mb-5 shadow-lg`}>
-                      <Icon className="w-7 h-7 text-white" />
+                    <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                      <Icon className="h-7 w-7" />
                     </div>
 
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">{plan.name}</h3>
-                    <p className="text-slate-500 text-sm mb-4">{plan.description || "Perfect for growing businesses"}</p>
+                    <h3 className="mb-2 text-2xl font-bold text-foreground">{plan.name}</h3>
+                    <p className="mb-4 text-sm text-muted-foreground">{plan.description || "Perfect for growing businesses"}</p>
                     
-                    <div className="inline-block px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium mb-4">
+                    <div className="mb-4 inline-block whitespace-nowrap rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs font-medium text-muted-foreground">
                       {durationLabel}
                     </div>
 
                     <div className="mb-6">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-slate-900">
+                        <span className="font-display text-4xl font-bold text-foreground">
                           PKR {price.toLocaleString()}
                         </span>
                         {period !== 'lifetime' && (
-                          <span className="text-slate-500">/{period}</span>
+                          <span className="text-muted-foreground">/{period}</span>
                         )}
                       </div>
                       {plan.trial_days != null && plan.trial_days > 0 && (
-                        <p className="text-sm text-blue-600 mt-1">
+                        <p className="mt-1 text-sm text-primary">
                           {plan.trial_days} days free trial included
                         </p>
                       )}
@@ -281,9 +269,9 @@ const Pricing = () => {
 
                     <Link to="/signup" className="block mb-6">
                       <Button
-                        className={`w-full ${isPopular 
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white' 
-                          : 'bg-slate-900 hover:bg-slate-800 text-white'
+                        className={`w-full ${isPopular
+                          ? 'bg-primary text-primary-foreground shadow-glow hover:bg-primary/90'
+                          : 'border border-border bg-secondary/50 text-foreground hover:bg-secondary'
                         }`}
                         size="lg"
                       >
@@ -292,11 +280,11 @@ const Pricing = () => {
                     </Link>
 
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-slate-700">What's included:</p>
+                      <p className="text-sm font-medium text-foreground">What's included:</p>
                       {featureList.map((feature, i) => (
-                        <div key={i} className="flex items-center gap-3 text-sm text-slate-600">
-                          <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${colorGradient} flex items-center justify-center flex-shrink-0`}>
-                            <Check className="w-3 h-3 text-white" />
+                        <div key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+                            <Check className="h-3 w-3" />
                           </div>
                           {feature}
                         </div>
@@ -304,8 +292,8 @@ const Pricing = () => {
                     </div>
 
                     {plan.is_lifetime && (
-                      <div className="mt-6 pt-4 border-t border-slate-100">
-                        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600">
+                      <div className="mt-6 border-t border-border pt-4">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                           <Crown className="w-4 h-4" />
                           Lifetime Access
                         </span>
@@ -324,9 +312,9 @@ const Pricing = () => {
             viewport={{ once: true }}
             className="mt-20 text-center"
           >
-            <p className="text-slate-600 mb-4">Need a custom plan for your enterprise?</p>
+            <p className="mb-4 text-muted-foreground">Need a custom plan for your enterprise?</p>
             <Link to="/signup">
-              <Button variant="outline" size="lg" className="border-2">
+              <Button variant="outline" size="lg" className="border-border bg-transparent text-foreground hover:bg-secondary/60">
                 Contact Sales
               </Button>
             </Link>
@@ -335,9 +323,9 @@ const Pricing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 px-6 py-12 lg:px-12 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-slate-500">© 2024 Invoxa. All rights reserved.</p>
+      <footer className="relative z-10 border-t border-border px-6 py-12 lg:px-12">
+        <div className="mx-auto max-w-7xl text-center">
+          <p className="text-sm text-muted-foreground">© 2026 Invoxa. All rights reserved.</p>
         </div>
       </footer>
     </div>
