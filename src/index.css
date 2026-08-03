@@ -62,16 +62,16 @@
     --warning-foreground: 0 0% 100%;
 
     /* Pastel accents for modern SaaS feel */
-    --pastel-blue: 213 94% 95%;
-    --pastel-purple: 270 100% 96%;
+    --pastel-blue: 187 80% 94%;
+    --pastel-purple: 170 60% 94%;
     --pastel-pink: 330 100% 96%;
     --pastel-yellow: 48 100% 94%;
-    --pastel-green: 142 76% 94%;
+    --pastel-green: 165 70% 93%;
 
     /* Refined borders - very subtle */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 190 16% 90%;
+    --input: 190 16% 90%;
+    --ring: 170 78% 36%;
 
     /* Modern radius - 12-16px for cards */
     --radius: 0.75rem;
