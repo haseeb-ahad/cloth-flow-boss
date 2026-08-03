@@ -79,11 +79,11 @@
     --radius-xl: 1.25rem;
 
     /* Modern gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(262 83% 58%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(142 65% 55%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 20% 99%) 100%);
-    --gradient-ai: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(330 80% 60%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(170 78% 40%) 0%, hsl(187 85% 45%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(160 71% 40%) 0%, hsl(165 65% 50%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(185 20% 99%) 100%);
+    --gradient-ai: linear-gradient(135deg, hsl(187 85% 45%) 0%, hsl(165 70% 45%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(185 20% 98%) 100%);
 
     /* Modern elevation shadows - subtle and elegant */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
@@ -91,21 +91,21 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-    --shadow-glow: 0 0 20px hsl(221 83% 53% / 0.15);
-    --shadow-glow-accent: 0 0 30px hsl(262 83% 58% / 0.2);
+    --shadow-glow: 0 0 20px hsl(170 78% 40% / 0.18);
+    --shadow-glow-accent: 0 0 30px hsl(187 85% 45% / 0.22);
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 1px 2px -1px rgb(0 0 0 / 0.02);
     --shadow-card-hover: 0 10px 30px -10px rgb(0 0 0 / 0.1);
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary: 170 78% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent: 180 20% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 221 83% 53%;
-    --sidebar-muted: 220 9% 46%;
+    --sidebar-border: 190 16% 90%;
+    --sidebar-ring: 170 78% 36%;
+    --sidebar-muted: 200 9% 46%;
   }
 
   .dark {
