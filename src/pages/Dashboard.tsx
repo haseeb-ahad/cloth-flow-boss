@@ -657,7 +657,7 @@ const Dashboard = () => {
               variant="outline" 
               size="icon"
               title={valuesHidden ? t("showValues") : t("hideValues")}
-              className="hover:bg-gradient-to-r hover:from-blue-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all shrink-0"
+              className="hover:bg-gradient-to-r hover:from-cyan-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all shrink-0"
             >
               {valuesHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
@@ -666,7 +666,7 @@ const Dashboard = () => {
               variant="outline" 
               size="icon"
               disabled={isLoading}
-              className="hover:bg-gradient-to-r hover:from-blue-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all shrink-0"
+              className="hover:bg-gradient-to-r hover:from-cyan-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all shrink-0"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
@@ -718,8 +718,8 @@ const Dashboard = () => {
           <Card className="hover:shadow-lg transition-all duration-300 animate-in group" style={{ animationDelay: '100ms' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{t("sale")}</CardTitle>
-              <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ShoppingCart className="h-5 w-5 text-blue-500" />
+              <div className="h-10 w-10 rounded-xl bg-cyan-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ShoppingCart className="h-5 w-5 text-cyan-500" />
               </div>
             </CardHeader>
             <CardContent>

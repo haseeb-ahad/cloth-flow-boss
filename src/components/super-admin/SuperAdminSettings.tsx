@@ -306,7 +306,7 @@ const SuperAdminSettings = () => {
       <Card className="border-0 shadow-sm bg-white">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500" />
             Change Password
           </CardTitle>
         </CardHeader>
@@ -392,7 +392,7 @@ const SuperAdminSettings = () => {
           <Button
             onClick={handleChangePassword}
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 h-9 sm:h-10 text-sm"
+            className="w-full bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 h-9 sm:h-10 text-sm"
           >
             {isLoading ? (
               "Saving..."

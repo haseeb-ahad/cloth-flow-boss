@@ -249,7 +249,7 @@ const SuperAdminAdmins = () => {
     const configs: Record<string, { className: string; icon: React.ElementType; label: string }> = {
       active: { className: "bg-emerald-100 text-emerald-700", icon: CheckCircle2, label: "Active" },
       expired: { className: "bg-red-100 text-red-700", icon: XCircle, label: "Expired" },
-      free: { className: "bg-blue-100 text-blue-700", icon: Crown, label: "Free Lifetime" },
+      free: { className: "bg-cyan-100 text-cyan-700", icon: Crown, label: "Free Lifetime" },
       cancelled: { className: "bg-slate-100 text-slate-700", icon: Clock, label: "Cancelled" },
     };
     const config = configs[status] || configs.free;
@@ -271,7 +271,7 @@ const SuperAdminAdmins = () => {
       <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm space-y-3">
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-medium text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white font-medium text-sm">
               {(admin.full_name || admin.email).charAt(0).toUpperCase()}
             </div>
             <span 
@@ -321,7 +321,7 @@ const SuperAdminAdmins = () => {
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600"
+            className="h-8 px-2 hover:bg-cyan-50 hover:text-cyan-600"
             onClick={() => {
               setSelectedAdmin(admin);
               setAssignPlanDialog(true);
@@ -361,7 +361,7 @@ const SuperAdminAdmins = () => {
         <div className="flex flex-col gap-4">
           <div>
             <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500" />
               Store Admins Management
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">Manage all registered store administrators</CardDescription>
@@ -436,7 +436,7 @@ const SuperAdminAdmins = () => {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-medium text-sm">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white font-medium text-sm">
                             {(admin.full_name || admin.email).charAt(0).toUpperCase()}
                           </div>
                           {/* Online indicator dot on avatar */}
@@ -492,7 +492,7 @@ const SuperAdminAdmins = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 px-2 hover:bg-blue-50 hover:text-blue-600"
+                          className="h-8 px-2 hover:bg-cyan-50 hover:text-cyan-600"
                           onClick={() => {
                             setSelectedAdmin(admin);
                             setAssignPlanDialog(true);
@@ -572,7 +572,7 @@ const SuperAdminAdmins = () => {
             <Button
               onClick={handleAssignPlan}
               disabled={!selectedPlan || isSaving}
-              className="bg-gradient-to-r from-blue-500 to-teal-600"
+              className="bg-gradient-to-r from-cyan-500 to-teal-600"
             >
               {isSaving ? "Assigning..." : "Assign Plan"}
             </Button>

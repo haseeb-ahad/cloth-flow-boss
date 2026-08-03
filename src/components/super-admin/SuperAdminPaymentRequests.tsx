@@ -389,7 +389,7 @@ const SuperAdminPaymentRequests = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                <Shield className="w-4 h-4 text-blue-500" />
+                <Shield className="w-4 h-4 text-cyan-500" />
                 Payment Requests
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">

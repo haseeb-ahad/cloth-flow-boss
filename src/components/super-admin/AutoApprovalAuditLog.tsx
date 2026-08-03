@@ -127,7 +127,7 @@ const AutoApprovalAuditLog = () => {
         );
       case "manually_approved":
         return (
-          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+          <Badge className="bg-cyan-100 text-cyan-700 hover:bg-cyan-100">
             <UserCheck className="w-3 h-3 mr-1" />
             Manually Approved
           </Badge>
@@ -452,7 +452,7 @@ const AutoApprovalAuditLog = () => {
                             href={log.details.proof_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline"
+                            className="text-xs text-cyan-600 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
                             View Payment Screenshot →

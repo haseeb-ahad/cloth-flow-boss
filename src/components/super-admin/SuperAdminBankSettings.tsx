@@ -89,7 +89,7 @@ const SuperAdminBankSettings = () => {
       <Card className="border-0 shadow-sm bg-white">
         <CardHeader className="pb-4">
           <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-            <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+            <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500" />
             Bank Transfer Settings
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
@@ -186,7 +186,7 @@ const SuperAdminBankSettings = () => {
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 text-white"
+            className="bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white"
           >
             {isSaving ? (
               <>

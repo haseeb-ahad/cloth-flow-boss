@@ -298,7 +298,7 @@ const SuperAdminPlans = () => {
         </div>
         <Button
           onClick={handleOpenCreate}
-          className="bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 text-white shadow-lg shadow-blue-500/25 w-full sm:w-auto"
+          className="bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white shadow-lg shadow-cyan-500/25 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Plan
@@ -333,10 +333,10 @@ const SuperAdminPlans = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-blue-50"
+                      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-cyan-50"
                       onClick={() => handleOpenEdit(plan)}
                     >
-                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
+                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-500" />
                     </Button>
                     <Button
                       size="sm"
@@ -428,10 +428,10 @@ const SuperAdminPlans = () => {
 
           {/* Add Plan Card */}
           <Card
-            className="border-2 border-dashed border-slate-200 hover:border-blue-300 transition-colors cursor-pointer group"
+            className="border-2 border-dashed border-slate-200 hover:border-cyan-300 transition-colors cursor-pointer group"
             onClick={handleOpenCreate}
           >
-            <CardContent className="flex flex-col items-center justify-center h-full min-h-[200px] sm:min-h-[300px] text-slate-400 group-hover:text-blue-500 transition-colors">
+            <CardContent className="flex flex-col items-center justify-center h-full min-h-[200px] sm:min-h-[300px] text-slate-400 group-hover:text-cyan-500 transition-colors">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-3 sm:mb-4">
                 <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
               </div>
@@ -447,7 +447,7 @@ const SuperAdminPlans = () => {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-blue-500" />
+              <Package className="w-5 h-5 text-cyan-500" />
               {selectedPlan ? "Edit Plan" : "Create Plan"}
             </DialogTitle>
             <DialogDescription>
@@ -646,7 +646,7 @@ const SuperAdminPlans = () => {
               </Button>
               <Button
                 onClick={handleSave}
-                className="bg-gradient-to-r from-blue-500 to-teal-600"
+                className="bg-gradient-to-r from-cyan-500 to-teal-600"
               >
                 {selectedPlan ? "Update Plan" : "Create Plan"}
               </Button>

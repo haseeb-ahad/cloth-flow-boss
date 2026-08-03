@@ -1668,7 +1668,7 @@ const Invoice = () => {
                                         return prev;
                                       });
                                     }}
-                                    className="hover:bg-blue-600 hover:text-white [&[aria-selected=true]]:bg-blue-600 [&[aria-selected=true]]:text-white"
+                                    className="hover:bg-cyan-600 hover:text-white [&[aria-selected=true]]:bg-cyan-600 [&[aria-selected=true]]:text-white"
                                   >
                                     <Check className={cn("mr-2 h-4 w-4", item.product_id === product.id ? "opacity-100" : "opacity-0")} />
                                     <div className="flex flex-col">

@@ -205,7 +205,7 @@ const SuperAdminPayments = () => {
       </div>
       
       <div className="flex justify-end pt-2 border-t">
-        <Button size="sm" variant="ghost" className="h-8 text-xs hover:bg-blue-50 hover:text-blue-600">
+        <Button size="sm" variant="ghost" className="h-8 text-xs hover:bg-cyan-50 hover:text-cyan-600">
           <Download className="w-3 h-3 mr-1" />
           Invoice
         </Button>
@@ -246,7 +246,7 @@ const SuperAdminPayments = () => {
           <div className="flex flex-col gap-4">
             <div>
               <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500" />
                 All Payments
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">View and manage all subscription payments</CardDescription>
@@ -368,7 +368,7 @@ const SuperAdminPayments = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 hover:bg-blue-50 hover:text-blue-600"
+                          className="h-8 hover:bg-cyan-50 hover:text-cyan-600"
                         >
                           <Download className="w-4 h-4 mr-1" />
                           Invoice

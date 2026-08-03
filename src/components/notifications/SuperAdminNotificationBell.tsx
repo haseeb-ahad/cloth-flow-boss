@@ -333,7 +333,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
       return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
     }
     if (category === "registration") {
-      return <User className="h-4 w-4 text-blue-500" />;
+      return <User className="h-4 w-4 text-cyan-500" />;
     }
     if (category === "payment_upload" || category === "payment_rejected") {
       return <CreditCard className="h-4 w-4 text-amber-500" />;
@@ -349,7 +349,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
     if (type === "success") {
       return "bg-emerald-50 border-l-4 border-l-emerald-500";
     }
-    return "bg-blue-50 border-l-4 border-l-blue-500";
+    return "bg-cyan-50 border-l-4 border-l-cyan-500";
   };
 
   return (
@@ -390,7 +390,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
           align="end"
           sideOffset={8}
         >
-          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-500 to-teal-600 text-white rounded-t-lg">
+          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-t-lg">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span className="font-semibold text-sm whitespace-nowrap">Notifications</span>

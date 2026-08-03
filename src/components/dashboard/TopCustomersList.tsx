@@ -37,7 +37,7 @@ const formatCurrency = (amount: number) => {
 
 // Blue to purple gradient colors
 const AVATAR_COLORS = [
-  "bg-blue-500",
+  "bg-cyan-500",
   "bg-teal-500",
   "bg-teal-500",
   "bg-cyan-500",
