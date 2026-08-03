@@ -177,7 +177,7 @@ export default function Settings() {
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `logo-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const filePath = `${ownerId}/logos/${fileName}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
