@@ -390,7 +390,7 @@ const SuperAdminNotificationBell = ({ superAdminUserId }: SuperAdminNotification
           align="end"
           sideOffset={8}
         >
-          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-500 to-teal-600 text-white rounded-t-lg">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span className="font-semibold text-sm whitespace-nowrap">Notifications</span>

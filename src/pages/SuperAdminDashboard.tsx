@@ -176,13 +176,13 @@ const SuperAdminDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-purple-50/10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-teal-50/10">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 safe-area-pt">
         <div className="w-full mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20">
+              <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-teal-600 shadow-lg shadow-blue-500/20">
                 <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
@@ -220,56 +220,56 @@ const SuperAdminDashboard = () => {
               <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm inline-flex flex-wrap h-auto gap-1">
                 <TabsTrigger
                   value="dashboard"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard
                 </TabsTrigger>
                 <TabsTrigger
                   value="admins"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <Users className="w-4 h-4 mr-2" />
                   Admins
                 </TabsTrigger>
                 <TabsTrigger
                   value="plans"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <Package className="w-4 h-4 mr-2" />
                   Plans
                 </TabsTrigger>
                 <TabsTrigger
                   value="payments"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
                   Payments
                 </TabsTrigger>
                 <TabsTrigger
                   value="payment-requests"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <FileCheck className="w-4 h-4 mr-2" />
                   Bank Transfers
                 </TabsTrigger>
                 <TabsTrigger
                   value="bank-settings"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <Building2 className="w-4 h-4 mr-2" />
                   Bank Settings
                 </TabsTrigger>
                 <TabsTrigger
                   value="loader-settings"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <Type className="w-4 h-4 mr-2" />
                   Loader Logo
                 </TabsTrigger>
                 <TabsTrigger
                   value="settings"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 text-sm whitespace-nowrap"
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
@@ -304,7 +304,7 @@ const SuperAdminDashboard = () => {
                 icon={TrendingUp}
                 trend="up"
                 trendValue="24%"
-                color="bg-gradient-to-br from-purple-500 to-purple-600"
+                color="bg-gradient-to-br from-teal-500 to-teal-600"
               />
               <StatCard
                 title="Pending Payments"
@@ -333,7 +333,7 @@ const SuperAdminDashboard = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full justify-start h-10 sm:h-12 border-slate-200 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 text-sm sm:text-base"
+                      className="w-full justify-start h-10 sm:h-12 border-slate-200 hover:bg-teal-50 hover:border-teal-200 hover:text-teal-600 text-sm sm:text-base"
                       onClick={() => setActiveTab("admins")}
                     >
                       <Users className="w-4 h-4 mr-2 sm:mr-3" />
@@ -379,7 +379,7 @@ const SuperAdminDashboard = () => {
                           className="flex items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
                         >
                           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm flex-shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm flex-shrink-0">
                               {(admin.full_name || admin.email).charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0 flex-1">

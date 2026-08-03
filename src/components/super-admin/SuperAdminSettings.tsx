@@ -392,7 +392,7 @@ const SuperAdminSettings = () => {
           <Button
             onClick={handleChangePassword}
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 h-9 sm:h-10 text-sm"
+            className="w-full bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 h-9 sm:h-10 text-sm"
           >
             {isLoading ? (
               "Saving..."

@@ -186,7 +186,7 @@ const SuperAdminBankSettings = () => {
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+            className="bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 text-white"
           >
             {isSaving ? (
               <>

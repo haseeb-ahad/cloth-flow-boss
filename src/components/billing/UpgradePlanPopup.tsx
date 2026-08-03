@@ -407,7 +407,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
           </div>
 
           {/* Selected Plan Info */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-teal-50 border border-blue-100">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-amber-500" />
@@ -610,7 +610,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
               Back
             </Button>
             <Button
-              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 text-white"
               onClick={handleSubmit}
               disabled={isSubmitting || !canSubmit}
             >

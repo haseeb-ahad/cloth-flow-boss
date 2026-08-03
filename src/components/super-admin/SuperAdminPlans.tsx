@@ -298,7 +298,7 @@ const SuperAdminPlans = () => {
         </div>
         <Button
           onClick={handleOpenCreate}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 w-full sm:w-auto"
+          className="bg-gradient-to-r from-blue-500 to-teal-600 hover:from-blue-600 hover:to-teal-700 text-white shadow-lg shadow-blue-500/25 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Plan
@@ -390,7 +390,7 @@ const SuperAdminPlans = () => {
                 )}
                 <div className="flex flex-wrap gap-2">
                   {/* Duration Badge */}
-                  <Badge className="bg-purple-100 text-purple-700 text-xs">
+                  <Badge className="bg-teal-100 text-teal-700 text-xs">
                     {plan.is_lifetime 
                       ? 'Lifetime'
                       : plan.duration_months < 1 
@@ -646,7 +646,7 @@ const SuperAdminPlans = () => {
               </Button>
               <Button
                 onClick={handleSave}
-                className="bg-gradient-to-r from-blue-500 to-purple-600"
+                className="bg-gradient-to-r from-blue-500 to-teal-600"
               >
                 {selectedPlan ? "Update Plan" : "Create Plan"}
               </Button>

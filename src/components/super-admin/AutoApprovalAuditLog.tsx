@@ -180,7 +180,7 @@ const AutoApprovalAuditLog = () => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
               Auto-Approval Audit Log
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm mt-1">

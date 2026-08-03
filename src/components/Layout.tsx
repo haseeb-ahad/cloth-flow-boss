@@ -184,7 +184,7 @@ const Layout = ({ children }: LayoutProps) => {
                           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 animate-fade-in group",
                           sidebarCollapsed && "justify-center px-2",
                           isActive
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25"
+                            ? "bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-md shadow-blue-500/25"
                             : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
@@ -224,7 +224,7 @@ const Layout = ({ children }: LayoutProps) => {
                   "flex items-center gap-3 rounded-lg px-2 py-2 bg-sidebar-accent/50",
                   sidebarCollapsed && "justify-center"
                 )}>
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-md shrink-0">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-semibold text-sm shadow-md shrink-0">
                     {user?.email?.charAt(0).toUpperCase()}
                   </div>
                   {!sidebarCollapsed && (
@@ -375,7 +375,7 @@ const Layout = ({ children }: LayoutProps) => {
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           isActive
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25"
+                            ? "bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-md shadow-blue-500/25"
                             : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
@@ -390,7 +390,7 @@ const Layout = ({ children }: LayoutProps) => {
               {/* Mobile Sidebar Footer - User Info & Logout */}
               <div className="border-t border-border/50 p-3 space-y-2">
                 <div className="flex items-center gap-3 rounded-lg px-2 py-2 bg-sidebar-accent/50">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-semibold text-sm shadow-md">
                     {user?.email?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">

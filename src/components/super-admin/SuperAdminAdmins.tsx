@@ -271,7 +271,7 @@ const SuperAdminAdmins = () => {
       <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm space-y-3">
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-medium text-sm">
               {(admin.full_name || admin.email).charAt(0).toUpperCase()}
             </div>
             <span 
@@ -436,7 +436,7 @@ const SuperAdminAdmins = () => {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center text-white font-medium text-sm">
                             {(admin.full_name || admin.email).charAt(0).toUpperCase()}
                           </div>
                           {/* Online indicator dot on avatar */}
@@ -572,7 +572,7 @@ const SuperAdminAdmins = () => {
             <Button
               onClick={handleAssignPlan}
               disabled={!selectedPlan || isSaving}
-              className="bg-gradient-to-r from-blue-500 to-purple-600"
+              className="bg-gradient-to-r from-blue-500 to-teal-600"
             >
               {isSaving ? "Assigning..." : "Assign Plan"}
             </Button>
