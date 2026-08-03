@@ -75,8 +75,8 @@ interface Payment {
 }
 
 const PAYMENT_METHODS = [
-  { value: "card", label: "Credit/Debit Card", icon: CreditCard, color: "bg-blue-500" },
-  { value: "nayapay", label: "NayaPay", icon: Wallet, color: "bg-purple-500" },
+  { value: "card", label: "Credit/Debit Card", icon: CreditCard, color: "bg-cyan-500" },
+  { value: "nayapay", label: "NayaPay", icon: Wallet, color: "bg-teal-500" },
   { value: "jazzcash", label: "JazzCash", icon: Smartphone, color: "bg-red-500" },
   { value: "easypaisa", label: "EasyPaisa", icon: Smartphone, color: "bg-emerald-500" },
 ];
@@ -254,7 +254,7 @@ const StoreAdminBilling = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -291,7 +291,7 @@ const StoreAdminBilling = () => {
       <UserPaymentStatus />
 
       {/* Current Plan Card */}
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 via-purple-50/50 to-pink-50/30">
+      <Card className="border-0 shadow-sm bg-gradient-to-br from-cyan-50 via-teal-50/50 to-pink-50/30">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -349,7 +349,7 @@ const StoreAdminBilling = () => {
           <div className="flex gap-3">
             <Button
               onClick={() => setUpgradePopup(true)}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25"
+              className="bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white shadow-lg shadow-cyan-500/25"
             >
               <Zap className="w-4 h-4 mr-2" />
               {isExpired ? 'Renew Plan' : 'Upgrade Plan'}
@@ -375,7 +375,7 @@ const StoreAdminBilling = () => {
               <Card
                 key={plan.id}
                 className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
-                  currentPlan?.id === plan.id ? "ring-2 ring-blue-500" : ""
+                  currentPlan?.id === plan.id ? "ring-2 ring-cyan-500" : ""
                 }`}
                 onClick={() => {
                   setSelectedPlan(plan);
@@ -406,7 +406,7 @@ const StoreAdminBilling = () => {
       <Card className="border-0 shadow-sm bg-white">
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-blue-500" />
+            <CreditCard className="w-5 h-5 text-cyan-500" />
             Payment History
           </CardTitle>
           <CardDescription>Your recent transactions and invoices</CardDescription>
@@ -425,7 +425,7 @@ const StoreAdminBilling = () => {
                   className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center">
                       <CreditCard className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -473,7 +473,7 @@ const StoreAdminBilling = () => {
               <p className="text-slate-500 mb-6">
                 Your {selectedPlan?.name} plan is now active.
               </p>
-              <Button onClick={resetPurchaseDialog} className="bg-gradient-to-r from-blue-500 to-purple-600">
+              <Button onClick={resetPurchaseDialog} className="bg-gradient-to-r from-cyan-500 to-teal-600">
                 Done
               </Button>
             </div>
@@ -481,7 +481,7 @@ const StoreAdminBilling = () => {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  <Sparkles className="w-5 h-5 text-teal-500" />
                   Purchase Plan
                 </DialogTitle>
                 <DialogDescription>
@@ -609,7 +609,7 @@ const StoreAdminBilling = () => {
                 <Button
                   onClick={handlePurchase}
                   disabled={isProcessing || !paymentMethod}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600"
+                  className="bg-gradient-to-r from-cyan-500 to-teal-600"
                 >
                   {isProcessing ? (
                     <div className="flex items-center gap-2">

@@ -399,15 +399,15 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
       return (
         <div className="space-y-6">
           {/* Security Notice */}
-          <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 flex items-start gap-2">
-            <Shield className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-blue-700">
+          <div className="p-3 rounded-lg bg-cyan-50 border border-cyan-200 flex items-start gap-2">
+            <Shield className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-cyan-700">
               Your payment is protected with SHA-256 encryption and duplicate detection to prevent fraud.
             </p>
           </div>
 
           {/* Selected Plan Info */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-100">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-amber-500" />
@@ -427,7 +427,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
           {bankSettings ? (
             <div className="space-y-3">
               <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-500" />
+                <Building2 className="w-4 h-4 text-cyan-500" />
                 Bank Transfer Details
               </h4>
               <div className="p-4 rounded-xl bg-slate-50 space-y-3">
@@ -536,9 +536,9 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
               onChange={handleFileChange}
             />
             {isCheckingDuplicate ? (
-              <div className="p-8 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 text-center">
-                <Loader2 className="w-8 h-8 mx-auto text-blue-500 animate-spin mb-2" />
-                <p className="text-sm text-blue-700">Verifying image security...</p>
+              <div className="p-8 rounded-xl border-2 border-dashed border-cyan-300 bg-cyan-50 text-center">
+                <Loader2 className="w-8 h-8 mx-auto text-cyan-500 animate-spin mb-2" />
+                <p className="text-sm text-cyan-700">Verifying image security...</p>
               </div>
             ) : proofFile ? (
               <div className="relative p-4 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50">
@@ -595,7 +595,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="p-8 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors cursor-pointer text-center"
+                className="p-8 rounded-xl border-2 border-dashed border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/50 transition-colors cursor-pointer text-center"
               >
                 <Upload className="w-10 h-10 mx-auto text-slate-400 mb-3" />
                 <p className="font-medium text-slate-700">Click to upload payment screenshot</p>
@@ -610,7 +610,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
               Back
             </Button>
             <Button
-              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+              className="flex-1 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white"
               onClick={handleSubmit}
               disabled={isSubmitting || !canSubmit}
             >
@@ -645,8 +645,8 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
               }}
               className={`p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${
                 selectedPlan?.id === plan.id
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-slate-100 hover:border-blue-200"
+                  ? "border-cyan-500 bg-cyan-50"
+                  : "border-slate-100 hover:border-cyan-200"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
@@ -688,7 +688,7 @@ const UpgradePlanPopup = ({ open, onOpenChange, onSuccess }: UpgradePlanPopupPro
               </>
             ) : step === "payment" ? (
               <>
-                <Building2 className="w-5 h-5 text-blue-500" />
+                <Building2 className="w-5 h-5 text-cyan-500" />
                 Bank Transfer
               </>
             ) : (

@@ -49,12 +49,12 @@ const SuperAdminBottomNav = ({ activeTab, onTabChange }: SuperAdminBottomNavProp
               onClick={() => onTabChange(tab.id)}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 px-1 transition-colors ${
                 isActive 
-                  ? "text-blue-600" 
+                  ? "text-cyan-600" 
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
               <div className={`p-1.5 rounded-lg transition-colors ${
-                isActive ? "bg-blue-100" : ""
+                isActive ? "bg-cyan-100" : ""
               }`}>
                 <Icon className="w-5 h-5" />
               </div>
@@ -71,12 +71,12 @@ const SuperAdminBottomNav = ({ activeTab, onTabChange }: SuperAdminBottomNavProp
             <button
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 px-1 transition-colors ${
                 isMoreActive 
-                  ? "text-blue-600" 
+                  ? "text-cyan-600" 
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
               <div className={`p-1.5 rounded-lg transition-colors ${
-                isMoreActive ? "bg-blue-100" : ""
+                isMoreActive ? "bg-cyan-100" : ""
               }`}>
                 <MoreHorizontal className="w-5 h-5" />
               </div>
@@ -98,7 +98,7 @@ const SuperAdminBottomNav = ({ activeTab, onTabChange }: SuperAdminBottomNavProp
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
                   className={`flex items-center gap-3 cursor-pointer ${
-                    isActive ? "bg-blue-50 text-blue-600" : ""
+                    isActive ? "bg-cyan-50 text-cyan-600" : ""
                   }`}
                 >
                   <Icon className="w-4 h-4" />

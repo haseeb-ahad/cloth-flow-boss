@@ -121,7 +121,7 @@ const NotificationBell = () => {
       return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
     }
     if (category === "registration") {
-      return <User className="h-4 w-4 text-blue-500" />;
+      return <User className="h-4 w-4 text-cyan-500" />;
     }
     if (category === "payment_upload" || category === "payment_rejected") {
       return <CreditCard className="h-4 w-4 text-amber-500" />;
@@ -137,7 +137,7 @@ const NotificationBell = () => {
     if (type === "success") {
       return "bg-emerald-50 border-l-4 border-l-emerald-500";
     }
-    return "bg-blue-50/50 border-l-4 border-l-blue-500";
+    return "bg-cyan-50/50 border-l-4 border-l-cyan-500";
   };
 
   return (

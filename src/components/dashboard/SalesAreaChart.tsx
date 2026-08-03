@@ -52,11 +52,11 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
           </div>
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
               <span className="text-muted-foreground">Sales</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
               <span className="text-muted-foreground">Profit</span>
             </div>
           </div>

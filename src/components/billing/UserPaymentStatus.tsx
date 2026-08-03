@@ -87,7 +87,7 @@ const UserPaymentStatus = () => {
     return (
       <Card className="border-0 shadow-sm bg-white">
         <CardContent className="flex items-center justify-center py-8">
-          <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
         </CardContent>
       </Card>
     );
@@ -122,7 +122,7 @@ const UserPaymentStatus = () => {
       <Card className="border-0 shadow-sm bg-white">
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-blue-500" />
+            <CreditCard className="w-5 h-5 text-cyan-500" />
             Payment History
           </CardTitle>
           <CardDescription>Your payment submissions and their status</CardDescription>
@@ -135,7 +135,7 @@ const UserPaymentStatus = () => {
                 className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center">
                     <CreditCard className="w-5 h-5 text-white" />
                   </div>
                   <div>
