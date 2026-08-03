@@ -324,9 +324,11 @@ const Pricing = () => {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-border px-6 py-12 lg:px-12">
-        <div className="mx-auto max-w-7xl text-center">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center">
+          <img src={invoxaLogo} alt="Invoxa Logo" className="h-14 w-auto" />
           <p className="text-sm text-muted-foreground">© 2026 Invoxa. All rights reserved.</p>
         </div>
+
       </footer>
     </div>
   );
