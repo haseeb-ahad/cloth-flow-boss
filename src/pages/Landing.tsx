@@ -429,12 +429,10 @@ const Landing = () => {
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 grid gap-12 md:grid-cols-4">
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <img src={invoxaLogo} alt="Invoxa logo" className="h-10 w-10 rounded-xl" />
-                <span className="font-display text-2xl font-bold text-foreground">Invoxa</span>
-              </div>
+              <img src={invoxaLogo} alt="Invoxa logo" className="h-14 w-auto" />
               <p className="text-muted-foreground">The all-in-one platform for modern business management.</p>
             </div>
+
 
             {[
               { title: "Product", links: ["Features", "Pricing", "Updates", "Beta"] },
