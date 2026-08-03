@@ -34,21 +34,21 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Modern blue primary - inspired by Linear */
-    --primary: 221 83% 53%;
+    /* Aqua primary */
+    --primary: 170 78% 36%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 221 83% 48%;
+    --primary-hover: 170 78% 31%;
 
     /* Soft neutral secondary */
-    --secondary: 220 14% 96%;
+    --secondary: 180 20% 96%;
     --secondary-foreground: 222 47% 11%;
 
     /* Muted surfaces */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 180 20% 96%;
+    --muted-foreground: 200 9% 46%;
 
-    /* Accent colors - soft purple/violet for AI hints */
-    --accent: 262 83% 58%;
+    /* Accent colors - bright cyan/aqua */
+    --accent: 187 85% 43%;
     --accent-foreground: 0 0% 100%;
 
     /* Status colors */
