@@ -150,10 +150,10 @@ const Pricing = () => {
         <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-border/70 bg-card/50 px-4 py-3 backdrop-blur-xl">
           <Link to="/">
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
-              <img src={invoxaLogo} alt="Invoxa Logo" className="h-10 w-auto" />
-              <span className="font-display text-2xl font-bold text-foreground">Invoxa</span>
+              <img src={invoxaLogo} alt="Invoxa Logo" className="h-11 w-auto" />
             </motion.div>
           </Link>
+
           
           <div className="hidden md:flex items-center gap-8">
             <Link to="/#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Features</Link>
