@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Check, ChevronRight, Zap, Crown, Star } from "lucide-react";
 import { useTheme } from "next-themes";
-import invoxaLogo from "@/assets/invoxa-logo.png";
+import invoxaLogo from "@/assets/invoxa-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

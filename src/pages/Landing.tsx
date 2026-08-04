@@ -25,7 +25,7 @@ import testimonialHaseeb from "@/assets/testimonial-haseeb.jpeg";
 import testimonialAmeer from "@/assets/testimonial-ameer.jpeg";
 import testimonial4th from "@/assets/testimonial-4th.jpeg";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
-import invoxaLogo from "@/assets/invoxa-logo.png";
+import invoxaLogo from "@/assets/invoxa-logo.png.asset.json";
 
 const heroAvatars = [testimonialSalman, testimonialHaseeb, testimonialAmeer, testimonial4th];
 
