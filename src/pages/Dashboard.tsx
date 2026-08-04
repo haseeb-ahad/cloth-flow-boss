@@ -728,7 +728,7 @@ const Dashboard = () => {
                   <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{formatCurrency(stats.totalSales)}</div>
                   <p className="text-xs text-muted-foreground mt-1">{getDateRangeLabel()}</p>
                 </div>
-                <MiniSparkline data={sparklineData.sales} color="#3b82f6" />
+                <MiniSparkline data={sparklineData.sales} color="#06b6d4" />
               </div>
             </CardContent>
           </Card>

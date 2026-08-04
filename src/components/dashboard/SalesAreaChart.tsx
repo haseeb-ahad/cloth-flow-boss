@@ -75,12 +75,12 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
             >
               <defs>
                 <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02}/>
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                  <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.02}/>
                 </linearGradient>
                 <linearGradient id="profitAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.25}/>
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.02}/>
+                  <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.25}/>
+                  <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.02}/>
                 </linearGradient>
               </defs>
               <XAxis 
@@ -108,7 +108,7 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
               <Area
                 type="monotone"
                 dataKey="profit"
-                stroke="#8b5cf6"
+                stroke="#14b8a6"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 fill="url(#profitAreaGradient)"
@@ -119,7 +119,7 @@ const SalesAreaChart = ({ data, title, subtitle, valuesHidden, isLoading = false
               <Area
                 type="monotone"
                 dataKey="sales"
-                stroke="#3b82f6"
+                stroke="#06b6d4"
                 strokeWidth={2.5}
                 fill="url(#salesAreaGradient)"
                 animationDuration={1500}
