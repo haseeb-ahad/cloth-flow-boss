@@ -158,7 +158,7 @@ const Landing = () => {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-border/70 bg-card/50 px-4 py-3 backdrop-blur-xl">
           <div className="flex items-center gap-2">
-            <img src={invoxaLogo} alt="Invoxa logo" className="h-14 w-auto" />
+            <img src={invoxaLogo} alt="Invoxa logo" className="h-16 w-auto" />
           </div>
 
 
@@ -429,7 +429,7 @@ const Landing = () => {
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 grid gap-12 md:grid-cols-4">
             <div className="space-y-4">
-              <img src={invoxaLogo} alt="Invoxa logo" className="h-20 w-auto" />
+              <img src={invoxaLogo} alt="Invoxa logo" className="h-24 w-auto" />
               <p className="text-muted-foreground">The all-in-one platform for modern business management.</p>
             </div>
 
