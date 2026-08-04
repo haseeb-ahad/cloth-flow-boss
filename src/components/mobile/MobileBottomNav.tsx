@@ -37,7 +37,7 @@ const MobileBottomNav = () => {
       { path: "/inventory", icon: Package, label: "Inventory", feature: "inventory", adminOnly: false },
       { path: "/sales", icon: FileText, label: "Sales", feature: "sales", adminOnly: false },
       { path: "/credits", icon: CreditCard, label: "Credits", feature: "credits", adminOnly: false },
-      { path: "/credit-management", icon: Wallet, label: "Credit Mgmt", feature: "credits", adminOnly: false },
+      { path: "/credit-management", icon: Wallet, label: "Credit Mgmt", feature: "credit_management", adminOnly: false },
       
       { path: "/expenses", icon: Receipt, label: "Expenses", feature: "expenses", adminOnly: false },
       { path: "/customers", icon: Users, label: "Customers", feature: "customers", adminOnly: false },
