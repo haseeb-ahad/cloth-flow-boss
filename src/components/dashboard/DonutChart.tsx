@@ -17,8 +17,8 @@ interface DonutChartProps {
   isLoading?: boolean;
 }
 
-// Blue to purple gradient colors
-const COLORS = ["#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#c084fc"];
+// Aqua/teal gradient colors
+const COLORS = ["#14b8a6", "#06b6d4", "#2dd4bf", "#5eead4", "#0d9488"];
 
 const CustomTooltip = ({ active, payload, valuesHidden, t }: any) => {
   if (active && payload && payload.length) {

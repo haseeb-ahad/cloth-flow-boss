@@ -35,21 +35,21 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Blue to purple gradient colors
+// Aqua/teal gradient colors
 const AVATAR_COLORS = [
   "bg-cyan-500",
   "bg-teal-500",
-  "bg-teal-500",
-  "bg-cyan-500",
-  "bg-fuchsia-500",
+  "bg-teal-400",
+  "bg-cyan-400",
+  "bg-emerald-500",
 ];
 
 const CHART_COLORS = [
-  "#3b82f6",
-  "#6366f1",
-  "#8b5cf6",
-  "#a855f7",
-  "#d946ef",
+  "#14b8a6",
+  "#06b6d4",
+  "#2dd4bf",
+  "#5eead4",
+  "#0d9488",
 ];
 
 // Mini sparkline component for customer trends

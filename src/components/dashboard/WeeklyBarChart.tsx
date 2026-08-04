@@ -94,9 +94,9 @@ const WeeklyBarChart = ({ data, title, subtitle, valuesHidden }: WeeklyBarChartP
                 animationBegin={0}
               >
                 {translatedData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={data[index]?.value === maxValue ? "#8b5cf6" : "#3b82f6"}
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={data[index]?.value === maxValue ? "#14b8a6" : "#06b6d4"}
                     opacity={data[index]?.value === maxValue ? 1 : 0.7}
                   />
                 ))}
