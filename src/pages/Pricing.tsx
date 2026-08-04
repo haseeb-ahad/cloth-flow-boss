@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Check, ChevronRight, Zap, Crown, Star } from "lucide-react";
 import { useTheme } from "next-themes";
-import invoxaLogo from "@/assets/invoxa-logo.png.asset.json";
+import invoxaLogo from "@/assets/invoxa-logo.png";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,7 +150,7 @@ const Pricing = () => {
         <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-border/70 bg-card/50 px-4 py-3 backdrop-blur-xl">
           <Link to="/">
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center gap-2">
-              <img src={invoxaLogo.url} alt="Invoxa Logo" className="h-16 w-auto" />
+              <img src={invoxaLogo} alt="Invoxa Logo" className="h-16 w-auto" />
             </motion.div>
           </Link>
 
@@ -325,7 +325,7 @@ const Pricing = () => {
       {/* Footer */}
       <footer className="relative z-10 border-t border-border px-6 py-12 lg:px-12">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center">
-          <img src={invoxaLogo.url} alt="Invoxa Logo" className="h-24 w-auto" />
+          <img src={invoxaLogo} alt="Invoxa Logo" className="h-24 w-auto" />
           <p className="text-sm text-muted-foreground">© 2026 Invoxa. All rights reserved.</p>
         </div>
 
