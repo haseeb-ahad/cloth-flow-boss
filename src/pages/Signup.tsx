@@ -33,22 +33,15 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-const slideImages = [
-  dashboardPreview,
-  dashboardPreview,
-  dashboardPreview,
-];
-
 export default function Signup() {
   const navigate = useNavigate();
   const { setTheme, theme } = useTheme();
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   // Force light mode on signup page
   useEffect(() => {
     const previousTheme = theme;
     setTheme("light");
-    
+
     return () => {
       if (previousTheme && previousTheme !== "light") {
         setTheme(previousTheme);
@@ -56,13 +49,6 @@ export default function Signup() {
     };
   }, []);
 
-  // Auto-slide effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slideImages.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
   
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
