@@ -258,9 +258,10 @@ const Landing = () => {
               transition={{ duration: 0.8, delay: 0.15 }}
               className="relative"
             >
-              <div className="bento-card overflow-hidden p-3">
-                <img src={dashboardPreview} alt="Invoxa dashboard preview" className="w-full rounded-xl" loading="lazy" />
-              </div>
+              <MacbookMockup className="overflow-visible">
+                <img src={dashboardPreview} alt="Invoxa dashboard preview" className="w-full" loading="lazy" />
+              </MacbookMockup>
+
               <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[2rem] bg-primary/20 blur-3xl" />
             </motion.div>
           </div>
