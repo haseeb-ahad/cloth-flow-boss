@@ -37,9 +37,10 @@ export function AuthShell({ badge, title, subtitle, children, footer, wide }: Au
       {/* Floating device preview (decorative, desktop only) */}
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute right-[-8%] top-1/2 hidden w-[52%] -translate-y-1/2 opacity-25 blur-[1px] xl:block"
+        className="pointer-events-none absolute right-[-10%] top-1/2 hidden w-[44%] -translate-y-1/2 opacity-[0.14] blur-[2px] xl:block"
         initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 0.25, y: 0 }}
+        animate={{ opacity: 0.14, y: 0 }}
+
         transition={{ duration: 1 }}
         style={{ transform: "perspective(1400px) rotateY(-18deg) rotateX(6deg)" }}
       >
