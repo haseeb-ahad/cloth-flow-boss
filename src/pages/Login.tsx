@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { z } from "zod";
-import { motion, AnimatePresence } from "framer-motion";
-import dashboardPreview from "@/assets/dashboard-preview.jpeg";
-import { MacbookMockup } from "@/components/MacbookMockup";
+import { motion } from "framer-motion";
+import { AuthShell } from "@/components/auth/AuthShell";
+
 
 
 const loginSchema = z.object({
