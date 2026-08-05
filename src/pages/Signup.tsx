@@ -11,6 +11,8 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
+import { MacbookMockup } from "@/components/MacbookMockup";
+
 
 // Strong password validation schema
 const signupSchema = z.object({
