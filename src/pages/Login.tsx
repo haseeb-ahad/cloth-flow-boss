@@ -10,6 +10,8 @@ import { Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
+import { MacbookMockup } from "@/components/MacbookMockup";
+
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
