@@ -10,6 +10,8 @@ import { Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
+import { MacbookMockup } from "@/components/MacbookMockup";
+
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -279,7 +281,7 @@ export default function Login() {
                 ease: "easeInOut",
               }}
             />
-            <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+            <MacbookMockup className="relative">
               <AnimatePresence mode="wait">
                 <motion.img
                   key={currentSlide}
@@ -293,7 +295,8 @@ export default function Login() {
                   transition={{ duration: 0.6, ease: "easeInOut" }}
                 />
               </AnimatePresence>
-            </div>
+            </MacbookMockup>
+
 
             {/* Slide Indicators */}
             <div className="flex justify-center gap-2 mt-4">

@@ -11,6 +11,8 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import PasswordValidator, { usePasswordValidation } from "@/components/auth/PasswordValidator";
 import dashboardPreview from "@/assets/dashboard-preview.jpeg";
+import { MacbookMockup } from "@/components/MacbookMockup";
+
 
 // Strong password validation schema
 const signupSchema = z.object({
@@ -453,7 +455,7 @@ export default function Signup() {
                 ease: "easeInOut",
               }}
             />
-            <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+            <MacbookMockup className="relative">
               <AnimatePresence mode="wait">
                 <motion.img
                   key={currentSlide}
@@ -467,7 +469,8 @@ export default function Signup() {
                   transition={{ duration: 0.6, ease: "easeInOut" }}
                 />
               </AnimatePresence>
-            </div>
+            </MacbookMockup>
+
 
             {/* Slide Indicators */}
             <div className="flex justify-center gap-2 mt-4">
