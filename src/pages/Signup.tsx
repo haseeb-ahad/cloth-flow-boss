@@ -194,321 +194,185 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-8 bg-white overflow-y-auto">
-        <motion.div 
-          className="w-full max-w-md mx-auto"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Header */}
-          <motion.div className="mb-6" variants={itemVariants}>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Create Admin Account</h1>
-            <p className="text-muted-foreground">Sign up as an administrator</p>
-          </motion.div>
-
-          <form onSubmit={handleSignup} className="space-y-4">
-            {/* Store Name Field */}
-            <motion.div className="space-y-1.5" variants={itemVariants}>
-              <Label htmlFor="storeName" className="text-sm font-medium text-foreground">
-                Store Name
-              </Label>
-              <div className="relative">
-                <Store className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="storeName"
-                  type="text"
-                  placeholder="Enter your store name"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
-                  value={formData.storeName}
-                  onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-              {errors.storeName && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-destructive"
-                >
-                  {errors.storeName}
-                </motion.p>
-              )}
-            </motion.div>
-
-            {/* Full Name Field */}
-            <motion.div className="space-y-1.5" variants={itemVariants}>
-              <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
-                Full Name
-              </Label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Enter your full name"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-              {errors.fullName && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-destructive"
-                >
-                  {errors.fullName}
-                </motion.p>
-              )}
-            </motion.div>
-
-            {/* Email Field */}
-            <motion.div className="space-y-1.5" variants={itemVariants}>
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                Email
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-              {errors.email && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-destructive"
-                >
-                  {errors.email}
-                </motion.p>
-              )}
-            </motion.div>
-
-            {/* Phone Number Field */}
-            <motion.div className="space-y-1.5" variants={itemVariants}>
-              <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">
-                Phone Number
-              </Label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  className="pl-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-              {errors.phoneNumber && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-destructive"
-                >
-                  {errors.phoneNumber}
-                </motion.p>
-              )}
-            </motion.div>
-
-            {/* Password Field */}
-            <motion.div className="space-y-1.5" variants={itemVariants}>
-              <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
-                  className="pl-11 pr-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Confirm Password Field */}
-            <motion.div className="space-y-1.5" variants={itemVariants}>
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-                Confirm Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  className="pl-11 pr-11 h-11 border-border/50 bg-background focus:border-primary transition-all duration-300 focus:shadow-lg focus:shadow-primary/10"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Password Validator Component */}
-            <motion.div variants={itemVariants}>
-              <PasswordValidator
-                password={formData.password}
-                confirmPassword={formData.confirmPassword}
-                email={formData.email}
-                showStrengthMeter
+    <AuthShell
+      wide
+      badge="Start free"
+      title="Create your admin account"
+      subtitle="Set up your store and run billing, stock and credits in minutes."
+      footer={
+        <span className="text-muted-foreground">
+          Already have an account?{" "}
+          <Link to="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
+            Login
+          </Link>
+        </span>
+      }
+    >
+      <motion.form
+        onSubmit={handleSignup}
+        className="space-y-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <motion.div className="space-y-1.5" variants={itemVariants}>
+            <Label htmlFor="storeName" className="text-sm font-medium text-foreground">
+              Store Name
+            </Label>
+            <div className="relative">
+              <Store className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="storeName"
+                type="text"
+                placeholder="Your store name"
+                className="h-11 rounded-xl border-border/70 bg-background/40 pl-11 transition-all duration-300 focus:border-primary"
+                value={formData.storeName}
+                onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
+                disabled={loading}
               />
-            </motion.div>
-
-            {/* Submit Button */}
-            <motion.div variants={itemVariants}>
-              <Button 
-                type="submit" 
-                className="w-full h-11 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] mt-2"
-                disabled={loading || !isFormValid}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  "Sign Up"
-                )}
-              </Button>
-            </motion.div>
-          </form>
-
-          {/* Login Link */}
-          <motion.div className="mt-6 text-center" variants={itemVariants}>
-            <p className="text-muted-foreground">
-              Already have an account?{" "}
-              <Link 
-                to="/login" 
-                className="text-primary hover:text-primary/80 font-semibold underline underline-offset-4 transition-colors"
-              >
-                Login
-              </Link>
-            </p>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Right Side - Showcase */}
-      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/70">
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/85 to-orange-500/80" />
-        
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 py-12 w-full">
-          {/* Text Content */}
-          <motion.div 
-            className="mb-8"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <h2 className="text-3xl xl:text-4xl font-bold text-white mb-4 leading-tight">
-              All-in-One Business<br />Management Platform
-            </h2>
-            <p className="text-white/90 text-lg leading-relaxed">
-              <span className="font-semibold">Simplify your daily operations and grow your business</span>
-              {" "}— Easily manage inventory, billing, expenses, sales, and analytics — everything you need to run your business smoothly in one smart system.
-            </p>
-          </motion.div>
-
-          {/* Dashboard Preview Slider */}
-          <div className="relative">
-            <motion.div 
-              className="absolute -inset-4 bg-white/10 rounded-3xl blur-xl"
-              animate={{ 
-                scale: [1, 1.02, 1],
-                opacity: [0.3, 0.5, 0.3],
-              }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <MacbookMockup className="relative">
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentSlide}
-                  src={slideImages[currentSlide]}
-                  alt="Dashboard Preview"
-                  className="w-full h-auto"
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                />
-              </AnimatePresence>
-            </MacbookMockup>
-
-
-            {/* Slide Indicators */}
-            <div className="flex justify-center gap-2 mt-4">
-              {slideImages.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentSlide(index)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    currentSlide === index 
-                      ? "w-8 bg-white" 
-                      : "w-2 bg-white/40 hover:bg-white/60"
-                  }`}
-                />
-              ))}
             </div>
-          </div>
+            {errors.storeName && <p className="text-xs text-destructive">{errors.storeName}</p>}
+          </motion.div>
 
-          {/* Floating Brand Text */}
-          <div className="absolute bottom-8 left-0 right-0 overflow-hidden">
-            <motion.div 
-              className="flex items-center gap-8 whitespace-nowrap opacity-30"
-              animate={{ x: [0, -200] }}
-              transition={{ 
-                duration: 10, 
-                repeat: Infinity, 
-                ease: "linear",
-              }}
-            >
-              <span className="text-4xl font-bold text-white">Invoxa</span>
-              <span className="text-4xl font-bold text-white/60">Invoxa</span>
-              <span className="text-4xl font-bold text-white">Invoxa</span>
-              <span className="text-4xl font-bold text-white/60">Invoxa</span>
-              <span className="text-4xl font-bold text-white">Invoxa</span>
-              <span className="text-4xl font-bold text-white/60">Invoxa</span>
-            </motion.div>
-          </div>
+          <motion.div className="space-y-1.5" variants={itemVariants}>
+            <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
+              Full Name
+            </Label>
+            <div className="relative">
+              <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="Your full name"
+                className="h-11 rounded-xl border-border/70 bg-background/40 pl-11 transition-all duration-300 focus:border-primary"
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                disabled={loading}
+              />
+            </div>
+            {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+          </motion.div>
+
+          <motion.div className="space-y-1.5" variants={itemVariants}>
+            <Label htmlFor="email" className="text-sm font-medium text-foreground">
+              Email
+            </Label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                className="h-11 rounded-xl border-border/70 bg-background/40 pl-11 transition-all duration-300 focus:border-primary"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                disabled={loading}
+              />
+            </div>
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+          </motion.div>
+
+          <motion.div className="space-y-1.5" variants={itemVariants}>
+            <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">
+              Phone Number
+            </Label>
+            <div className="relative">
+              <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="phoneNumber"
+                type="tel"
+                placeholder="03xx xxxxxxx"
+                className="h-11 rounded-xl border-border/70 bg-background/40 pl-11 transition-all duration-300 focus:border-primary"
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                disabled={loading}
+              />
+            </div>
+            {errors.phoneNumber && <p className="text-xs text-destructive">{errors.phoneNumber}</p>}
+          </motion.div>
+
+          <motion.div className="space-y-1.5" variants={itemVariants}>
+            <Label htmlFor="password" className="text-sm font-medium text-foreground">
+              Password
+            </Label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a strong password"
+                className="h-11 rounded-xl border-border/70 bg-background/40 pl-11 pr-11 transition-all duration-300 focus:border-primary"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.div className="space-y-1.5" variants={itemVariants}>
+            <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+              Confirm Password
+            </Label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Repeat password"
+                className="h-11 rounded-xl border-border/70 bg-background/40 pl-11 pr-11 transition-all duration-300 focus:border-primary"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+
+        <motion.div variants={itemVariants}>
+          <PasswordValidator
+            password={formData.password}
+            confirmPassword={formData.confirmPassword}
+            email={formData.email}
+            showStrengthMeter
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <Button
+            type="submit"
+            className="mt-1 h-12 w-full rounded-xl bg-gradient-to-r from-primary to-accent text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40"
+            disabled={loading || !isFormValid}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Creating account...
+              </>
+            ) : (
+              <>
+                Create Account
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
+            )}
+          </Button>
+        </motion.div>
+      </motion.form>
+    </AuthShell>
   );
 }
+
