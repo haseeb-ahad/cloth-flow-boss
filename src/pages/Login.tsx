@@ -279,7 +279,7 @@ export default function Login() {
                 ease: "easeInOut",
               }}
             />
-            <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+            <MacbookMockup className="relative">
               <AnimatePresence mode="wait">
                 <motion.img
                   key={currentSlide}
@@ -293,7 +293,8 @@ export default function Login() {
                   transition={{ duration: 0.6, ease: "easeInOut" }}
                 />
               </AnimatePresence>
-            </div>
+            </MacbookMockup>
+
 
             {/* Slide Indicators */}
             <div className="flex justify-center gap-2 mt-4">
