@@ -18,22 +18,15 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const slideImages = [
-  dashboardPreview,
-  dashboardPreview,
-  dashboardPreview,
-];
-
 export default function Login() {
   const navigate = useNavigate();
   const { setTheme, theme } = useTheme();
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   // Force light mode on login page
   useEffect(() => {
     const previousTheme = theme;
     setTheme("light");
-    
+
     return () => {
       if (previousTheme && previousTheme !== "light") {
         setTheme(previousTheme);
@@ -41,13 +34,6 @@ export default function Login() {
     };
   }, []);
 
-  // Auto-slide effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slideImages.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
   
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
